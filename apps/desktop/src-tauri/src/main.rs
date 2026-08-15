@@ -128,7 +128,13 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle) {
                                 println!("[dsh-desktop] ready at {url}");
                                 if window.navigate(url).is_err() {
                                     fail(&window, "window is gone; cannot navigate");
+                                    return;
                                 }
+                                // Inject the custom title bar once the dsh page
+                                // settles; the script is idempotent, so retries
+                                // are safe.
+                                let inject = window.clone();
+                                std::thread::spawn(move || inject_titlebar(&inject));
                                 return;
                             }
                             Err(err) => {
@@ -154,6 +160,27 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle) {
                 return;
             }
         }
+    }
+}
+
+/// Inject the shared title bar script (apps/desktop/src/titlebar.js) into the
+/// loaded page. The script is idempotent and self-guarded, so it can be
+/// evaluated repeatedly while the webview finishes navigation.
+fn inject_titlebar(window: &WebviewWindow) {
+    let script = include_str!("../../src/titlebar.js");
+    let started = Instant::now();
+    let mut last_ok = false;
+    while started.elapsed() < Duration::from_secs(20) {
+        match window.eval(script) {
+            Ok(()) => {
+                if !last_ok {
+                    println!("[dsh-desktop] title bar injected");
+                }
+                last_ok = true;
+            }
+            Err(_) => last_ok = false,
+        }
+        std::thread::sleep(Duration::from_millis(250));
     }
 }
 

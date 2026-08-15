@@ -18,6 +18,14 @@ Start:
 
 The dev launcher sets DSH_CLI to the built apps/cli/lib/bin.js; DSH_NODE defaults to 'node' from PATH. The shell spawns 'dsh web --port 0' (OS-assigned free port) and parses the readiness line from the runtime's stdout.
 
+## Custom title bar
+
+The window is frameless; the title bar is a single injected element whose source is apps/desktop/src/titlebar.js — loaded by the loading page via a script tag and re-injected into the dsh web page after navigation (main.rs embeds the file with include_str!, idempotent retries).
+
+Theme following: the bar consumes the dsh theme tokens (--dsw-alias-*) that ui-theme writes on <body>; switching the theme in the dsh settings (or the system dark mode) repaints the bar automatically with no shell-side state. Window controls run through the remote capability (capabilities/remote.json, URLPattern http://127.0.0.1:*); drag uses startDragging().
+
+Known test-version gaps: no Windows 11 snap-layout flyout (frameless), resize borders come from tao's default hit-testing, maximize icon syncs on click/resize events.
+
 ## Test-version scope
 
 - The runtime is the locally built dsh CLI run by the PATH 'node'; the production path (bundled Node sidecar, packaged CLI in app resources, installer via 'tauri build') is deferred.
