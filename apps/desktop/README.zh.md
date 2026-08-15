@@ -53,6 +53,10 @@ main.rs 的环境变量接线:DSH_CLI/DSH_NODE/DSH_BARE_MODULE_BASE/DSH_BRIDGE_T
 
 主题跟随:标题栏消费 ui-theme 写在 <body> 上的 dsh 主题 token —— 背景取 sidebar-fill token(--dsw-specific-sidebar-fill,ui-theme 文档化为标题行背景),其余取 --dsw-alias-* 集合;在 dsh 设置里切换主题(或系统深色模式)会自动重绘标题栏,壳子侧无状态。窗口控制走 remote 能力(capabilities/remote.json,URLPattern `http://127.0.0.1:*`);拖动用 startDragging();双击拖拽条像按钮一样切换最大化(若以其它方式进入全屏,拖动前会先恢复)。
 
+标题左侧、应用标题旁边显示版本徽标:main.rs 在 eval 脚本前先写入 `window.__DSH_DESKTOP_VERSION__` 全局变量(取值来自 tauri.conf.json 的版本号,由 package.json 同步而来),因此徽标始终显示打包应用版本;加载页没有该全局变量,只渲染标题本身。
+
+标题右侧(窗口控制按钮之前)以带硬币图标的小药丸显示 DeepSeek 账户余额。药丸每 5 分钟轮询一次 `GET /dsh-bridge/balance`,并在窗口可见时刷新;桥接 host 通过运行时的凭据接缝解析 API key(与 llm-deepseek provider 使用的 `DEEPSEEK_API_KEY` 引用一致)并代理官方 `/user/balance` 接口,API key 永不进入浏览器。药丸在首次成功读取前保持隐藏,刷新失败时保留上次的金额。
+
 已知测试版缺口:无 Windows 11 贴靠布局弹出层(无边框),缩放边框来自 tao 的默认命中测试,最大化图标在点击/缩放事件上同步。
 
 ## 拖放
@@ -61,7 +65,7 @@ main.rs 的环境变量接线:DSH_CLI/DSH_NODE/DSH_BARE_MODULE_BASE/DSH_BRIDGE_T
 
 ## 壳桥接
 
-壳子把 dsh-desktop-bridge 包自动装进 web profile(npm tarball 拷贝,离线),并在每次启动时挂载 bridge/cordis.patch.yml。桥接 host 半边服务 POST /dsh-bridge/drop:把拖入的非图片文件拷进会话工作区的 drops/ 目录,并注入一条用户消息公告(持久、模型可见)。桥接 client 半边把非图片拖放(WebView2 File.path)转发到该路由;图片仍用 dsh 输入框的原生接收。
+壳子把 dsh-desktop-bridge 包自动装进 web profile(npm tarball 拷贝,离线),并在每次启动时挂载 bridge/cordis.patch.yml。桥接 host 半边服务 POST /dsh-bridge/drop:把拖入的非图片文件拷进会话工作区的 drops/ 目录,并注入一条用户消息公告(持久、模型可见)。它还服务 GET /dsh-bridge/balance,供标题栏的余额药丸使用:该路由通过凭据服务解析 DeepSeek key 并代理官方 /user/balance 接口(见“自定义标题栏”)。桥接 client 半边把非图片拖放(WebView2 File.path)转发到该路由;图片仍用 dsh 输入框的原生接收。
 
 ## 桥接策略
 

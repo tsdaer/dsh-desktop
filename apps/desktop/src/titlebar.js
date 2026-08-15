@@ -7,6 +7,20 @@
 // (--dsw-alias-*) that ui-theme writes on <body>; switching the theme in
 // the dsh settings repaints the bar automatically - no shell-side state to
 // sync. Fallback colors keep the pre-theme loading page readable.
+//
+// Left side: the app title plus a version badge. The Rust host prepends a
+// window.__DSH_DESKTOP_VERSION__ global before eval'ing this script into
+// the dsh page, so the badge shows the packaged app version there; the
+// loading page (plain <script src>) has no global and renders the bare
+// title.
+//
+// Right side (before the window controls): a balance pill fed by
+// GET /dsh-bridge/balance - the desktop bridge host resolves the DeepSeek
+// key through the runtime's credentials seam and proxies the official
+// /user/balance endpoint. The pill polls every 5 minutes and on window
+// visibility; it stays hidden until the first successful read, keeps the
+// last good amount while a refresh fails, and never touches the API key
+// itself (the browser only ever sees the amount).
 (function () {
   'use strict';
   if (document.getElementById('dsh-desktop-titlebar')) return;
@@ -27,6 +41,17 @@
     '#dsh-desktop-titlebar .bar-drag{' +
       'flex:1;display:flex;align-items:center;gap:8px;padding:0 12px;overflow:hidden;white-space:nowrap;' +
     '}' +
+    '#dsh-desktop-titlebar .bar-version{' +
+      'font-size:11px;line-height:16px;padding:0 6px;border:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,0.08));' +
+      'border-radius:4px;color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary,#9aa3b5));' +
+      'flex:none;' +
+    '}' +
+    '#dsh-desktop-titlebar .bar-balance{' +
+      'display:flex;align-items:center;gap:6px;padding:0 12px;white-space:nowrap;' +
+      'color:var(--dsw-alias-label-primary,#e6e8ee);cursor:default;flex:none;' +
+    '}' +
+    '#dsh-desktop-titlebar .bar-balance[hidden]{display:none !important;}' +
+    '#dsh-desktop-titlebar .bar-balance svg{flex:none;opacity:0.8;}' +
     '#dsh-desktop-titlebar .bar-btn{' +
       'width:46px;border:0;margin:0;padding:0;display:flex;align-items:center;justify-content:center;' +
       'background:transparent;color:inherit;cursor:pointer;' +
@@ -48,8 +73,84 @@
 
   var drag = document.createElement('div');
   drag.className = 'bar-drag';
-  drag.textContent = 'dsh-desktop';
+
+  var title = document.createElement('span');
+  title.className = 'bar-title';
+  title.textContent = 'dsh-desktop';
+  drag.appendChild(title);
+
+  // Version badge: only the Rust host sets the global before eval'ing this
+  // script into the dsh page, so the loading page (plain script tag) shows
+  // the bare title.
+  var appVersion = window.__DSH_DESKTOP_VERSION__;
+  if (typeof appVersion === 'string' && appVersion.length > 0) {
+    var versionBadge = document.createElement('span');
+    versionBadge.className = 'bar-version';
+    versionBadge.textContent = 'v' + appVersion;
+    drag.appendChild(versionBadge);
+  }
   bar.appendChild(drag);
+
+  // Balance pill (right side, before the window controls): fed by the
+  // bridge host's /dsh-bridge/balance route, polled every 5 minutes and on
+  // window visibility. Hidden until the first successful read; a failed
+  // refresh keeps the last good amount, and the API key never reaches this
+  // page (the bridge resolves it host-side).
+  var BALANCE_REFRESH_MS = 5 * 60 * 1000;
+  var balanceTimer = null;
+  var balanceEverShown = false;
+
+  var balance = document.createElement('div');
+  balance.className = 'bar-balance';
+  balance.hidden = true;
+  balance.title = '余额';
+  balance.setAttribute('aria-label', '余额');
+  balance.innerHTML = '' +
+    '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">' +
+      '<circle cx="6" cy="6" r="4.75" stroke="currentColor" stroke-width="1"/>' +
+      '<circle cx="6" cy="6" r="1.75" fill="currentColor"/>' +
+    '</svg>' +
+    '<span class="bar-balance-value">--</span>';
+  bar.appendChild(balance);
+
+  var CURRENCY_SYMBOLS = { CNY: '¥', USD: '$', EUR: '€', GBP: '£' };
+
+  function formatBalance(currency, total) {
+    var symbol = CURRENCY_SYMBOLS[currency] || (currency + ' ');
+    return symbol + total;
+  }
+
+  function applyBalance(data) {
+    if (data && data.ok === true && typeof data.totalBalance === 'string') {
+      balanceEverShown = true;
+      balance.querySelector('.bar-balance-value').textContent =
+        formatBalance(data.currency, data.totalBalance);
+      balance.hidden = false;
+    } else if (!balanceEverShown) {
+      balance.hidden = true;
+    }
+  }
+
+  function refreshBalance() {
+    if (balanceTimer !== null) {
+      clearTimeout(balanceTimer);
+      balanceTimer = null;
+    }
+    var controller = new AbortController();
+    var abort = setTimeout(function () { controller.abort(); }, 8000);
+    fetch('/dsh-bridge/balance', { signal: controller.signal })
+      .then(function (response) { return response.json(); })
+      .then(applyBalance)
+      .catch(function () { /* transient: keep the last shown amount */ })
+      .finally(function () {
+        clearTimeout(abort);
+        balanceTimer = setTimeout(refreshBalance, BALANCE_REFRESH_MS);
+      });
+  }
+  refreshBalance();
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) refreshBalance();
+  });
 
   var win = null;
   try {

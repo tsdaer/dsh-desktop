@@ -53,6 +53,10 @@ The window is frameless; the title bar is a single injected element whose source
 
 Theme following: the bar consumes the dsh theme tokens that ui-theme writes on <body> — background rides the sidebar-fill token (--dsw-specific-sidebar-fill, documented by ui-theme as the title-row background) and the rest ride the --dsw-alias-* set; switching the theme in the dsh settings (or the system dark mode) repaints the bar automatically with no shell-side state. Window controls run through the remote capability (capabilities/remote.json, URLPattern `http://127.0.0.1:*`); drag uses startDragging(); double-clicking the drag strip toggles maximize like the button (a fullscreen guard restores before dragging if fullscreen was entered another way).
 
+Left of the title, the bar shows a version badge next to the app title: main.rs prepends a `window.__DSH_DESKTOP_VERSION__` global before eval'ing the script (the value comes from tauri.conf.json's version, synced from package.json), so the badge always shows the packaged app version; the loading page has no global and renders the bare title.
+
+Right of the title (before the window controls), the bar shows the DeepSeek account balance as a small pill with a coin glyph. The pill polls `GET /dsh-bridge/balance` every 5 minutes and on window visibility; the bridge host resolves the API key through the runtime's credentials seam (the same `DEEPSEEK_API_KEY` reference the llm-deepseek provider uses) and proxies the official `/user/balance` endpoint, so the API key never reaches the browser. The pill stays hidden until the first successful read and keeps the last good amount while a refresh fails.
+
 Known test-version gaps: no Windows 11 snap-layout flyout (frameless), resize borders come from tao's default hit-testing, maximize icon syncs on click/resize events.
 
 ## Drag and drop
@@ -61,7 +65,7 @@ Native file drops are enabled by disabling the Tauri drag-drop handler ("dragDro
 
 ## Shell bridge
 
-The shell auto-installs the dsh-desktop-bridge packages into the web profile (npm tarball copies, offline) and mounts bridge/cordis.patch.yml on every boot. The bridge host half serves POST /dsh-bridge/drop: it copies dropped non-image files into the session workspace's drops/ directory and injects a user-message announcement (durable, model-visible). The bridge client half forwards non-image drops (WebView2 File.path) to the route; images keep using the dsh composer's native intake.
+The shell auto-installs the dsh-desktop-bridge packages into the web profile (npm tarball copies, offline) and mounts bridge/cordis.patch.yml on every boot. The bridge host half serves POST /dsh-bridge/drop: it copies dropped non-image files into the session workspace's drops/ directory and injects a user-message announcement (durable, model-visible). It also serves GET /dsh-bridge/balance for the title bar's balance pill: the route resolves the DeepSeek key through the credentials service and proxies the official /user/balance endpoint (see "Custom title bar"). The bridge client half forwards non-image drops (WebView2 File.path) to the route; images keep using the dsh composer's native intake.
 
 ## Bridge policy
 

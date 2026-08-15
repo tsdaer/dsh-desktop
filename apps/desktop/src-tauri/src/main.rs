@@ -556,9 +556,11 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
                                 }
                                 // Inject the custom title bar once the dsh page
                                 // settles; the script is idempotent, so retries
-                                // are safe.
+                                // are safe. The app version rides along as a
+                                // window global (titlebar.js renders the badge).
+                                let version = handle.package_info().version.to_string();
                                 let inject = window.clone();
-                                std::thread::spawn(move || inject_titlebar(&inject));
+                                std::thread::spawn(move || inject_titlebar(&inject, &version));
                                 return;
                             }
                             Err(err) => {
@@ -589,13 +591,20 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
 
 /// Inject the shared title bar script (apps/desktop/src/titlebar.js) into the
 /// loaded page. The script is idempotent and self-guarded, so it can be
-/// evaluated repeatedly while the webview finishes navigation.
-fn inject_titlebar(window: &WebviewWindow) {
-    let script = include_str!("../../src/titlebar.js");
+/// evaluated repeatedly while the webview finishes navigation. The version
+/// global is prepended rather than baked into the file so the loading page
+/// (a plain <script src="titlebar.js">, no global) keeps rendering the bare
+/// title.
+fn inject_titlebar(window: &WebviewWindow, version: &str) {
+    let script = format!(
+        "window.__DSH_DESKTOP_VERSION__ = {};{}",
+        js_string(version),
+        include_str!("../../src/titlebar.js"),
+    );
     let started = Instant::now();
     let mut last_ok = false;
     while started.elapsed() < Duration::from_secs(20) {
-        match window.eval(script) {
+        match window.eval(&script) {
             Ok(()) => {
                 if !last_ok {
                     println!("[dsh-desktop] title bar injected");

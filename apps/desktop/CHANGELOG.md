@@ -4,6 +4,10 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+### Added
+
+- The title bar shows the app version badge next to the title and a DeepSeek balance pill (fed by the bridge host's `/dsh-bridge/balance` route) before the window controls.
+
 ### Fixed
 
 - The desktop settings (drop policy and debug mode rows) now follow the app language.
