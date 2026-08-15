@@ -30,6 +30,23 @@ Known test-version gaps: no Windows 11 snap-layout flyout (frameless), resize bo
 
 Native file drops are enabled by disabling the Tauri drag-drop handler ("dragDropEnabled": false): WebView2 delivers OS drops straight to the dsh page, whose own document-level intake (InputBar + DropOverlay) accepts images into the composer with browser-identical behavior. Non-image files follow the dsh page's own filtering.
 
+## Shell bridge
+
+The shell auto-installs the dsh-desktop-bridge packages into the web profile (npm tarball copies, offline) and mounts bridge/cordis.patch.yml on every boot. The bridge host half serves POST /dsh-bridge/drop: it copies dropped non-image files into the session workspace's drops/ directory and injects a user-message announcement (durable, model-visible). The bridge client half forwards non-image drops (WebView2 File.path) to the route; images keep using the dsh composer's native intake.
+
+## Bridge policy
+
+The bridge accepts only files matching its policy: an extension allowlist (empty = every extension) and a size cap. Defaults: allow all extensions, 50 MiB.
+
+The title bar's gear button opens a settings panel (persisted through tauri-plugin-store at the app config dir's settings.json); saved values take effect immediately — the bridge host reads the store file per request and the client refreshes the policy per drop. Static fallback lives in the bridge row config (see below), used until the store holds values:
+
+    - id: desktop-bridge
+      config:
+        allowedExtensions: ['md', 'txt', 'pdf']
+        maxBytes: 10485760
+
+The client pre-filters before upload; the host enforces the same policy again at write time.
+
 ## Test-version scope
 
 - The runtime is the locally built dsh CLI run by the PATH 'node'; the production path (bundled Node sidecar, packaged CLI in app resources, installer via 'tauri build') is deferred.

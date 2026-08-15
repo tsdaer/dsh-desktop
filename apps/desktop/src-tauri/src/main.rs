@@ -52,6 +52,83 @@ fn main() {
         });
 }
 
+/// Ensure the bridge packages are installed into the web profile and return
+/// the patch overlays to mount. `DSH_PATCH` lists patch files (semicolon-
+/// separated); `DSH_BRIDGE_DIR` lists bridge package directories to install
+/// into the profile via npm (bundled with Node) when they are missing.
+/// Both are dev/deployment wiring: the shell itself carries no bridge code.
+fn ensure_bridge(node: &str, cli: &str) -> Vec<String> {
+    let patches: Vec<String> = std::env::var("DSH_PATCH")
+        .into_iter()
+        .flat_map(|v| v.split(';').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect::<Vec<_>>())
+        .collect();
+    let bridge_dirs: Vec<String> = std::env::var("DSH_BRIDGE_TARBALL")
+        .into_iter()
+        .flat_map(|v| v.split(';').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect::<Vec<_>>())
+        .collect();
+    if bridge_dirs.is_empty() {
+        return patches;
+    }
+    let home = std::env::var("DSH_HOME").unwrap_or_else(|_| {
+        let base = std::env::var("USERPROFILE")
+            .or_else(|_| std::env::var("HOME"))
+            .unwrap_or_else(|_| ".".to_string());
+        format!("{base}/.dsh")
+    });
+    let profile = std::path::Path::new(&home).join("profiles").join("web");
+    let marker = profile.join("node_modules").join("@deepseek-ai").join("dsh-desktop-bridge");
+    if !marker.join("package.json").exists() {
+        if !profile.exists() {
+            // First boot: let the CLI initialize the web profile template.
+            let _ = Command::new(node).arg(cli).arg("--profile").arg("web").arg("--dump-default-config").status();
+        }
+        if profile.exists() {
+            let status = Command::new("cmd")
+                .args(["/c", "npm", "install", "--no-save"])
+                .args(&bridge_dirs)
+                .current_dir(&profile)
+                .status();
+            match status {
+                Ok(status) if status.success() => {
+                    eprintln!("[dsh-desktop] bridge installed into {}", profile.display());
+                    install_profile_patch(&profile);
+                }
+                _ => eprintln!("[dsh-desktop] bridge install into {} failed; continuing without it", profile.display()),
+            }
+        } else {
+            eprintln!("[dsh-desktop] profile {} missing after init; continuing without the bridge", profile.display());
+        }
+    }
+    patches
+}
+
+/// Append the bridge rows (installed bridge package's cordis.patch.yml) to
+/// the profile's user patch layer, idempotently. Rows must live in the user
+/// layer: a `--patch` overlay applies after it, so profile patches could not
+/// configure bridge rows inserted there.
+fn install_profile_patch(profile: &std::path::Path) {
+    let bridge_patch = profile.join("node_modules").join("@deepseek-ai").join("dsh-desktop-bridge").join("cordis.patch.yml");
+    let profile_patch = profile.join("cordis.patch.yml");
+    let Ok(source) = std::fs::read_to_string(&bridge_patch) else {
+        eprintln!("[dsh-desktop] bridge patch file missing; skipping profile patch install");
+        return;
+    };
+    let existing = std::fs::read_to_string(&profile_patch).unwrap_or_default();
+    if existing.contains("id: desktop-bridge") {
+        return;
+    }
+    let mut merged = existing;
+    if !merged.is_empty() && !merged.ends_with('\n') {
+        merged.push('\n');
+    }
+    merged.push_str(&source);
+    if std::fs::write(&profile_patch, merged).is_ok() {
+        eprintln!("[dsh-desktop] bridge rows appended to {}; edit the desktop-bridge config there", profile_patch.display());
+    } else {
+        eprintln!("[dsh-desktop] failed to append bridge rows to {}", profile_patch.display());
+    }
+}
+
 /// Spawn the dsh runtime, wait for readiness, and navigate the window.
 fn boot(window: WebviewWindow, handle: tauri::AppHandle) {
     let node = std::env::var("DSH_NODE").unwrap_or_else(|_| "node".to_string());
@@ -66,14 +143,15 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle) {
         }
     };
 
-    let mut child = match Command::new(&node)
-        .arg(&cli)
-        .arg("web")
-        .arg("--port")
-        .arg("0")
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
+    let patches = ensure_bridge(&node, &cli);
+    let mut cmd = Command::new(&node);
+    cmd.arg(&cli).arg("web");
+    for patch in &patches {
+        cmd.arg("--patch").arg(patch);
+    }
+    cmd.arg("--port").arg("0");
+    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+    let mut child = match cmd.spawn()
     {
         Ok(child) => child,
         Err(err) => {

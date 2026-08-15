@@ -1,0 +1,16 @@
+# dsh-desktop-bridge rows. The shell appends this file to the profile's
+# cordis.patch.yml at install time so the rows compose in the user layer
+# (later profile patches can configure them; the --patch overlay would be
+# applied after the user layer and could not be patched by it).
+- insert:
+    - id: desktop-bridge
+      name: '@deepseek-ai/dsh-desktop-bridge'
+
+    - id: desktop-bridge-client
+      name: '@deepseek-ai/dsh-desktop-bridge-client'
+
+# Bridge policy: edit this entry to change which dropped files are accepted.
+- id: desktop-bridge
+  config:
+    allowedExtensions: []
+    maxBytes: 52428800
