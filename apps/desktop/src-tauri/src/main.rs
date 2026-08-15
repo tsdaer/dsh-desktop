@@ -14,6 +14,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::io::{BufRead, BufReader};
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::mpsc;
 use std::sync::Mutex;
@@ -23,6 +24,83 @@ use tauri::{Manager, Url, WebviewWindow};
 
 /// Holds the spawned runtime so it can be terminated at app exit.
 struct DshRuntime(Mutex<Option<Child>>);
+
+/// Runtime wiring resolved at boot: where Node and the dsh CLI live, the
+/// bare-module base for the closed runtime, and how the desktop bridge packages
+/// reach the web profile.
+///
+/// Dev (DSH_CLI set) keeps the launcher's env wiring: system node, repo-built
+/// CLI, bridge tarballs via npm. A packaged app carries the runtime in its
+/// resources and the bundled Node as a sidecar beside the exe; no npm exists,
+/// so the bridge packages are copied into the profile instead of installed.
+struct RuntimePaths {
+    node: String,
+    cli: String,
+    /// `DSH_BARE_MODULE_BASE` for the spawned runtime: anchors bare plugin
+    /// names to the runtime's own install when it is closed.
+    module_base: Option<String>,
+    /// Runtime `node_modules/@deepseek-ai` package dirs to copy into the
+    /// profile (packaged, offline); empty in dev where npm installs tarballs.
+    bridge_copy: Vec<PathBuf>,
+    /// npm-installable bridge tarballs (dev mode, system npm present).
+    bridge_tarballs: Vec<String>,
+}
+
+impl RuntimePaths {
+    fn from_env() -> Self {
+        RuntimePaths {
+            node: std::env::var("DSH_NODE").unwrap_or_else(|_| "node".to_string()),
+            cli: std::env::var("DSH_CLI").unwrap_or_default(),
+            module_base: std::env::var("DSH_BARE_MODULE_BASE").ok(),
+            bridge_copy: Vec::new(),
+            bridge_tarballs: std::env::var("DSH_BRIDGE_TARBALL")
+                .into_iter()
+                .flat_map(|v| v.split(';').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect::<Vec<_>>())
+                .collect(),
+        }
+    }
+
+    fn packaged(handle: &tauri::AppHandle) -> Option<Self> {
+        let resource_cli = handle
+            .path()
+            .resource_dir()
+            .ok()
+            .map(|dir| dir.join("runtime").join("lib").join("bin.js"))
+            .filter(|path| path.exists())?;
+        let node = std::env::var("DSH_NODE").unwrap_or_else(|_| {
+            std::env::current_exe()
+                .ok()
+                .and_then(|exe| exe.parent().map(|dir| dir.join("node.exe")))
+                .filter(|path| path.exists())
+                .map(|path| path.to_string_lossy().into_owned())
+                .unwrap_or_else(|| "node".to_string())
+        });
+        let module_base = std::env::var("DSH_BARE_MODULE_BASE").ok().or_else(|| {
+            Url::from_file_path(&resource_cli).ok().map(|url| url.to_string())
+        });
+        let runtime_root = resource_cli
+            .parent()
+            .and_then(Path::parent)
+            .and_then(Path::parent)
+            .map(|dir| dir.to_path_buf())?;
+        let bridge_copy = ["dsh-desktop-bridge", "dsh-desktop-bridge-client", "schemastery"]
+            .into_iter()
+            .map(|pkg| runtime_root.join("node_modules").join("@deepseek-ai").join(pkg))
+            .filter(|path| path.exists())
+            .collect();
+        Some(RuntimePaths {
+            node,
+            cli: resource_cli.to_string_lossy().into_owned(),
+            module_base,
+            bridge_copy,
+            bridge_tarballs: Vec::new(),
+        })
+    }
+
+    fn is_online(&self) -> bool {
+        !self.bridge_tarballs.is_empty()
+    }
+}
 
 /// Toggle WebView2 DevTools availability (F12 / context-menu inspect).
 /// The page suppresses right-click and devtools shortcuts on its own when
@@ -70,21 +148,17 @@ fn main() {
         });
 }
 
-/// Ensure the bridge packages are installed into the web profile and return
-/// the patch overlays to mount. `DSH_PATCH` lists patch files (semicolon-
-/// separated); `DSH_BRIDGE_DIR` lists bridge package directories to install
-/// into the profile via npm (bundled with Node) when they are missing.
-/// Both are dev/deployment wiring: the shell itself carries no bridge code.
-fn ensure_bridge(node: &str, cli: &str) -> Vec<String> {
+/// Ensure the bridge packages are present in the web profile and return the
+/// patch overlays to mount. `DSH_PATCH` lists patch files (semicolon-
+/// separated). Online mode installs the bridge tarballs into the profile via
+/// npm (bundled with the system Node in dev); a closed runtime copies its
+/// packaged bridge packages into the profile instead — no npm is available.
+fn ensure_bridge(node: &str, cli: &str, paths: &RuntimePaths) -> Vec<String> {
     let patches: Vec<String> = std::env::var("DSH_PATCH")
         .into_iter()
         .flat_map(|v| v.split(';').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect::<Vec<_>>())
         .collect();
-    let bridge_dirs: Vec<String> = std::env::var("DSH_BRIDGE_TARBALL")
-        .into_iter()
-        .flat_map(|v| v.split(';').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect::<Vec<_>>())
-        .collect();
-    if bridge_dirs.is_empty() {
+    if paths.bridge_tarballs.is_empty() && paths.bridge_copy.is_empty() {
         return patches;
     }
     let home = std::env::var("DSH_HOME").unwrap_or_else(|_| {
@@ -95,29 +169,78 @@ fn ensure_bridge(node: &str, cli: &str) -> Vec<String> {
     });
     let profile = std::path::Path::new(&home).join("profiles").join("web");
     let marker = profile.join("node_modules").join("@deepseek-ai").join("dsh-desktop-bridge");
-    if !marker.join("package.json").exists() {
-        if !profile.exists() {
-            // First boot: let the CLI initialize the web profile template.
-            let _ = Command::new(node).arg(cli).arg("--profile").arg("web").arg("--dump-default-config").status();
-        }
-        if profile.exists() {
-            let status = Command::new("cmd")
-                .args(["/c", "npm", "install", "--no-save"])
-                .args(&bridge_dirs)
-                .current_dir(&profile)
-                .status();
-            match status {
-                Ok(status) if status.success() => {
-                    eprintln!("[dsh-desktop] bridge installed into {}", profile.display());
-                    install_profile_patch(&profile);
-                }
-                _ => eprintln!("[dsh-desktop] bridge install into {} failed; continuing without it", profile.display()),
-            }
-        } else {
-            eprintln!("[dsh-desktop] profile {} missing after init; continuing without the bridge", profile.display());
-        }
+    if marker.join("package.json").exists() {
+        return patches;
+    }
+    if !profile.exists() {
+        // First boot: let the CLI initialize the web profile template.
+        let _ = Command::new(node).arg(cli).arg("--profile").arg("web").arg("--dump-default-config").status();
+    }
+    if !profile.exists() {
+        eprintln!("[dsh-desktop] profile {} missing after init; continuing without the bridge", profile.display());
+        return patches;
+    }
+    let installed = if paths.is_online() {
+        install_bridge_via_npm(&profile, &paths.bridge_tarballs)
+    } else {
+        copy_bridge_packages(&profile, &paths.bridge_copy)
+    };
+    if installed {
+        eprintln!("[dsh-desktop] bridge installed into {}", profile.display());
+        install_profile_patch(&profile);
     }
     patches
+}
+
+/// Install bridge tarballs into the profile via npm (dev mode).
+fn install_bridge_via_npm(profile: &Path, bridge_tarballs: &[String]) -> bool {
+    match Command::new("cmd")
+        .args(["/c", "npm", "install", "--no-save"])
+        .args(bridge_tarballs)
+        .current_dir(profile)
+        .status()
+    {
+        Ok(status) => status.success(),
+        _ => {
+            eprintln!("[dsh-desktop] bridge install into {} failed; continuing without it", profile.display());
+            false
+        }
+    }
+}
+
+/// Copy the packaged bridge packages into the profile's node_modules (closed
+/// runtime, offline). A recursive copy replaces npm's install: the bridge
+/// packages plus their prod dependency (schemastery) travel from the runtime.
+fn copy_bridge_packages(profile: &Path, sources: &[PathBuf]) -> bool {
+    let mut ok = true;
+    for source in sources {
+        let Some(name) = source.file_name() else { continue };
+        let target = profile.join("node_modules").join("@deepseek-ai").join(name);
+        if copy_dir_recursive(source, &target).is_err() {
+            eprintln!("[dsh-desktop] failed to copy bridge package {} into {}", source.display(), profile.display());
+            ok = false;
+        }
+    }
+    ok
+}
+
+/// Recursively copy a directory, replacing an existing target.
+fn copy_dir_recursive(source: &Path, target: &Path) -> std::io::Result<()> {
+    if target.exists() {
+        std::fs::remove_dir_all(target)?;
+    }
+    std::fs::create_dir_all(target)?;
+    for entry in std::fs::read_dir(source)? {
+        let entry = entry?;
+        let file_type = entry.file_type()?;
+        let destination = target.join(entry.file_name());
+        if file_type.is_dir() {
+            copy_dir_recursive(&entry.path(), &destination)?;
+        } else if file_type.is_file() {
+            std::fs::copy(entry.path(), destination)?;
+        }
+    }
+    Ok(())
 }
 
 /// Append the bridge rows (installed bridge package's cordis.patch.yml) to
@@ -149,25 +272,34 @@ fn install_profile_patch(profile: &std::path::Path) {
 
 /// Spawn the dsh runtime, wait for readiness, and navigate the window.
 fn boot(window: WebviewWindow, handle: tauri::AppHandle) {
-    let node = std::env::var("DSH_NODE").unwrap_or_else(|_| "node".to_string());
-    let cli = match std::env::var("DSH_CLI") {
-        Ok(cli) => cli,
-        Err(_) => {
-            fail(
-                &window,
-                "DSH_CLI is not set; point it at the dsh CLI entry (apps/cli/lib/bin.js). Run `node apps/desktop/scripts/dev.mjs`.",
-            );
-            return;
-        }
+    // Env wiring wins (dev launcher); a packaged app falls back to its own
+    // resources. Without either, report the dev launcher hint.
+    let paths = if std::env::var("DSH_CLI").is_ok() {
+        RuntimePaths::from_env()
+    } else if let Some(paths) = RuntimePaths::packaged(&handle) {
+        println!("[dsh-desktop] packaged runtime at {}", paths.cli);
+        paths
+    } else {
+        RuntimePaths::from_env()
     };
+    if paths.cli.is_empty() {
+        fail(
+            &window,
+            "DSH_CLI is not set; point it at the dsh CLI entry (apps/cli/lib/bin.js). Run `node apps/desktop/scripts/dev.mjs`.",
+        );
+        return;
+    }
 
-    let patches = ensure_bridge(&node, &cli);
-    let mut cmd = Command::new(&node);
-    cmd.arg(&cli).arg("web");
+    let patches = ensure_bridge(&paths.node, &paths.cli, &paths);
+    let mut cmd = Command::new(&paths.node);
+    cmd.arg(&paths.cli).arg("web");
     for patch in &patches {
         cmd.arg("--patch").arg(patch);
     }
     cmd.arg("--port").arg("0");
+    if let Some(module_base) = &paths.module_base {
+        cmd.env("DSH_BARE_MODULE_BASE", module_base);
+    }
     cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
     let mut child = match cmd.spawn()
     {
@@ -175,7 +307,7 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle) {
         Err(err) => {
             fail(
                 &window,
-                &format!("failed to spawn `{node} {cli} web --port 0`: {err}"),
+                &format!("failed to spawn `{} {} web --port 0`: {err}", paths.node, paths.cli),
             );
             return;
         }

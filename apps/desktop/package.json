@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "node scripts/dev.mjs --release",
-    "bundle": "tauri build"
+    "bake": "node scripts/bake-runtime.mjs",
+    "fetch-node": "node scripts/fetch-node-sidecar.mjs",
+    "bundle": "node scripts/bake-runtime.mjs && node scripts/fetch-node-sidecar.mjs && tauri build"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.11.4"

@@ -22,7 +22,19 @@ The dev launcher sets DSH_CLI to the built apps/cli/lib/bin.js; DSH_NODE default
 
     pnpm --filter @deepseek-ai/dsh-desktop bundle
 
-runs 'tauri build' (release profile with lto/strip; NSIS installer to src-tauri/target/release/bundle/nsis/). The installer still needs the runtime provided at launch via DSH_CLI/DSH_NODE — the bundled Node sidecar and packaged CLI are deferred (see Test-version scope), so on the test machine run the installed exe with DSH_CLI set to the built CLI. Proxy note: the first bundle downloads the NSIS toolchain from GitHub; set HTTPS_PROXY/HTTP_PROXY if the machine needs a proxy to reach it.
+runs three stages: bake the runtime (`scripts/bake-runtime.mjs`), fetch the bundled Node sidecar (`scripts/fetch-node-sidecar.mjs`), then 'tauri build' (release profile with lto/strip; NSIS installer to src-tauri/target/release/bundle/nsis/). Proxy note: the first bundle downloads the NSIS toolchain and the Node sidecar from GitHub/nodejs.org; set HTTPS_PROXY/HTTP_PROXY if the machine needs a proxy to reach them.
+
+The installer is self-contained: it ships the shell exe, node.exe (Tauri externalBin sidecar), and the baked runtime under resources/runtime/. On first launch the shell copies the bridge packages into the profile (no npm exists at runtime), spawns the runtime with DSH_BARE_MODULE_BASE anchoring bare plugin names to the packaged tree, and navigates to the served UI.
+
+## Packaged runtime
+
+`scripts/bake-runtime.mjs` produces a self-contained, bootable runtime from the built workspace:
+
+1. `pnpm deploy --legacy --config.nodeLinker=hoisted` the dsh CLI closure (FULL, not --prod: this monorepo models the web profile's runtime plugins as CLI devDependencies). Hoisted linking is required — the isolated layout only exposes direct deps at the top level, and the loader resolves config-referenced plugins from the runtime's own bin.
+2. Bakes the auto-installed peers pnpm deploy drops (autoInstallPeers is not reproduced by deploy) plus the desktop bridge packages, copying each workspace package's shipped files (never its node_modules).
+3. Verifies the result by booting the deployed CLI against a throwaway DSH_HOME with DSH_BARE_MODULE_BASE set, requiring the 'dsh web:' readiness line.
+
+Env wiring in main.rs: DSH_CLI/DSH_NODE/DSH_BARE_MODULE_BASE/DSH_BRIDGE_TARBALL win (dev launcher); a release build without DSH_CLI falls back to resources/runtime/lib/bin.js, the sidecar node.exe, and offline bridge copying. DSH_BARE_MODULE_BASE is a product wiring in apps/cli (profile-boot.ts passes it to boot's bareModuleBaseUrl, the documented closed-runtime resolution anchor).
 
 ## Custom title bar
 
@@ -55,14 +67,13 @@ The client pre-filters before upload; the host enforces the same policy again at
 
 ## Test-version scope
 
-- The runtime is the locally built dsh CLI run by the PATH 'node'; the production path (bundled Node sidecar, packaged CLI in app resources) is deferred — a 'tauri build' installer exists (see Bundle above) but does not carry the runtime.
-- Icons derive from the DeepSeek fish logo (regenerate via `node scripts/gen-icons.mjs`); no auto-update, no tray, no single-instance lock yet.
-- Linux is not handled yet (node-pty has no Linux prebuilds in the dsh dependency tree).
+- Dev runs the repo-built CLI on the PATH 'node'; the packaged app carries its own Node sidecar and baked runtime (see Bundle / Packaged runtime above). Remaining gaps: no auto-update, no tray, no single-instance lock, and the Windows-only sidecar means Linux/macOS are unhandled (node-pty also lacks Linux prebuilds in the dsh dependency tree).
+- Icons derive from the DeepSeek fish logo (regenerate via `node scripts/gen-icons.mjs`).
 - Closing the window terminates the runtime process; sessions persist on disk under $DSH_HOME.
 - The window binds nothing of its own: the runtime still serves only loopback (127.0.0.1) with no auth, matching 'dsh web' posture.
 
 ## Layout
 
     src/            shell pages served by the embedded asset protocol (loading/error)
-    src-tauri/      the Tauri app: process manager + window host
-    scripts/        dev launcher that wires DSH_CLI to the built CLI
+    src-tauri/      the Tauri app: process manager + window host + node sidecar binaries/
+    scripts/        dev launcher, runtime baker, and node sidecar fetcher

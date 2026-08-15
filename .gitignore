@@ -42,3 +42,5 @@ apps/desktop/.bridge-pack/
 worktrees/
 .agents/worktrees/
 .typert-*/
+apps/desktop/.runtime/
+apps/desktop/src-tauri/binaries/

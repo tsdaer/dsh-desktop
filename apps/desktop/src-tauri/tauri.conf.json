@@ -28,6 +28,8 @@
   "bundle": {
     "active": true,
     "targets": ["nsis"],
+    "externalBin": ["binaries/node"],
+    "resources": { "../.runtime/deploy/": "runtime" },
     "icon": ["icons/icon.ico", "icons/icon.png", "icons/icon-512.png"]
   }
 }
