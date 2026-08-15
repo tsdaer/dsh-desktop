@@ -11,7 +11,8 @@
     "fetch-node": "node scripts/fetch-node-sidecar.mjs",
     "size-report": "node scripts/size-report.mjs",
     "size-check": "node scripts/size-report.mjs --check",
-    "bundle": "node scripts/bake-runtime.mjs && node scripts/fetch-node-sidecar.mjs && tauri build"
+    "sync-version": "node scripts/sync-version.mjs",
+    "bundle": "node scripts/sync-version.mjs && node scripts/bake-runtime.mjs && node scripts/fetch-node-sidecar.mjs && tauri build"
   },
   "devDependencies": {
     "@tauri-apps/api": "^2.0.0",

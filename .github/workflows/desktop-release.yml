@@ -25,7 +25,7 @@ jobs:
           PKG_VERSION="$(node -p "require('./apps/desktop/package.json').version")"
           TAURI_VERSION="$(node -p "require('./apps/desktop/src-tauri/tauri.conf.json').version")"
           if [ "$PKG_VERSION" != "$TAURI_VERSION" ]; then
-            echo "::error::package.json version ${PKG_VERSION} != tauri.conf.json version ${TAURI_VERSION}"
+            echo "::error::package.json version ${PKG_VERSION} != tauri.conf.json version ${TAURI_VERSION}; run \`pnpm --filter @deepseek-ai/dsh-desktop sync-version\` and commit the result"
             exit 1
           fi
           echo "version=${PKG_VERSION}" >> "$GITHUB_OUTPUT"

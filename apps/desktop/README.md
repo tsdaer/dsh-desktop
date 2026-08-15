@@ -24,7 +24,7 @@ The dev launcher sets DSH_CLI to the built apps/cli/lib/bin.js; DSH_NODE default
 
     pnpm --filter @deepseek-ai/dsh-desktop bundle
 
-runs three stages: bake the runtime (`scripts/bake-runtime.mjs`), fetch the bundled Node sidecar (`scripts/fetch-node-sidecar.mjs`), then 'tauri build' (release profile with lto/strip; NSIS installer to src-tauri/target/release/bundle/nsis/). Proxy note: the first bundle downloads the NSIS toolchain and the Node sidecar from GitHub/nodejs.org; set HTTPS_PROXY/HTTP_PROXY if the machine needs a proxy to reach them.
+runs four stages: sync the version into tauri.conf.json from package.json (`scripts/sync-version.mjs`), bake the runtime (`scripts/bake-runtime.mjs`), fetch the bundled Node sidecar (`scripts/fetch-node-sidecar.mjs`), then 'tauri build' (release profile with lto/strip; NSIS installer to src-tauri/target/release/bundle/nsis/). The version lives only in package.json, so a bump is one edit there. Proxy note: the first bundle downloads the NSIS toolchain and the Node sidecar from GitHub/nodejs.org; set HTTPS_PROXY/HTTP_PROXY if the machine needs a proxy to reach them.
 
 The installer is self-contained: it ships the shell exe, node.exe (Tauri externalBin sidecar), and the baked runtime under resources/runtime/. On first launch the shell copies the bridge packages into the profile (no npm exists at runtime), spawns the runtime with DSH_BARE_MODULE_BASE anchoring bare plugin names to the packaged tree, and navigates to the served UI.
 
