@@ -18,7 +18,7 @@
   style.textContent =
     '#dsh-desktop-titlebar{' +
       'position:fixed;top:0;left:0;right:0;height:' + BAR_H + 'px;display:flex;align-items:stretch;' +
-      'z-index:2147483647;background:var(--dsw-alias-bg-base,#0f1117);' +
+      'z-index:2147483647;background:var(--dsw-specific-sidebar-fill,var(--dsw-alias-bg-base,#0f1117));' +
       'color:var(--dsw-alias-label-secondary,#9aa3b5);' +
       'border-bottom:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,0.08));' +
       'font-family:var(--dsw-font-family,system-ui,sans-serif);font-size:12px;' +
@@ -119,14 +119,33 @@
 
   drag.addEventListener('mousedown', function (event) {
     if (event.button !== 0) return;
-    if (win) {
+    // The second press of a double-click toggles maximize instead of
+    // starting a window drag (the native drag loop would swallow the
+    // dblclick event entirely).
+    if (event.detail >= 2) {
+      if (win) {
+        try {
+          win.toggleMaximize().then(function () { refreshMaximized(); }).catch(function () {});
+        } catch (err) {}
+      }
+      return;
+    }
+    if (!win) return;
+    // Dragging a fullscreen window must restore it to windowed first,
+    // mirroring the native maximize-drag behavior; otherwise the drag
+    // would act on an immovable fullscreen window.
+    var startDrag = function () {
       try { win.startDragging(); } catch (err) {}
-    }
-  });
-  drag.addEventListener('dblclick', function () {
-    if (win) {
-      try { win.toggleMaximize().catch(function () {}); } catch (err) {}
-    }
+    };
+    try {
+      win.isFullscreen().then(function (full) {
+        if (full) {
+          win.setFullscreen(false).then(startDrag).catch(startDrag);
+        } else {
+          startDrag();
+        }
+      }).catch(startDrag);
+    } catch (err) {}
   });
 
   document.body.appendChild(bar);

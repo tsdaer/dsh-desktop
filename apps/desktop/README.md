@@ -22,7 +22,7 @@ The dev launcher sets DSH_CLI to the built apps/cli/lib/bin.js; DSH_NODE default
 
 The window is frameless; the title bar is a single injected element whose source is apps/desktop/src/titlebar.js — loaded by the loading page via a script tag and re-injected into the dsh web page after navigation (main.rs embeds the file with include_str!, idempotent retries).
 
-Theme following: the bar consumes the dsh theme tokens (--dsw-alias-*) that ui-theme writes on <body>; switching the theme in the dsh settings (or the system dark mode) repaints the bar automatically with no shell-side state. Window controls run through the remote capability (capabilities/remote.json, URLPattern http://127.0.0.1:*); drag uses startDragging().
+Theme following: the bar consumes the dsh theme tokens that ui-theme writes on <body> — background rides the sidebar-fill token (--dsw-specific-sidebar-fill, documented by ui-theme as the title-row background) and the rest ride the --dsw-alias-* set; switching the theme in the dsh settings (or the system dark mode) repaints the bar automatically with no shell-side state. Window controls run through the remote capability (capabilities/remote.json, URLPattern http://127.0.0.1:*); drag uses startDragging(); double-clicking the drag strip toggles maximize like the button (a fullscreen guard restores before dragging if fullscreen was entered another way).
 
 Known test-version gaps: no Windows 11 snap-layout flyout (frameless), resize borders come from tao's default hit-testing, maximize icon syncs on click/resize events.
 
