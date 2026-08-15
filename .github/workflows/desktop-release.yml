@@ -1,9 +1,10 @@
 # Draft a GitHub release for the current dsh-desktop version on every push (any
-# branch; the exists-check makes it idempotent). The version is read from
-# apps/desktop/package.json (kept in sync with apps/desktop/src-tauri/tauri.conf.json;
-# the job fails loudly if they drift). If a release for that version does not
-# exist, a draft is created so the installer can be attached and the notes
-# reviewed before publishing. workflow_dispatch also lets it run manually.
+# branch). The version is read from apps/desktop/package.json (kept in sync with
+# apps/desktop/src-tauri/tauri.conf.json; the job fails loudly if they drift).
+# Three outcomes: no release yet -> create a draft; a draft already exists ->
+# refresh its notes from the changelog; a published release exists -> leave it
+# alone. The release notes come from the matching CHANGELOG.zh.md section.
+# workflow_dispatch also lets it run manually.
 name: Draft desktop release
 
 on:
@@ -32,21 +33,36 @@ jobs:
           echo "version=${PKG_VERSION}" >> "$GITHUB_OUTPUT"
           echo "tag=v${PKG_VERSION}" >> "$GITHUB_OUTPUT"
 
-      - name: Check whether the release already exists
+      - name: Check the existing release state
         id: check
-        continue-on-error: true
-        run: gh release view "${{ steps.version.outputs.tag }}" --json tagName
+        run: |
+          if DRAFT="$(gh release view "${{ steps.version.outputs.tag }}" --json isDraft --jq '.isDraft' 2>/dev/null)"; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "is_draft=${DRAFT}" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
         env:
           GH_TOKEN: ${{ github.token }}
 
       - name: Create the draft release
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.exists == 'false'
         run: |
           node apps/desktop/scripts/changelog-section.mjs "${{ steps.version.outputs.version }}" > release-notes.md
           gh release create "${{ steps.version.outputs.tag }}" \
             --draft \
             --title "dsh-desktop v${{ steps.version.outputs.version }}" \
             --target "${{ github.sha }}" \
+            --notes-file release-notes.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Refresh the draft release notes
+        if: steps.check.outputs.exists == 'true' && steps.check.outputs.is_draft == 'true'
+        run: |
+          node apps/desktop/scripts/changelog-section.mjs "${{ steps.version.outputs.version }}" > release-notes.md
+          gh release edit "${{ steps.version.outputs.tag }}" \
+            --title "dsh-desktop v${{ steps.version.outputs.version }}" \
             --notes-file release-notes.md
         env:
           GH_TOKEN: ${{ github.token }}
