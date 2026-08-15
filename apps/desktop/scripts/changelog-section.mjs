@@ -1,5 +1,6 @@
-// Print the CHANGELOG.md section for one version, for the draft-release workflow
-// to use as the GitHub release notes. Exits non-zero when the section is absent.
+// Print the CHANGELOG.zh.md section for one version, for the draft-release
+// workflow to use as the (Chinese) GitHub release notes. Exits non-zero when
+// the section is absent.
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,7 +12,7 @@ if (!version) {
 }
 
 const here = dirname(fileURLToPath(import.meta.url));
-const changelog = resolve(here, '../CHANGELOG.md');
+const changelog = resolve(here, '../CHANGELOG.zh.md');
 const lines = readFileSync(changelog, 'utf8').split('\n');
 
 const start = lines.findIndex((line) => line.startsWith(`## [${version}]`));
