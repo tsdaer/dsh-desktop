@@ -24,12 +24,30 @@ use tauri::{Manager, Url, WebviewWindow};
 /// Holds the spawned runtime so it can be terminated at app exit.
 struct DshRuntime(Mutex<Option<Child>>);
 
+/// Toggle WebView2 DevTools availability (F12 / context-menu inspect).
+/// The page suppresses right-click and devtools shortcuts on its own when
+/// debug mode is off; this closes the browser-level escape hatch the page
+/// cannot intercept (WebView2's own F12 handling).
+#[tauri::command]
+fn set_debug_mode(window: WebviewWindow, enabled: bool) {
+    let _ = window.with_webview(move |platform_webview| {
+        let controller = platform_webview.controller();
+        unsafe {
+            let _ = controller
+                .CoreWebView2()
+                .and_then(|webview| webview.Settings())
+                .and_then(|settings| settings.SetAreDevToolsEnabled(enabled));
+        }
+    });
+}
+
 /// How long to wait for the readiness URL line after spawning.
 const BOOT_TIMEOUT: Duration = Duration::from_secs(120);
 
 fn main() {
     tauri::Builder::default()
         .manage(DshRuntime(Mutex::new(None)))
+        .invoke_handler(tauri::generate_handler![set_debug_mode])
         .setup(|app| {
             let window = app
                 .get_webview_window("main")

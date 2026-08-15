@@ -42,11 +42,14 @@ export interface Config {
   copyEnabled: boolean
   /** Maximum accepted file size in bytes (non-image files only). */
   maxBytes: number
+  /** Debug mode: when off, the page suppresses right-click and devtools shortcuts; when on they stay available. */
+  debugMode: boolean
 }
 
 export const Config: z<Config> = z.object({
   copyEnabled: z.boolean().default(true),
   maxBytes: z.natural().default(50 * 1024 * 1024),
+  debugMode: z.boolean().default(false),
 })
 
 /** Cap on the JSON request body (base64 payloads, so roomier than the file cap). */
@@ -84,6 +87,7 @@ function effectiveConfig(ctx: Context, config: Config): Config {
   return {
     copyEnabled: section?.copyEnabled ?? config.copyEnabled,
     maxBytes: section?.maxBytes ?? config.maxBytes,
+    debugMode: section?.debugMode ?? config.debugMode,
   }
 }
 
@@ -112,7 +116,7 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
       return
     }
     try {
-      const body = JSON.parse(await readBody(req)) as { copyEnabled?: unknown; maxBytes?: unknown }
+      const body = JSON.parse(await readBody(req)) as { copyEnabled?: unknown; maxBytes?: unknown; debugMode?: unknown }
       const settings = ctx.get('settings')
       if (settings === undefined) {
         json(res, 500, { error: 'settings service unavailable' })
@@ -128,6 +132,9 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
       }
       if (typeof body.maxBytes === 'number' && Number.isFinite(body.maxBytes) && body.maxBytes > 0) {
         ops.push({ op: 'set', path: ['maxBytes'], value: body.maxBytes })
+      }
+      if (typeof body.debugMode === 'boolean') {
+        ops.push({ op: 'set', path: ['debugMode'], value: body.debugMode })
       }
       if (ops.length === 0) {
         json(res, 400, { error: 'no valid fields to save' })
@@ -146,7 +153,7 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
       res.end()
       return
     }
-    json(res, 200, { copyEnabled: effective.copyEnabled, maxBytes: effective.maxBytes })
+    json(res, 200, { copyEnabled: effective.copyEnabled, maxBytes: effective.maxBytes, debugMode: effective.debugMode })
     return
   }
   json(res, 404, { error: 'not found' })
