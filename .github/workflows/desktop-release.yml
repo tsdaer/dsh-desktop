@@ -1,13 +1,14 @@
-# Draft a GitHub release for the current dsh-desktop version on every master
-# push. The version is read from apps/desktop/package.json (kept in sync with
-# apps/desktop/src-tauri/tauri.conf.json; the job fails loudly if they drift).
-# If a release for that version does not exist, a draft is created so the
-# installer can be attached and the notes reviewed before publishing.
+# Draft a GitHub release for the current dsh-desktop version on every push (any
+# branch; the exists-check makes it idempotent). The version is read from
+# apps/desktop/package.json (kept in sync with apps/desktop/src-tauri/tauri.conf.json;
+# the job fails loudly if they drift). If a release for that version does not
+# exist, a draft is created so the installer can be attached and the notes
+# reviewed before publishing. workflow_dispatch also lets it run manually.
 name: Draft desktop release
 
 on:
   push:
-    branches: [master]
+  workflow_dispatch:
 
 permissions:
   contents: write
