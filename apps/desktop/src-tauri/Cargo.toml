@@ -1,0 +1,12 @@
+[package]
+name = "dsh-desktop"
+version = "0.1.0"
+description = "Tauri 2 desktop shell for the dsh web profile"
+edition = "2021"
+license = "MIT"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
