@@ -6,8 +6,8 @@
 // 1. image files → native pipeline (the page's composer intake; the shell
 //    never sends images here).
 // 2. non-binary files within the size cap and with copy enabled → copied
-//    into the session workspace ROOT (repeated drops overwrite, so re-
-//    dropping updates the file).
+//    into a drops/ folder inside the session workspace (repeated drops
+//    overwrite, so re-dropping updates the file).
 // 3. binary files, oversized files, or drops while copy is disabled → the
 //    file is NOT copied; the announcement names the file and the reason.
 //
@@ -15,7 +15,7 @@
 // model-visible, and replayable without any new session event type; the
 // copy keeps the file inside the workspace sandbox the agent's fs tools
 // see.
-import { writeFile } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
@@ -54,6 +54,9 @@ export const Config: z<Config> = z.object({
 
 /** Cap on the JSON request body (base64 payloads, so roomier than the file cap). */
 const MAX_BODY_BYTES = 80 * 1024 * 1024
+
+/** Subdirectory (relative to the session workspace) receiving copied drops. */
+const DROPS_DIR = 'drops'
 
 /** How many bytes of a file are scanned for binary detection. */
 const BINARY_SNIFF_BYTES = 8192
@@ -219,11 +222,12 @@ async function handleDrop(req: IncomingMessage, res: ServerResponse, ctx: Contex
         referenced.push({ name, reason: '二进制文件' })
         continue
       }
-      // Copy into the workspace ROOT; writeFile overwrites, so repeated
-      // drops of the same file update it.
+      // Copy into the workspace's drops/ folder; writeFile overwrites, so
+      // repeated drops of the same file update it.
       try {
-        await writeFile(join(workspace.path, name), data)
-        copied.push(name)
+        await mkdir(join(workspace.path, DROPS_DIR), { recursive: true })
+        await writeFile(join(workspace.path, DROPS_DIR, name), data)
+        copied.push(DROPS_DIR + '/' + name)
       } catch {
         referenced.push({ name, reason: '复制失败' })
       }
@@ -273,7 +277,7 @@ function formatBytes(bytes: number): string {
 function announceText(copied: string[], referenced: Array<{ name: string; reason: string }>): string {
   const lines: string[] = []
   if (copied.length > 0) {
-    lines.push(`已复制到项目根目录：${copied.join('、')}`)
+    lines.push(`已复制到 ${DROPS_DIR}/ 文件夹：${copied.map(c => c.replace(/^drops\//, '')).join('、')}`)
   }
   if (referenced.length > 0) {
     lines.push(`提供文件（未复制）：${referenced.map(r => `${r.name}（${r.reason}）`).join('、')}`)

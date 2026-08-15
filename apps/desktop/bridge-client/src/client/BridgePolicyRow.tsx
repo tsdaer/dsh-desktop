@@ -97,7 +97,7 @@ export function BridgePolicyRow(): React.ReactElement {
       <div className={css.actions}>
         <span className={css.status}>{status}</span>
       </div>
-      <p className={css.hint}>图片始终直接进入输入框；开启复制时，未超限的文本文件会复制到项目根目录（重复拖放会更新），二进制文件与超限文件只提供路径。</p>
+      <p className={css.hint}>图片始终直接进入输入框；开启复制时，未超限的文本文件会复制到 drops 文件夹（重复拖放会更新），二进制文件与超限文件只提供路径。</p>
     </div>
   )
 }
