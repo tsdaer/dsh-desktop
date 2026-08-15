@@ -1,5 +1,7 @@
 # @deepseek-ai/dsh-desktop
 
+English | [中文](README.zh.md)
+
 A Tauri 2 desktop shell that hosts the 'dsh web' profile in a native window: the shell spawns a Node process running the dsh CLI, waits for the readiness URL line the web profile prints, and navigates the window to it.
 
 ## Run (test version)
@@ -30,9 +32,18 @@ The installer is self-contained: it ships the shell exe, node.exe (Tauri externa
 
 `scripts/bake-runtime.mjs` produces a self-contained, bootable runtime from the built workspace:
 
-1. `pnpm deploy --legacy --config.nodeLinker=hoisted` the dsh CLI closure (FULL, not --prod: this monorepo models the web profile's runtime plugins as CLI devDependencies). Hoisted linking is required — the isolated layout only exposes direct deps at the top level, and the loader resolves config-referenced plugins from the runtime's own bin.
+1. `pnpm deploy --legacy --prod --config.nodeLinker=hoisted` the dsh CLI closure. Production-only deploy drops the workspace's dev/build/lint/docs toolchain (TypeScript, oxlint, eslint, mermaid, ...); the spine packages stay reachable through dsh-base's dependencies. Hoisted linking is required — the isolated layout only exposes direct deps at the top level, and the loader resolves config-referenced plugins from the runtime's own bin.
 2. Bakes the auto-installed peers pnpm deploy drops (autoInstallPeers is not reproduced by deploy) plus the desktop bridge packages, copying each workspace package's shipped files (never its node_modules).
-3. Verifies the result by booting the deployed CLI against a throwaway DSH_HOME with DSH_BARE_MODULE_BASE set, requiring the 'dsh web:' readiness line.
+3. Prunes single-platform native prebuilds: node-pty ships every platform plus Windows debug symbols (.pdb) and build-time sources; `pruneRuntime` keeps only the win32-x64 prebuild.
+4. Verifies the result by booting the deployed CLI against a throwaway DSH_HOME with DSH_BARE_MODULE_BASE set, requiring the 'dsh web:' readiness line.
+
+Payload size gate: `pnpm --filter @deepseek-ai/dsh-desktop size-check` (or `node scripts/size-report.mjs --check`) asserts the runtime stays under its budget and that no dev toolchain leaked back in.
+
+## Startup splash
+
+The app opens a frameless splashscreen window first and reveals the main window only after the `dsh web:` readiness line arrives. The splash (`apps/desktop/src/splashscreen.html`) runs pre-boot environment checks — WebView2, the Node sidecar, the baked runtime, the data directory, and API key — recording each step on a polled status board; failures stay on the splash with a retry, and a `下载 / 修复 WebView2` link opens Microsoft's download page via tauri-plugin-opener.
+
+WebView2 acquisition is an install-time concern: `bundle.windows.webviewInstallMode` is `embedBootstrapper`, so the NSIS installer embeds the bootstrapper and downloads/installs the runtime with native progress. The splash cannot install a missing WebView2 itself (it is a WebView2 page); it only detects and guides.
 
 Env wiring in main.rs: DSH_CLI/DSH_NODE/DSH_BARE_MODULE_BASE/DSH_BRIDGE_TARBALL win (dev launcher); a release build without DSH_CLI falls back to resources/runtime/lib/bin.js, the sidecar node.exe, and offline bridge copying. DSH_BARE_MODULE_BASE is a product wiring in apps/cli (profile-boot.ts passes it to boot's bareModuleBaseUrl, the documented closed-runtime resolution anchor).
 
@@ -40,7 +51,7 @@ Env wiring in main.rs: DSH_CLI/DSH_NODE/DSH_BARE_MODULE_BASE/DSH_BRIDGE_TARBALL 
 
 The window is frameless; the title bar is a single injected element whose source is apps/desktop/src/titlebar.js — loaded by the loading page via a script tag and re-injected into the dsh web page after navigation (main.rs embeds the file with include_str!, idempotent retries).
 
-Theme following: the bar consumes the dsh theme tokens that ui-theme writes on <body> — background rides the sidebar-fill token (--dsw-specific-sidebar-fill, documented by ui-theme as the title-row background) and the rest ride the --dsw-alias-* set; switching the theme in the dsh settings (or the system dark mode) repaints the bar automatically with no shell-side state. Window controls run through the remote capability (capabilities/remote.json, URLPattern http://127.0.0.1:*); drag uses startDragging(); double-clicking the drag strip toggles maximize like the button (a fullscreen guard restores before dragging if fullscreen was entered another way).
+Theme following: the bar consumes the dsh theme tokens that ui-theme writes on <body> — background rides the sidebar-fill token (--dsw-specific-sidebar-fill, documented by ui-theme as the title-row background) and the rest ride the --dsw-alias-* set; switching the theme in the dsh settings (or the system dark mode) repaints the bar automatically with no shell-side state. Window controls run through the remote capability (capabilities/remote.json, URLPattern `http://127.0.0.1:*`); drag uses startDragging(); double-clicking the drag strip toggles maximize like the button (a fullscreen guard restores before dragging if fullscreen was entered another way).
 
 Known test-version gaps: no Windows 11 snap-layout flyout (frameless), resize borders come from tao's default hit-testing, maximize icon syncs on click/resize events.
 

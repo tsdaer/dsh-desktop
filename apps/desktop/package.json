@@ -9,9 +9,12 @@
     "build": "node scripts/dev.mjs --release",
     "bake": "node scripts/bake-runtime.mjs",
     "fetch-node": "node scripts/fetch-node-sidecar.mjs",
+    "size-report": "node scripts/size-report.mjs",
+    "size-check": "node scripts/size-report.mjs --check",
     "bundle": "node scripts/bake-runtime.mjs && node scripts/fetch-node-sidecar.mjs && tauri build"
   },
   "devDependencies": {
+    "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/cli": "^2.11.4"
   },
   "license": "MIT"

@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>dsh-desktop</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; min-height: 100vh; box-sizing: border-box; display: flex; flex-direction: column;
+         background: #0f1117; color: #e6e8ee; font-family: system-ui, "Segoe UI", sans-serif;
+         -webkit-user-select: none; user-select: none; }
+  header { padding: 28px 24px 8px; text-align: center; }
+  header .logo { width: 44px; height: 44px; margin: 0 auto 12px; border-radius: 12px;
+                background: linear-gradient(135deg, #4d9fff, #7c5cff); }
+  header h1 { font-size: 18px; font-weight: 600; margin: 0; }
+  header .version { font-size: 11px; color: #5a6577; margin: 4px 0 0; }
+  main { flex: 1; padding: 8px 24px 16px; }
+  #checks { margin: 8px 0; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 8px;
+         font-size: 13px; color: #9aa3b5; }
+  .row .dot { width: 8px; height: 8px; border-radius: 50%; background: #3a4152; flex: none; }
+  .row .name { flex: none; min-width: 116px; color: #c3c9d6; }
+  .row .msg { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row.pending .dot { background: #3a4152; }
+  .row.running .dot { background: #4d9fff; box-shadow: 0 0 0 3px rgba(77,159,255,0.2); }
+  .row.ok .dot { background: #3fb96f; }
+  .row.warn .dot { background: #f0a020; }
+  .row.error .dot { background: #e0484a; }
+  .row.error .msg { color: #ffb4c8; }
+  footer { padding: 0 24px 20px; }
+  #status { font-size: 13px; color: #9aa3b5; text-align: center; margin: 0; }
+  pre.error { display: none; text-align: left; background: #1a1e2a; border: 1px solid #3a2230;
+              border-radius: 8px; padding: 12px 16px; font-size: 12px; color: #ffb4c8;
+              white-space: pre-wrap; word-break: break-all; margin: 12px 0 0; }
+  .actions { display: none; text-align: center; margin-top: 12px; }
+  .actions button { margin: 0 6px; padding: 7px 16px; border: 1px solid #2a3040; border-radius: 8px;
+                    background: #1a1e2a; color: #e6e8ee; font-size: 13px; cursor: pointer; }
+  .actions button:hover { border-color: #4d9fff; }
+  .actions button.primary { background: #4d9fff; border-color: #4d9fff; color: #0b1020; }
+  .help { text-align: center; margin: 10px 0 0; }
+  .help a { color: #5a6577; font-size: 12px; text-decoration: none; }
+  .help a:hover { color: #4d9fff; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="logo"></div>
+    <h1>dsh-desktop</h1>
+    <p class="version">启动器 v2</p>
+  </header>
+  <main>
+    <div id="checks"></div>
+    <pre class="error" id="error"></pre>
+  </main>
+  <footer>
+    <p id="status">正在检测运行环境…</p>
+    <div class="actions" id="actions">
+      <button id="retry" class="primary">重试</button>
+    </div>
+    <p class="help"><a href="#" id="webview2-help">下载 / 修复 WebView2</a></p>
+  </footer>
+  <script>
+    (function () {
+      'use strict';
+      // Use the low-level IPC bridge, which Tauri always injects, instead of the
+      // `withGlobalTauri` API (`window.__TAURI__`), which is only present when
+      // @tauri-apps/api is installed.
+      var internals = null;
+      try {
+        if (window.__TAURI_INTERNALS__ && window.__TAURI_INTERNALS__.invoke) {
+          internals = window.__TAURI_INTERNALS__;
+        }
+      } catch (err) { /* not in Tauri */ }
+
+      function invoke(cmd) {
+        return internals.invoke(cmd, {});
+      }
+
+      var STEPS = [
+        ['webview2', 'WebView2 运行时'],
+        ['node', 'Node 运行时'],
+        ['runtime', 'dsh 运行时'],
+        ['home', '数据目录'],
+        ['api-key', 'API Key'],
+        ['bridge', '桥接包'],
+        ['boot', '启动 dsh 服务'],
+      ];
+      var list = document.getElementById('checks');
+      var statusEl = document.getElementById('status');
+      var errorEl = document.getElementById('error');
+      var actionsEl = document.getElementById('actions');
+      var retryBtn = document.getElementById('retry');
+      var helpLink = document.getElementById('webview2-help');
+      var rowById = {};
+      var receivedAny = false;
+      var pollCount = 0;
+
+      STEPS.forEach(function (step) {
+        var row = document.createElement('div');
+        row.className = 'row pending';
+        row.id = 'step-' + step[0];
+        row.innerHTML = '<span class="dot"></span><span class="name">' + step[1] +
+                        '</span><span class="msg"></span>';
+        list.appendChild(row);
+        rowById[step[0]] = row;
+      });
+
+      function setStep(step, status, message) {
+        var row = rowById[step];
+        if (!row) return;
+        row.className = 'row ' + status;
+        var msg = row.querySelector('.msg');
+        if (msg) msg.textContent = message || '';
+      }
+
+      function resetSteps() {
+        STEPS.forEach(function (step) { setStep(step[0], 'pending', ''); });
+        errorEl.style.display = 'none';
+        actionsEl.style.display = 'none';
+      }
+
+      function render(board) {
+        var hasError = false;
+        var bootOk = false;
+        var lastError = null;
+        if (board && board.length) receivedAny = true;
+        (board || []).forEach(function (entry) {
+          if (!entry || !entry.step) return;
+          setStep(entry.step, entry.status, entry.message);
+          if (entry.status === 'error') { hasError = true; lastError = entry; }
+          if (entry.step === 'boot' && entry.status === 'ok') bootOk = true;
+        });
+        if (hasError) {
+          statusEl.textContent = '启动失败，请按提示处理';
+          if (lastError) {
+            errorEl.textContent = lastError.message +
+              (lastError.suggestion ? '\n建议：' + lastError.suggestion : '');
+            errorEl.style.display = 'block';
+          }
+          actionsEl.style.display = 'block';
+        } else if (bootOk) {
+          statusEl.textContent = '启动完成，正在进入…';
+        } else {
+          statusEl.textContent = '正在检测运行环境…';
+        }
+      }
+
+      function poll() {
+        pollCount += 1;
+        invoke('splash_status').then(render).catch(function (err) {
+          if (!receivedAny && pollCount > 5) {
+            statusEl.textContent = '状态查询失败：' + String(err);
+          }
+        });
+        if (!receivedAny && pollCount > 20) {
+          statusEl.textContent = '未收到运行时状态（可能仍是旧版本，请确认已重新安装）';
+        }
+      }
+
+      retryBtn.addEventListener('click', function () {
+        resetSteps();
+        statusEl.textContent = '正在重新检测…';
+        invoke('splash_start');
+        poll();
+      });
+
+      if (helpLink) {
+        helpLink.addEventListener('click', function (event) {
+          event.preventDefault();
+          invoke('splash_open_webview2_download');
+        });
+      }
+
+      if (internals) {
+        invoke('splash_start').catch(function (err) {
+          statusEl.textContent = '启动请求失败：' + String(err);
+          setStep('boot', 'error', String(err));
+        });
+        poll();
+        setInterval(poll, 250);
+      } else {
+        statusEl.textContent = '未在 Tauri 环境中运行';
+        setStep('boot', 'warn', '请通过 dsh-desktop 启动');
+      }
+    })();
+  </script>
+</body>
+</html>

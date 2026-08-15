@@ -5,15 +5,21 @@
 // web profile's plugins, the web frontend dist, and native addons (node-pty,
 // koffi) with no path back into the checkout. The recipe:
 //
-//   1. `pnpm deploy --legacy` the CLI closure (FULL, not --prod: this monorepo
-//      models the web profile's runtime plugins as CLI devDependencies, so
-//      --prod prunes exactly what the profile needs at boot).
+//   1. `pnpm deploy --legacy --prod` the CLI closure. Production-only deploy
+//      drops the workspace's dev/build/lint/docs toolchain (TypeScript, oxlint,
+//      eslint, mermaid, ...) that a FULL deploy leaked into the runtime; the
+//      spine packages stay reachable through dsh-base's dependencies, and the
+//      scan/bake loop below restores auto-installed peers and any
+//      config-referenced plugin that --prod prunes.
 //   2. Bake missing `@deepseek-ai/*` packages: `pnpm deploy` does not install
 //      auto-installed peers (the workspace relies on autoInstallPeers; the
 //      deployed tree does not reproduce them). The static scan below walks the
 //      deployed tree, resolves every bare @deepseek-ai import the way Node
 //      would, and copies the missing packages from their workspace source.
-//   3. Boot-verify: run the deployed CLI against a throwaway DSH_HOME and
+//   3. Prune single-platform native prebuilds (node-pty ships every platform
+//      plus Windows debug symbols and build-time sources): keep only the
+//      win32-x64 prebuild and the runtime binaries.
+//   4. Boot-verify: run the deployed CLI against a throwaway DSH_HOME and
 //      require the `dsh web:` readiness line.
 //
 // The resulting directory is the Tauri `resources` payload; the shell spawns
@@ -29,6 +35,11 @@ const repoRoot = resolve(here, '../../..');
 const defaultDeployDir = resolve(here, '../.runtime/deploy');
 const cliBin = resolve(repoRoot, 'apps/cli/lib/bin.js');
 const webDist = resolve(repoRoot, 'apps/web/dist/index.html');
+
+// The desktop sidecar is a win-x64 Node binary, so only that platform's native
+// prebuilds are ever loaded; every other platform and the build-time artifacts
+// of native packages are dead weight.
+const TARGET_TRIPLE = 'win32-x64';
 
 const args = process.argv.slice(2);
 const deployDir = flag(args, '--dir') ?? defaultDeployDir;
@@ -70,10 +81,10 @@ async function main() {
   }
 
   if (!skipDeploy) {
-    console.log('[bake-runtime] deploying CLI closure (full, legacy) into ' + deployDir);
+    console.log('[bake-runtime] deploying CLI closure (prod, legacy) into ' + deployDir);
     rmSync(deployDir, { recursive: true, force: true });
     mkdirSync(dirname(deployDir), { recursive: true });
-    const r = spawnSync('corepack', ['pnpm', 'deploy', '--filter', '@deepseek-ai/dsh', '--legacy', '--config.nodeLinker=hoisted', deployDir], {
+    const r = spawnSync('corepack', ['pnpm', 'deploy', '--filter', '@deepseek-ai/dsh', '--prod', '--legacy', '--config.nodeLinker=hoisted', deployDir], {
       cwd: repoRoot,
       encoding: 'utf8',
       shell: process.platform === 'win32',
@@ -101,6 +112,7 @@ async function main() {
     fail('runtime still missing packages after ' + maxBakeRounds + ' rounds: ' + [...missing].join(', '));
   }
 
+  pruneRuntime(deployDir);
   await verifyBoot(deployDir);
   console.log('[bake-runtime] runtime ready at ' + deployDir);
 }
@@ -280,6 +292,32 @@ function attemptBoot(root, bootEnv) {
       finish({ ok: false, line: '', stderr });
     });
   });
+}
+
+/// Strip the non-target platforms, build-time sources, and Windows debug
+/// symbols from native packages that ship them all. Run before boot-verify so
+/// the boot proves the pruned tree still resolves its native addons.
+function pruneRuntime(root) {
+  const nodePty = join(root, 'node_modules', 'node-pty');
+  if (existsSync(nodePty)) {
+    const prebuilds = join(nodePty, 'prebuilds');
+    if (existsSync(prebuilds)) {
+      for (const entry of readdirSafe(prebuilds)) {
+        if (entry !== TARGET_TRIPLE) rmSync(join(prebuilds, entry), { recursive: true, force: true });
+      }
+    }
+    // Build-time-only content: the C++ sources, winpty vendored sources, and
+    // the local `build/` output are never read by lib/index.js at runtime.
+    for (const dir of ['build', 'third_party', 'deps', 'src', 'scripts']) {
+      rmSync(join(nodePty, dir), { recursive: true, force: true });
+    }
+    rmSync(join(nodePty, 'binding.gyp'), { force: true });
+    // Windows PDBs are debug symbols; the runtime never loads them.
+    walkFiles(nodePty, (file) => {
+      if (file.endsWith('.pdb')) rmSync(file, { force: true });
+    });
+    console.log('[bake-runtime] pruned node-pty to ' + TARGET_TRIPLE + ' prebuild');
+  }
 }
 
 /// Collect the `Cannot find package 'X'` names a failed boot reported.
