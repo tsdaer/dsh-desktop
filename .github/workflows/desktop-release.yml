@@ -1,0 +1,50 @@
+# Draft a GitHub release for the current dsh-desktop version on every master
+# push. The version is read from apps/desktop/package.json (kept in sync with
+# apps/desktop/src-tauri/tauri.conf.json; the job fails loudly if they drift).
+# If a release for that version does not exist, a draft is created so the
+# installer can be attached and the notes reviewed before publishing.
+name: Draft desktop release
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+jobs:
+  draft-release:
+    name: draft release for the desktop version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read and verify the desktop version
+        id: version
+        run: |
+          PKG_VERSION="$(node -p "require('./apps/desktop/package.json').version")"
+          TAURI_VERSION="$(node -p "require('./apps/desktop/src-tauri/tauri.conf.json').version")"
+          if [ "$PKG_VERSION" != "$TAURI_VERSION" ]; then
+            echo "::error::package.json version ${PKG_VERSION} != tauri.conf.json version ${TAURI_VERSION}"
+            exit 1
+          fi
+          echo "version=${PKG_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${PKG_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Check whether the release already exists
+        id: check
+        continue-on-error: true
+        run: gh release view "${{ steps.version.outputs.tag }}" --json tagName
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Create the draft release
+        if: steps.check.outcome == 'failure'
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --draft \
+            --title "dsh-desktop v${{ steps.version.outputs.version }}" \
+            --target "${{ github.sha }}" \
+            --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
