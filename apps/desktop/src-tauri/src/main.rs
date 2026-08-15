@@ -476,7 +476,16 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
     if let Some(module_base) = &paths.module_base {
         cmd.env("DSH_BARE_MODULE_BASE", module_base);
     }
-    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+    // The runtime is a console-subsystem binary (node.exe); a GUI-subsystem
+    // parent would otherwise give it a visible console window. CREATE_NO_WINDOW
+    // keeps the spawn headless, and null stdin stops node from attaching to the
+    // absent console.
+    cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
     let mut child = match cmd.spawn() {
         Ok(child) => child,
         Err(err) => {

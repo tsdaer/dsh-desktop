@@ -9,12 +9,18 @@ import css from './BridgePolicyRow.module.css'
 /** Injected callback: apply the new debug-mode state right away. */
 export type DebugModeWriter = (enabled: boolean) => void
 
+/** Component props: the debug-mode writer and the locale translate seat. */
+interface BridgeDebugRowProps {
+  onDebugMode: DebugModeWriter
+  t: (key: string) => string
+}
+
 /**
  * Render the debug-mode row.
- * @param props - injected debug-mode writer.
+ * @param props - injected debug-mode writer + locale translate seat.
  * @returns the row element tree.
  */
-export function BridgeDebugRow({ onDebugMode }: { onDebugMode: DebugModeWriter }): React.ReactElement {
+export function BridgeDebugRow({ onDebugMode, t }: BridgeDebugRowProps): React.ReactElement {
   const [debugMode, setDebugMode] = useState(false)
   const [status, setStatus] = useState('')
 
@@ -30,7 +36,7 @@ export function BridgeDebugRow({ onDebugMode }: { onDebugMode: DebugModeWriter }
   // Every toggle change persists immediately; the guard follows right away.
   const changeDebugMode = (enabled: boolean): void => {
     setDebugMode(enabled)
-    setStatus('保存中…')
+    setStatus(t('saving'))
     void fetch('/dsh-bridge/policy', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -40,21 +46,21 @@ export function BridgeDebugRow({ onDebugMode }: { onDebugMode: DebugModeWriter }
         onDebugMode(enabled)
         setStatus('')
       } else {
-        setStatus('保存失败: ' + String(resp?.error ?? 'unknown'))
+        setStatus(t('saveFailed') + String(resp?.error ?? 'unknown'))
       }
-    }).catch(err => setStatus('保存失败: ' + String(err)))
+    }).catch(err => setStatus(t('saveFailed') + String(err)))
   }
 
   return (
     <div className={css.row}>
-      <div className={css.title}>调试模式</div>
+      <div className={css.title}>{t('debug.title')}</div>
       <label className={css.check}>
         <input
           type="checkbox"
           checked={debugMode}
           onChange={e => changeDebugMode(e.target.checked)}
         />
-        <span>开启调试模式（关闭时禁用右键菜单和 F12 等调试快捷键）</span>
+        <span>{t('debug.toggle')}</span>
       </label>
       <div className={css.actions}>
         <span className={css.status}>{status}</span>

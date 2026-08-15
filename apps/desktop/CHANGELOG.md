@@ -4,6 +4,11 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+### Fixed
+
+- The desktop settings (drop policy and debug mode rows) now follow the app language.
+- Launching the app no longer opens a `node.exe` console window.
+
 ## [0.1.0] - 2026-08-15
 
 ### Added

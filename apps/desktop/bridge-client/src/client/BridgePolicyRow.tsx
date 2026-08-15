@@ -19,11 +19,17 @@ const FALLBACK: PolicyValues = { copyEnabled: true, maxBytes: 50 * 1024 * 1024 }
 /** Quiet period before the size input persists (ms). */
 const SIZE_DEBOUNCE_MS = 500
 
+/** Component props: the locale-following translate seat. */
+interface BridgePolicyRowProps {
+  t: (key: string) => string
+}
+
 /**
  * Render the bridge policy row.
+ * @param props - the locale translate seat.
  * @returns the row element tree.
  */
-export function BridgePolicyRow(): React.ReactElement {
+export function BridgePolicyRow({ t }: BridgePolicyRowProps): React.ReactElement {
   const [copyEnabled, setCopyEnabled] = useState(true)
   const [mb, setMb] = useState('')
   const [status, setStatus] = useState('')
@@ -52,14 +58,14 @@ export function BridgePolicyRow(): React.ReactElement {
 
   /** Persist one policy write and surface failures; the toggle is optimistic. */
   const persist = (next: { copyEnabled?: boolean; maxBytes?: number }): void => {
-    setStatus('保存中…')
+    setStatus(t('saving'))
     void fetch('/dsh-bridge/policy', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(next),
     }).then(r => r.json()).then((resp) => {
-      setStatus(resp?.ok === true ? '' : '保存失败: ' + String(resp?.error ?? 'unknown'))
-    }).catch(err => setStatus('保存失败: ' + String(err)))
+      setStatus(resp?.ok === true ? '' : t('saveFailed') + String(resp?.error ?? 'unknown'))
+    }).catch(err => setStatus(t('saveFailed') + String(err)))
   }
 
   // Toggle saves on every change; no debounce needed for a boolean.
@@ -81,23 +87,23 @@ export function BridgePolicyRow(): React.ReactElement {
 
   return (
     <div className={css.row}>
-      <div className={css.title}>拖放策略</div>
+      <div className={css.title}>{t('policy.title')}</div>
       <label className={css.check}>
         <input
           type="checkbox"
           checked={copyEnabled}
           onChange={e => changeCopyEnabled(e.target.checked)}
         />
-        <span>开启拖放复制（关闭时所有非图片文件只提供路径）</span>
+        <span>{t('policy.copy')}</span>
       </label>
       <div className={css.field}>
-        <label className={css.label}>最大文件大小（MB）</label>
+        <label className={css.label}>{t('policy.maxSize')}</label>
         <input className={css.input} type="number" min={1} value={mb} onChange={e => changeMaxBytes(e.target.value)} />
       </div>
       <div className={css.actions}>
         <span className={css.status}>{status}</span>
       </div>
-      <p className={css.hint}>图片始终直接进入输入框；开启复制时，未超限的文本文件会复制到 drops 文件夹（重复拖放会更新），二进制文件与超限文件只提供路径。</p>
+      <p className={css.hint}>{t('policy.hint')}</p>
     </div>
   )
 }

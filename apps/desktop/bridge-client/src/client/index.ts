@@ -1,6 +1,7 @@
 import { BridgeDebugRow } from './BridgeDebugRow.tsx'
 import { BridgePolicyRow } from './BridgePolicyRow.tsx'
 import { BridgeSection } from './BridgeSection.tsx'
+import { en, zh } from './locales.ts'
 
 // @deepseek-ai/dsh-desktop-bridge-client — browser half of the shell
 // bridge: picks non-image files out of native drops and forwards them to
@@ -19,7 +20,7 @@ import { BridgeSection } from './BridgeSection.tsx'
 export const name = 'desktop-bridge-client'
 
 /** Services required before the listener and settings row can run. */
-export const inject = ['sessions', 'slots']
+export const inject = ['sessions', 'slots', 'locale']
 
 /** Minimal view of the client-runtime sessions service this plugin consumes. */
 interface SessionsLike {
@@ -34,10 +35,17 @@ interface SlotsLike {
   register(options: Record<string, unknown>, component: unknown): unknown
 }
 
+/** Minimal view of the locale service this plugin consumes. */
+interface LocaleLike {
+  register(ns: string, dicts: Record<string, Record<string, string>>): () => void
+  bind(ns: string): (key: string) => string
+}
+
 /** Minimal view of the cordis context this plugin consumes. */
 interface BridgeClientContext {
   sessions: SessionsLike
   slots: SlotsLike
+  locale: LocaleLike
 }
 
 /** Minimal view of the injected Tauri APIs (withGlobalTauri). */
@@ -126,21 +134,28 @@ function readAsBase64(file: File): Promise<string> {
  * @param ctx - the client context (sessions, slots).
  * @returns the disposer removing the listeners.
  */
+/** Dictionary namespace owned by this plugin (the bridge settings section). */
+const NS = 'settings.bridge'
+
 export function apply(ctx: BridgeClientContext): () => void {
   if (bound) return () => {}
   bound = true
   void refreshPolicy()
+  const offLocale = ctx.locale.register(NS, { zh, en })
+  const t = ctx.locale.bind(NS)
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
     id: 'bridge',
     order: 100,
-    label: () => '桌面设置',
+    label: () => t('section.nav'),
+    locale: NS,
     children: { 'settings.bridge.item': { kind: 'list', scope: 'root' }, 'settings.bridge.item2': { kind: 'list', scope: 'root' } },
   }, BridgeSection))
   ctx.slots.inject('settings.bridge.item', () => ctx.slots.register({
     name: 'settings.bridge.item',
     id: 'bridge-policy',
     order: 0,
+    locale: NS,
     // No inject face: the row fetches the bridge host route directly (the
     // dsh configuration boundary refuses browser writes to non-listed
     // settings namespaces, so saves must go through the host).
@@ -149,6 +164,7 @@ export function apply(ctx: BridgeClientContext): () => void {
     name: 'settings.bridge.item2',
     id: 'bridge-debug',
     order: 0,
+    locale: NS,
     // inject must be a factory: the renderer calls it per entry.
     inject: () => ({ onDebugMode: applyDebugMode }),
   }, BridgeDebugRow))
@@ -199,6 +215,7 @@ export function apply(ctx: BridgeClientContext): () => void {
   }
   document.addEventListener('drop', onDropCapture, true)
   return () => {
+    offLocale()
     document.removeEventListener('contextmenu', onContextMenuCapture, true)
     document.removeEventListener('keydown', onKeyDownCapture, true)
     document.removeEventListener('drop', onDropCapture, true)
