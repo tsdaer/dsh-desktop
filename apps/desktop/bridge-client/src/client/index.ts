@@ -2,17 +2,19 @@ import { BridgePolicyRow } from './BridgePolicyRow.tsx'
 import { BridgeSection } from './BridgeSection.tsx'
 
 // @deepseek-ai/dsh-desktop-bridge-client — browser half of the shell
-// bridge: picks non-image files out of native drops and forwards their
-// bytes to the bridge host route (WebView2 exposes no File.path, so bytes
-// travel instead). Images are left untouched for the dsh composer's own
-// intake pipeline. The host's policy (extension allowlist, size cap) is
-// fetched per drop and applied before upload.
+// bridge: picks non-image files out of native drops and forwards them to
+// the bridge host route (WebView2 exposes no File.path, so bytes travel
+// instead; oversized files travel as metadata only). Images are left
+// untouched for the dsh composer's own intake pipeline. The host decides
+// copy vs. path per the bridge policy (copy switch, size cap, binary
+// sniff), so the client mirrors only the size cap to keep the request
+// body bounded.
 
 /** Stable Cordis plugin name. */
 export const name = 'desktop-bridge-client'
 
 /** Services required before the listener and settings row can run. */
-export const inject = ['sessions', 'slots', 'settingsScope', 'connection', 'remote']
+export const inject = ['sessions', 'slots']
 
 /** Minimal view of the client-runtime sessions service this plugin consumes. */
 interface SessionsLike {
@@ -31,10 +33,6 @@ interface SlotsLike {
 interface BridgeClientContext {
   sessions: SessionsLike
   slots: SlotsLike
-  /** The settings-namespace owner handle (ui-settings client). */
-  settingsScope: {
-    bind(spec: { namespace: string }): unknown
-  }
 }
 
 const IMAGE_RE = /\.(png|jpe?g|webp|gif)$/i
@@ -44,18 +42,15 @@ const IMAGE_RE = /\.(png|jpe?g|webp|gif)$/i
 // (duplicate binds would POST every drop once per bind).
 let bound = false
 
-// Mirror of the host bridge policy; refreshed per drop (fallback: allow all, 50 MiB).
-let policy: { allowedExtensions: string[]; maxBytes: number } = { allowedExtensions: [], maxBytes: 50 * 1024 * 1024 }
+// Mirror of the host bridge policy; refreshed per drop (fallback: 50 MiB).
+let maxBytes = 50 * 1024 * 1024
 
-/** Refresh the policy mirror from the bridge host; keeps the last value on failure. */
-function refreshPolicy(): Promise<{ allowedExtensions: string[]; maxBytes: number }> {
+/** Refresh the size-cap mirror from the bridge host; keeps the last value on failure. */
+function refreshPolicy(): Promise<number> {
   return fetch('/dsh-bridge/config').then(r => r.json()).then((c) => {
-    policy = {
-      allowedExtensions: Array.isArray(c.allowedExtensions) ? c.allowedExtensions : [],
-      maxBytes: typeof c.maxBytes === 'number' ? c.maxBytes : 50 * 1024 * 1024,
-    }
-    return policy
-  }).catch(() => policy)
+    if (typeof c.maxBytes === 'number') maxBytes = c.maxBytes
+    return maxBytes
+  }).catch(() => maxBytes)
 }
 
 /** Read a File's bytes as a bare base64 string (data URL prefix stripped). */
@@ -88,13 +83,13 @@ export function apply(ctx: BridgeClientContext): () => void {
     label: () => '桌面设置',
     children: { 'settings.bridge.item': { kind: 'list', scope: 'root' } },
   }, BridgeSection))
-  const policyScope = ctx.settingsScope.bind({ namespace: 'desktop-bridge' }) as { set(field: string, value: unknown): Promise<void> }
   ctx.slots.inject('settings.bridge.item', () => ctx.slots.register({
     name: 'settings.bridge.item',
     id: 'bridge-policy',
     order: 0,
-    // inject must be a factory: the renderer calls it per entry.
-    inject: () => ({ setPolicy: (field: string, value: unknown) => policyScope.set(field, value) }),
+    // No inject face: the row fetches the bridge host route directly (the
+    // dsh configuration boundary refuses browser writes to non-listed
+    // settings namespaces, so saves must go through the host).
   }, BridgePolicyRow))
   // Capture-phase listener: non-image drops are taken over before the dsh
   // composer's bubble listeners can see them (its intake would toast a
@@ -116,23 +111,17 @@ export function apply(ctx: BridgeClientContext): () => void {
       await refreshPolicy()
       const sessionId = ctx.sessions.list.getSnapshot().current
       if (sessionId === undefined) return
-      const uploadable = nonImages.filter((file) => {
-        if (file.size > policy.maxBytes) return false
-        if (policy.allowedExtensions.length === 0) return true
-        const ext = (file.name.split('.').pop() || '').toLowerCase()
-        return policy.allowedExtensions.includes(ext)
-      })
-      if (uploadable.length === 0) return
-      Promise.all(uploadable.map(async file => ({
-        name: file.name,
-        base64: await readAsBase64(file),
-      }))).then((payload) => {
-        void fetch('/dsh-bridge/drop', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ sessionId, files: payload }),
-        }).catch(() => { /* bridge unavailable: the drop is simply not taken */ })
-      }).catch(() => { /* unreadable file: skip */ })
+      // Oversized files travel as metadata only: the host announces them as
+      // path references without us uploading their bytes.
+      const payload = await Promise.all(nonImages.map(async (file) => {
+        if (file.size > maxBytes) return { name: file.name, size: file.size }
+        return { name: file.name, size: file.size, base64: await readAsBase64(file) }
+      }))
+      void fetch('/dsh-bridge/drop', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ sessionId, files: payload }),
+      }).catch(() => { /* bridge unavailable: the drop is simply not taken */ })
     })()
     const images = files.filter(file => IMAGE_RE.test(file.name))
     if (images.length > 0) {
