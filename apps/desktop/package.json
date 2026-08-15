@@ -6,7 +6,11 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/dev.mjs",
-    "build": "node scripts/dev.mjs --release"
+    "build": "node scripts/dev.mjs --release",
+    "bundle": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4"
   },
   "license": "MIT"
 }

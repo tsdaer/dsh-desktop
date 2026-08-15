@@ -18,6 +18,12 @@ Start:
 
 The dev launcher sets DSH_CLI to the built apps/cli/lib/bin.js; DSH_NODE defaults to 'node' from PATH. The shell spawns 'dsh web --port 0' (OS-assigned free port) and parses the readiness line from the runtime's stdout.
 
+## Bundle (local installer)
+
+    pnpm --filter @deepseek-ai/dsh-desktop bundle
+
+runs 'tauri build' (release profile with lto/strip; NSIS installer to src-tauri/target/release/bundle/nsis/). The installer still needs the runtime provided at launch via DSH_CLI/DSH_NODE — the bundled Node sidecar and packaged CLI are deferred (see Test-version scope), so on the test machine run the installed exe with DSH_CLI set to the built CLI. Proxy note: the first bundle downloads the NSIS toolchain from GitHub; set HTTPS_PROXY/HTTP_PROXY if the machine needs a proxy to reach it.
+
 ## Custom title bar
 
 The window is frameless; the title bar is a single injected element whose source is apps/desktop/src/titlebar.js — loaded by the loading page via a script tag and re-injected into the dsh web page after navigation (main.rs embeds the file with include_str!, idempotent retries).
@@ -49,7 +55,7 @@ The client pre-filters before upload; the host enforces the same policy again at
 
 ## Test-version scope
 
-- The runtime is the locally built dsh CLI run by the PATH 'node'; the production path (bundled Node sidecar, packaged CLI in app resources, installer via 'tauri build') is deferred.
+- The runtime is the locally built dsh CLI run by the PATH 'node'; the production path (bundled Node sidecar, packaged CLI in app resources) is deferred — a 'tauri build' installer exists (see Bundle above) but does not carry the runtime.
 - Icons derive from the DeepSeek fish logo (regenerate via `node scripts/gen-icons.mjs`); no auto-update, no tray, no single-instance lock yet.
 - Linux is not handled yet (node-pty has no Linux prebuilds in the dsh dependency tree).
 - Closing the window terminates the runtime process; sessions persist on disk under $DSH_HOME.
