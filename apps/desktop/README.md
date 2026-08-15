@@ -26,6 +26,10 @@ Theme following: the bar consumes the dsh theme tokens that ui-theme writes on <
 
 Known test-version gaps: no Windows 11 snap-layout flyout (frameless), resize borders come from tao's default hit-testing, maximize icon syncs on click/resize events.
 
+## Drag and drop
+
+Native file drops are enabled by disabling the Tauri drag-drop handler ("dragDropEnabled": false): WebView2 delivers OS drops straight to the dsh page, whose own document-level intake (InputBar + DropOverlay) accepts images into the composer with browser-identical behavior. Non-image files follow the dsh page's own filtering.
+
 ## Test-version scope
 
 - The runtime is the locally built dsh CLI run by the PATH 'node'; the production path (bundled Node sidecar, packaged CLI in app resources, installer via 'tauri build') is deferred.
