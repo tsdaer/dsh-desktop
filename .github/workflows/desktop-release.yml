@@ -1,10 +1,11 @@
-# Draft a GitHub release for the current dsh-desktop version on every push (any
-# branch). The version is read from apps/desktop/package.json (kept in sync with
-# apps/desktop/src-tauri/tauri.conf.json; the job fails loudly if they drift).
-# Three outcomes: no release yet -> create a draft; a draft already exists ->
-# refresh its notes from the changelog; a published release exists -> leave it
-# alone. The release notes come from the matching CHANGELOG.zh.md section.
-# workflow_dispatch also lets it run manually.
+# Build the dsh-desktop NSIS installer and keep a draft GitHub release for the
+# current version. The version is read from apps/desktop/package.json (kept in
+# sync with apps/desktop/src-tauri/tauri.conf.json; the job fails loudly if they
+# drift). Three outcomes on the release side: no release yet -> create a draft
+# with the installer attached; a draft already exists -> refresh its notes and
+# replace the installer; a published release exists -> leave it alone. The
+# release notes come from the matching CHANGELOG.zh.md section.
+# workflow_dispatch also runs it manually.
 name: Draft desktop release
 
 on:
@@ -15,8 +16,46 @@ permissions:
   contents: write
 
 jobs:
+  build:
+    name: build the NSIS installer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install (immutable)
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the workspace (CLI + web frontend)
+        run: pnpm run build
+
+      - name: Bundle the desktop installer
+        run: pnpm --filter @deepseek-ai/dsh-desktop bundle
+
+      - name: Check the payload size gate
+        run: pnpm --filter @deepseek-ai/dsh-desktop size-check
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dsh-desktop-installer
+          path: apps/desktop/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+
   draft-release:
     name: draft release for the desktop version
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -45,6 +84,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: dsh-desktop-installer
+          path: dist
+
       - name: Create the draft release
         if: steps.check.outputs.exists == 'false'
         run: |
@@ -53,16 +97,18 @@ jobs:
             --draft \
             --title "dsh-desktop v${{ steps.version.outputs.version }}" \
             --target "${{ github.sha }}" \
-            --notes-file release-notes.md
+            --notes-file release-notes.md \
+            dist/*.exe
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Refresh the draft release notes
+      - name: Refresh the draft release
         if: steps.check.outputs.exists == 'true' && steps.check.outputs.is_draft == 'true'
         run: |
           node apps/desktop/scripts/changelog-section.mjs "${{ steps.version.outputs.version }}" > release-notes.md
           gh release edit "${{ steps.version.outputs.tag }}" \
             --title "dsh-desktop v${{ steps.version.outputs.version }}" \
             --notes-file release-notes.md
+          gh release upload "${{ steps.version.outputs.tag }}" dist/*.exe --clobber
         env:
           GH_TOKEN: ${{ github.token }}
