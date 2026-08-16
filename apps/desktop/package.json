@@ -5,14 +5,14 @@
   "description": "Tauri 2 desktop shell that hosts the dsh web profile in a native window",
   "type": "module",
   "scripts": {
-    "dev": "node scripts/dev.mjs",
-    "build": "node scripts/dev.mjs --release",
-    "bake": "node scripts/bake-runtime.mjs",
+    "dev": "node scripts/build-bridge.mjs && node scripts/dev.mjs",
+    "build": "node scripts/build-bridge.mjs && node scripts/dev.mjs --release",
+    "bake": "node scripts/build-bridge.mjs && node scripts/bake-runtime.mjs",
     "fetch-node": "node scripts/fetch-node-sidecar.mjs",
     "size-report": "node scripts/size-report.mjs",
     "size-check": "node scripts/size-report.mjs --check",
     "sync-version": "node scripts/sync-version.mjs",
-    "bundle": "node scripts/sync-version.mjs && node scripts/bake-runtime.mjs && node scripts/fetch-node-sidecar.mjs && tauri build"
+    "bundle": "node scripts/sync-version.mjs && node scripts/build-bridge.mjs && node scripts/bake-runtime.mjs && node scripts/fetch-node-sidecar.mjs && tauri build"
   },
   "devDependencies": {
     "@tauri-apps/api": "^2.0.0",

@@ -112,6 +112,19 @@ async function main() {
     fail('runtime still missing packages after ' + maxBakeRounds + ' rounds: ' + [...missing].join(', '));
   }
 
+  // The desktop bridge packages are produced by scripts/build-bridge.mjs
+  // (they are not workspace members, so the repo build never rebuilds them);
+  // bakePackage skips missing files entries silently, so a missing lib would
+  // otherwise ship a bridge that cannot load. Fail loud instead.
+  for (const entry of [
+    '@deepseek-ai/dsh-desktop-bridge/lib/index.js',
+    '@deepseek-ai/dsh-desktop-bridge-client/lib/index.js',
+  ]) {
+    if (!existsSync(join(deployDir, 'node_modules', entry))) {
+      fail('runtime missing ' + entry + '; run pnpm --filter @deepseek-ai/dsh-desktop build:bridge before baking');
+    }
+  }
+
   pruneRuntime(deployDir);
   await verifyBoot(deployDir);
   console.log('[bake-runtime] runtime ready at ' + deployDir);

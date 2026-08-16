@@ -10,6 +10,8 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ### Fixed
 
+- The desktop flows rebuild the bridge packages from source before packing/baking (`scripts/build-bridge.mjs`), so bridge changes (e.g. the balance route) always reach dev runs and the installer; a missing bridge lib now fails the bake instead of shipping silently.
+- Packaged boots keep the profile's bridge copy in lockstep with the runtime, so a stale bridge from an older install no longer survives an upgrade.
 - The desktop settings (drop policy and debug mode rows) now follow the app language.
 - Launching the app no longer opens a `node.exe` console window.
 

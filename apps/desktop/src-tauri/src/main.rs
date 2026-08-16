@@ -181,6 +181,15 @@ fn ensure_bridge(node: &str, cli: &str, paths: &RuntimePaths) -> Vec<String> {
     let profile = std::path::Path::new(&home).join("profiles").join("web");
     let marker = profile.join("node_modules").join("@deepseek-ai").join("dsh-desktop-bridge");
     if marker.join("package.json").exists() {
+        // Packaged mode keeps the profile's bridge in lockstep with the
+        // runtime's on every boot: the bridge lib is a build artifact that
+        // source changes refresh, so a one-time copy would leave the profile
+        // on stale behavior after an upgrade (missing routes, dead plugin).
+        // Dev mode (tarballs) installs once and leaves refreshes to the
+        // developer.
+        if !paths.bridge_copy.is_empty() {
+            copy_bridge_packages(&profile, &paths.bridge_copy);
+        }
         return patches;
     }
     if !profile.exists() {

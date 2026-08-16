@@ -24,7 +24,7 @@ dev 启动器把 DSH_CLI 设为构建出的 apps/cli/lib/bin.js;DSH_NODE 默认�
 
     pnpm --filter @deepseek-ai/dsh-desktop bundle
 
-分四步:把版本从 package.json 同步进 tauri.conf.json(`scripts/sync-version.mjs`)、烤出运行时(`scripts/bake-runtime.mjs`)、拉取打包用的 Node sidecar(`scripts/fetch-node-sidecar.mjs`)、再 `tauri build`(release profile 带 lto/strip;NSIS 安装器输出到 src-tauri/target/release/bundle/nsis/)。版本只存在于 package.json,升级只需改那一处。代理提示:首次打包会从 GitHub/nodejs.org 下载 NSIS 工具链和 Node sidecar;若机器需要代理,设置 HTTPS_PROXY/HTTP_PROXY。
+分五步:把版本从 package.json 同步进 tauri.conf.json(`scripts/sync-version.mjs`)、从源码构建桥接包(`scripts/build-bridge.mjs`)、烤出运行时(`scripts/bake-runtime.mjs`)、拉取打包用的 Node sidecar(`scripts/fetch-node-sidecar.mjs`)、再 `tauri build`(release profile 带 lto/strip;NSIS 安装器输出到 src-tauri/target/release/bundle/nsis/)。版本只存在于 package.json,升级只需改那一处。代理提示:首次打包会从 GitHub/nodejs.org 下载 NSIS 工具链和 Node sidecar;若机器需要代理,设置 HTTPS_PROXY/HTTP_PROXY。
 
 安装器是自包含的:它随附壳 exe、node.exe(Tauri externalBin sidecar)和 resources/runtime/ 下的烤出运行时。首次启动时壳子把桥接包拷入 profile(运行时没有 npm),用 DSH_BARE_MODULE_BASE 把裸插件名锚定到打包树,spawn 运行时并导航到所服务的 UI。
 
@@ -65,7 +65,7 @@ main.rs 的环境变量接线:DSH_CLI/DSH_NODE/DSH_BARE_MODULE_BASE/DSH_BRIDGE_T
 
 ## 壳桥接
 
-壳子把 dsh-desktop-bridge 包自动装进 web profile(npm tarball 拷贝,离线),并在每次启动时挂载 bridge/cordis.patch.yml。桥接 host 半边服务 POST /dsh-bridge/drop:把拖入的非图片文件拷进会话工作区的 drops/ 目录,并注入一条用户消息公告(持久、模型可见)。它还服务 GET /dsh-bridge/balance,供标题栏的余额药丸使用:该路由通过凭据服务解析 DeepSeek key 并代理官方 /user/balance 接口(见“自定义标题栏”)。桥接 client 半边把非图片拖放(WebView2 File.path)转发到该路由;图片仍用 dsh 输入框的原生接收。
+壳子把 dsh-desktop-bridge 包自动装进 web profile(npm tarball 拷贝,离线),并在每次启动时挂载 bridge/cordis.patch.yml。桥接包不是 pnpm workspace 成员,因此每条桌面流程都先经 scripts/build-bridge.mjs 从源码构建(npm 的 `dev`/`build`/`bake`/`bundle` 脚本已接入);打包模式的每次启动还会把 profile 里的桥接副本与运行时重新对齐,重建的桥接会自动替换过期的 profile 副本。桥接 host 半边服务 POST /dsh-bridge/drop:把拖入的非图片文件拷进会话工作区的 drops/ 目录,并注入一条用户消息公告(持久、模型可见)。它还服务 GET /dsh-bridge/balance,供标题栏的余额药丸使用:该路由通过凭据服务解析 DeepSeek key 并代理官方 /user/balance 接口(见“自定义标题栏”)。桥接 client 半边把非图片拖放(WebView2 File.path)转发到该路由;图片仍用 dsh 输入框的原生接收。
 
 ## 桥接策略
 
