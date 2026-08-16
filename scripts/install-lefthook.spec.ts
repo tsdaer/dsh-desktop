@@ -240,6 +240,28 @@ describe('worktree-local Lefthook installer', { timeout: 15_000 }, () => {
     })
   }
 
+  it('skips hook installation when the lefthook package is not installed', async () => {
+    // Production installs (`pnpm install --production`, `pnpm deploy --prod`)
+    // prune the lefthook devDependency. A copy of the installer outside the
+    // checkout reproduces its bare-specifier resolution failure: the static
+    // top-level import used to crash the postinstall before this guard ran.
+    const container = mkdtempSync(join(tmpdir(), 'dsh-lefthook-'))
+    fixtures.push(container)
+    const copiedScripts = join(container, 'scripts')
+    mkdirSync(copiedScripts)
+    writeFileSync(join(copiedScripts, 'install-lefthook.mjs'), readFileSync(installer))
+
+    const result = commandResult(
+      process.execPath,
+      [join(copiedScripts, 'install-lefthook.mjs')],
+      container,
+      { ...process.env, CI: 'false', GITHUB_ACTIONS: 'false' },
+    )
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stderr).toBe('')
+  })
+
   it('isolates main and linked worktrees without changing legacy common hooks', async () => {
     const fixture = createFixture()
     const common = commonDirectory(fixture)

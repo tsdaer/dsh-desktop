@@ -14,7 +14,6 @@ import {
 } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
-import lefthookPackage from 'lefthook/package.json' with { type: 'json' }
 
 const MINIMUM_GIT = [2, 26, 0]
 const HOOKS_DIRECTORY = 'dsh-hooks'
@@ -45,6 +44,16 @@ function errorCode(error) {
   return typeof error === 'object' && error !== null && 'code' in error
     ? error.code
     : undefined
+}
+
+async function lefthookBinAvailable() {
+  try {
+    const lefthookPackage = await import('lefthook/package.json', { with: { type: 'json' } })
+    return typeof lefthookPackage.default.bin?.lefthook === 'string'
+  } catch (error) {
+    if (errorCode(error) !== 'ERR_MODULE_NOT_FOUND') throw error
+    return false
+  }
 }
 
 function commandFailure(command, args, result) {
@@ -690,7 +699,11 @@ function probePairingMergeDriver(root) {
 
 async function main() {
   if (process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true') return
-  if (typeof lefthookPackage.bin?.lefthook !== 'string') return
+  // lefthook is a devDependency: production installs (`pnpm install
+  // --production`, `pnpm deploy --prod`) prune it, so it must not be imported
+  // at module load or the postinstall crashes before any guard can run.
+  const lefthookAvailable = await lefthookBinAvailable()
+  if (lefthookAvailable === false) return
   const probe = spawnSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' })
   if (probe.status !== 0) return
   const root = stripGitLineTerminator(probe.stdout)
