@@ -10,7 +10,7 @@ dsh-desktop 桥接包(apps/desktop/bridge 与 apps/desktop/bridge-client)不是 
 
 ## 决策
 
-- `apps/desktop/scripts/build-bridge.mjs` 从源码构建两个桥接包(各自 `tsc -p tsconfig.json` 再 `tsdown`)。桌面 npm 脚本 `dev`、`build`、`bake`、`bundle` 都先跑它,每次 pack 与每次烤制都从当前源码出发。
+- `apps/desktop/scripts/build-bridge.mjs` 从源码构建两个桥接包(各自 `tsc -p tsconfig.json` 再 `tsdown`)。桌面 npm 脚本 `dev`、`build`、`bake`、`bundle` 都先跑它,每次 pack 与每次烤制都从当前源码出发。全新 checkout 没有这些独立包的 node_modules;脚本在缺失时先用 npm 安装 client 半边的声明 dev 依赖(react 与 @types/react),因为它的 tsc 从 node_modules 解析 react(host 半边全部经 tsconfig paths 解析)。
 - `bake-runtime.mjs` 在烤制轮次之后,若 deploy 树里缺少 `@deepseek-ai/dsh-desktop-bridge/lib/index.js` 或 `@deepseek-ai/dsh-desktop-bridge-client/lib/index.js` 就直接报错,而不是静默产出无法加载的桥接。
 - main.rs 的 `ensure_bridge` 在打包模式(`bridge_copy` 非空)下每次启动都把 profile 里的桥接包与运行时重新对齐,取代一次性 marker 复制。重建的桥接会自动替换过期的 profile 副本;dev 模式(npm tarball)仍只装一次,刷新交给开发者。
 

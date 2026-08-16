@@ -10,7 +10,7 @@ The dsh-desktop bridge packages (apps/desktop/bridge and apps/desktop/bridge-cli
 
 ## Decision
 
-- `apps/desktop/scripts/build-bridge.mjs` builds both bridge packages from source (tsc -p tsconfig.json, then tsdown, for each). The desktop npm scripts `dev`, `build`, `bake`, and `bundle` run it first, so every pack and every bake starts from current sources.
+- `apps/desktop/scripts/build-bridge.mjs` builds both bridge packages from source (tsc -p tsconfig.json, then tsdown, for each). The desktop npm scripts `dev`, `build`, `bake`, and `bundle` run it first, so every pack and every bake starts from current sources. A fresh checkout has no node_modules for these standalone packages; the script installs the client half's declared dev dependencies (react and @types/react) via npm when they are missing, because its tsc resolves react from node_modules (the host half resolves everything through its tsconfig paths).
 - `bake-runtime.mjs` fails loud after the bake rounds when `@deepseek-ai/dsh-desktop-bridge/lib/index.js` or `@deepseek-ai/dsh-desktop-bridge-client/lib/index.js` is missing from the deploy tree, instead of shipping a bridge that cannot load.
 - main.rs's `ensure_bridge` re-syncs the profile's bridge packages from the runtime on every packaged boot (when `bridge_copy` is non-empty), replacing the one-time marker-gated copy. A rebuilt bridge therefore replaces a stale profile copy automatically; dev mode (npm tarballs) still installs once and leaves refreshes to the developer.
 
