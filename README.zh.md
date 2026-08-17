@@ -10,6 +10,12 @@ DeepSeek Harness（`dsh`）是由 [DeepSeek AI](https://deepseek.com) 开发的�
 
 DeepSeek Harness 目前处于 _开发者预览_ 阶段，正在快速迭代。**未来将出现破坏兼容性的变更。**
 
+## 桌面版
+
+本分支提供基于 Tauri 而非 Electron 的 Windows 桌面版。程序复用系统 WebView2，并以 sidecar 方式运行随应用打包的 Node.js，安装包无需再携带一套 Chromium 运行时。桌面版因此能以较低的内存占用和较小的安装包提供完整 Web UI 与本地 agent 运行时。
+
+支持的系统集成、开发方式、打包流程与路线图见[桌面端文档](apps/desktop/README.md)。
+
 ## 运行
 
 ### 通过 `npm` 运行

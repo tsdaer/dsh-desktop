@@ -4,6 +4,27 @@ English | [中文](README.zh.md)
 
 A Tauri 2 desktop shell that hosts the 'dsh web' profile in a native window: the shell spawns a Node process running the dsh CLI, waits for the readiness URL line the web profile prints, and navigates the window to it.
 
+## Roadmap
+
+Delivered:
+
+- [x] A native title bar that follows the application theme
+- [x] A bundled Node.js sidecar
+- [x] Balance display in the title bar
+- [x] An Explorer **Open with dsh-desktop** context-menu action
+- [x] Configurable close behavior: exit immediately or remain in the system tray
+- [x] Native file and folder drag-and-drop
+
+Planned for 0.3.0:
+
+- [ ] A Workspace/Worktree sidebar switch with Explorer, Search, and read-only Source Control views
+- [ ] A visually consistent copy action beside every ordinary user and assistant message
+- [ ] API connection status beside the balance, with click-to-refresh balance updates
+- [ ] One black application icon shared by the splash screen, window, tray, and installer
+- [ ] An accessible title-bar emoji that reports local application workload
+
+“Worktree” refers to a project view rooted in the selected Workspace; it does not manage Git worktree checkouts. The [Desktop 0.3 plan](../../.agents/notes/proposed/feature/2026-08-17-desktop-0.3-worktree-and-runtime-chrome.md) defines the scope and acceptance criteria.
+
 ## Run (test version)
 
 Prerequisites:

@@ -10,6 +10,12 @@ It uses an architecture where **everything is a plugin**, and is powered by [Cor
 
 DeepSeek Harness is currently in _developer preview_ and is iterating rapidly. **THERE WILL BE COMPATIBILITY-BREAKING CHANGES.**
 
+## Desktop edition
+
+This branch provides a Windows desktop edition built with Tauri rather than Electron. It uses the system WebView2 runtime and runs the bundled Node.js executable as a sidecar, so the installer does not carry a separate Chromium runtime. This keeps memory use and installer size low while retaining the full Web UI and local agent runtime.
+
+See the [desktop documentation and roadmap](apps/desktop/README.md) for supported integration, development, and packaging details.
+
 ## Run
 
 ### Run from `npm`
