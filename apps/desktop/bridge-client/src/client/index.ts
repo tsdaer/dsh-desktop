@@ -1,5 +1,6 @@
 import { BridgeCloseRow } from './BridgeCloseRow.tsx'
 import { BridgeDebugRow } from './BridgeDebugRow.tsx'
+import css from './BridgeRow.module.css'
 import { BridgeSection } from './BridgeSection.tsx'
 import { en, zh } from './locales.ts'
 
@@ -42,6 +43,7 @@ interface WorkspacesLike {
     }
     subscribe(listener: () => void): () => void
   }
+  create(input: { path: string }): Promise<{ workspaceId: string }>
   startSession(workspaceId?: string): void
 }
 
@@ -253,36 +255,111 @@ async function handleDropPaths(paths: readonly string[]): Promise<void> {
 const NS = 'settings.bridge'
 
 /**
- * Jump to the workspace the shell was launched with once its baseline is
- * ready: open its most recent session, or start one when it has none. No
- * workspace match (or no launch folder) leaves the normal boot selection.
+ * Wait for the Workspace and Session baselines used by Explorer path routing.
  * @param ctx - the client context (sessions, workspaces).
- * @param workspaceId - the target workspace id from the bridge host.
+ * @returns completion after both baselines are ready.
  */
-function jumpToWorkspace(ctx: BridgeClientContext, workspaceId: string): void {
+function waitForWorkspaces(ctx: BridgeClientContext): Promise<void> {
   const list = ctx.workspaces.list
-  const reconcile = (): void => {
-    const snapshot = list.getSnapshot()
-    if (!snapshot.baselinesReady) return
-    const workspace = snapshot.items.find(item => item.workspaceId === workspaceId)
-    if (workspace === undefined) return
-    const sessions = ctx.sessions.list.getSnapshot()
-    const mostRecent = workspace.sessionIds
-      .filter(id => sessions.byId[id] !== undefined)
-      .sort((a, b) => (sessions.byId[b]?.updatedAt ?? 0) - (sessions.byId[a]?.updatedAt ?? 0))[0]
-    if (mostRecent !== undefined) ctx.sessions.open(mostRecent)
-    else ctx.workspaces.startSession(workspaceId)
-  }
-  if (list.getSnapshot().baselinesReady) {
-    reconcile()
+  if (list.getSnapshot().baselinesReady) return Promise.resolve()
+  return new Promise((resolve) => {
+    const unsubscribe = list.subscribe(() => {
+      if (!list.getSnapshot().baselinesReady) return
+      unsubscribe()
+      resolve()
+    })
+  })
+}
+
+function pathKey(path: string): string {
+  return path.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase()
+}
+
+function ownsPath(workspacePath: string, candidatePath: string): boolean {
+  const workspace = pathKey(workspacePath)
+  const candidate = pathKey(candidatePath)
+  return candidate === workspace || candidate.startsWith(workspace + '/')
+}
+
+function openWorkspace(ctx: BridgeClientContext, workspaceId: string): void {
+  const workspace = ctx.workspaces.list.getSnapshot().items.find(item => item.workspaceId === workspaceId)
+  if (workspace === undefined) return
+  const sessions = ctx.sessions.list.getSnapshot()
+  const mostRecent = workspace.sessionIds
+    .filter(id => sessions.byId[id] !== undefined)
+    .sort((a, b) => (sessions.byId[b]?.updatedAt ?? 0) - (sessions.byId[a]?.updatedAt ?? 0))[0]
+  if (mostRecent !== undefined) ctx.sessions.open(mostRecent)
+  else ctx.workspaces.startSession(workspaceId)
+}
+
+function confirmWorkspace(path: string, t: (key: string) => string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const mask = document.createElement('div')
+    mask.className = css.confirmMask as string
+    const dialog = document.createElement('div')
+    dialog.className = css.confirmDialog as string
+    dialog.setAttribute('role', 'dialog')
+    dialog.setAttribute('aria-modal', 'true')
+    dialog.setAttribute('aria-label', t('workspace.addTitle'))
+
+    const title = document.createElement('div')
+    title.className = css.confirmTitle as string
+    title.textContent = t('workspace.addTitle')
+    const message = document.createElement('p')
+    message.className = css.confirmMessage as string
+    message.textContent = t('workspace.addConfirm').replace('{path}', path)
+    const actions = document.createElement('div')
+    actions.className = css.confirmActions as string
+    const cancel = document.createElement('button')
+    cancel.className = css.confirmCancel as string
+    cancel.type = 'button'
+    cancel.textContent = t('workspace.cancel')
+    const add = document.createElement('button')
+    add.className = css.confirmAdd as string
+    add.type = 'button'
+    add.textContent = t('workspace.add')
+    actions.append(cancel, add)
+    dialog.append(title, message, actions)
+    mask.append(dialog)
+
+    const finish = (accepted: boolean): void => {
+      document.removeEventListener('keydown', onKeyDown, true)
+      mask.remove()
+      resolve(accepted)
+    }
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      event.stopPropagation()
+      finish(false)
+    }
+    cancel.addEventListener('click', () => finish(false), { once: true })
+    add.addEventListener('click', () => finish(true), { once: true })
+    mask.addEventListener('click', (event) => {
+      if (event.target === mask) finish(false)
+    })
+    document.addEventListener('keydown', onKeyDown, true)
+    document.body.append(mask)
+    add.focus()
+  })
+}
+
+async function openExplorerPath(ctx: BridgeClientContext, path: string, t: (key: string) => string): Promise<void> {
+  await waitForWorkspaces(ctx)
+  const owner = [...ctx.workspaces.list.getSnapshot().items]
+    .filter(workspace => ownsPath(workspace.path, path))
+    .sort((left, right) => pathKey(right.path).length - pathKey(left.path).length)[0]
+  if (owner !== undefined) {
+    openWorkspace(ctx, owner.workspaceId)
     return
   }
-  const unsubscribe = list.subscribe(() => {
-    if (list.getSnapshot().baselinesReady) {
-      unsubscribe()
-      reconcile()
-    }
-  })
+  if (!await confirmWorkspace(path, t)) return
+  try {
+    const workspace = await ctx.workspaces.create({ path })
+    ctx.workspaces.startSession(workspace.workspaceId)
+  } catch (error) {
+    window.alert(t('workspace.addFailed') + String(error))
+  }
 }
 
 /**
@@ -360,21 +437,45 @@ export function apply(ctx: BridgeClientContext): () => void {
     })
   }
   bindDragDrop()
-  // Launch-folder jump ("以 dsh-desktop 打开"): resolve once, then let the
-  // baseline subscription pick the moment the workspace list is ready.
-  void fetch('/dsh-bridge/workspace').then(r => r.json()).then((resp) => {
-    const workspace = resp?.workspace
-    if (workspace !== null && workspace !== undefined && typeof workspace.workspaceId === 'string') {
-      jumpToWorkspace(ctx, workspace.workspaceId)
+  let openPathWork = Promise.resolve()
+  const drainOpenPaths = (): void => {
+    openPathWork = openPathWork.then(async () => {
+      const paths = await getTauri()?.core?.invoke('take_open_paths')
+      if (!Array.isArray(paths)) return
+      for (const path of paths) {
+        if (typeof path === 'string') await openExplorerPath(ctx, path, t)
+      }
+    }).catch(() => { /* shell unavailable or one request failed: keep the page usable */ })
+  }
+  let offOpenPath: (() => void) | undefined
+  let retryOpenPath: ReturnType<typeof setTimeout> | undefined
+  const bindOpenPath = (): void => {
+    if (disposed) return
+    const events = getTauri()?.event
+    if (events === undefined) {
+      if (hasTauriInternals()) retryOpenPath = setTimeout(bindOpenPath, 100)
+      return
     }
-  }).catch(() => { /* no launch folder or bridge unavailable: normal boot */ })
+    void events.listen('dsh://open-path', drainOpenPaths).then((off) => {
+      if (disposed) off()
+      else {
+        offOpenPath = off
+        drainOpenPaths()
+      }
+    }).catch(() => {
+      if (!disposed) retryOpenPath = setTimeout(bindOpenPath, 100)
+    })
+  }
+  bindOpenPath()
   // Debug guard: read the stored mode and enforce it for this page session.
   document.addEventListener('contextmenu', onContextMenuCapture, true)
   document.addEventListener('keydown', onKeyDownCapture, true)
   return () => {
     disposed = true
     if (retryDragDrop !== undefined) clearTimeout(retryDragDrop)
+    if (retryOpenPath !== undefined) clearTimeout(retryOpenPath)
     offDragDrop?.()
+    offOpenPath?.()
     offLocale()
     hideDropOverlay()
     document.removeEventListener('contextmenu', onContextMenuCapture, true)

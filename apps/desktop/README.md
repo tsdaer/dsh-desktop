@@ -80,15 +80,14 @@ Bridge host routes (under /dsh-bridge):
 - `GET /config` — the effective desktop settings (close-to-tray, debug mode), read per request so settings-page saves take effect immediately.
 - `POST /policy` — persist desktop settings through the runtime's settings seam ($DSH_HOME/settings.yaml). The dsh configuration boundary refuses browser writes to non-listed namespaces, so the settings rows save through this route instead of the client settingsScope.
 - `GET /balance` — the title bar's balance pill: resolves the DeepSeek key through the credentials service and proxies the official /user/balance endpoint (see "Custom title bar").
-- `GET /workspace` — resolves the folder the shell was launched with against the workspace registry (see "Open with dsh-desktop").
 
-The bridge client half owns the shell-side behaviors on the page: the drag-drop handling above, the close-to-tray mirror, the debug guard, and the launch-folder workspace jump.
+The bridge client half owns the shell-side behaviors on the page: the drag-drop handling above, the close-button mirror, the debug guard, and Explorer path routing.
 
 ## Desktop settings, tray, and close behavior
 
 The dsh settings page's 桌面设置 (Desktop) section (registered by the bridge client) hosts two rows, both persisted through the bridge host route:
 
-- 关闭行为 (Close behavior): whether the title-bar close button really exits the app or hides to the system tray. When on, closing the window (button or Alt+F4) prevents the close and hides the window; the runtime keeps serving and sessions keep running. The tray menu's 退出 is then the real exit (it stops the runtime child and terminates the app).
+- 关闭按钮行为 (Close button behavior): an explicit choice between closing and exiting the application or hiding the window while retaining it in the system tray. The retained runtime keeps serving and sessions keep running; the tray menu's 退出 stops the runtime child and terminates the app.
 - 调试模式 (Debug mode): unchanged — while off, right-click and devtools shortcuts are suppressed, and the shell flips WebView2's AreDevToolsEnabled.
 
 Both settings are stored in the bridge settings namespace ($DSH_HOME/settings.yaml, same seam as every other setting), with static fallbacks in the bridge row config:
@@ -109,13 +108,13 @@ On every start the shell (re)registers a per-user Explorer context-menu entry un
 - `Software\Classes\Directory\shell\dsh-desktop` — right-click on a folder row shows 以 dsh-desktop 打开.
 - `Software\Classes\Directory\Background\shell\dsh-desktop` — the same entry for right-click on a folder's empty background.
 
-The menu runs `<exe> <folder>`. On launch the shell passes the folder to the runtime as `DSH_DESKTOP_OPEN`, and the bridge host's `GET /dsh-bridge/workspace` resolves it against the workspace registry: an exact workspace path matches, and any folder inside a workspace matches its owning workspace (canonical ancestor check). The bridge client then jumps to that workspace once the page's workspace baseline is ready — opening its most recent session, or starting a fresh one when it has none. Folders outside every workspace (or a plain launch without a folder) boot normally.
+The menu runs `<exe> <folder>`. The application is single-instance: when it is already running, the second process forwards the canonical folder to the existing window, brings that window forward, and exits. The bridge client selects the Workspace with the longest ancestor path, so a right-click in a nested Workspace resolves to the most specific owner. It opens that Workspace's most recent session, or starts one when none exists. When no Workspace owns the directory, the page asks before registering that directory as a new Workspace and opening it.
 
 Registration is best-effort and logged on failure; the NSIS installer does not yet remove the keys on uninstall.
 
 ## Test-version scope
 
-- Dev runs the repo-built CLI on the PATH 'node'; the packaged app carries its own Node sidecar and baked runtime (see Bundle / Packaged runtime above). Remaining gaps: no auto-update, no single-instance lock, and the Windows-only sidecar means Linux/macOS are unhandled (node-pty also lacks Linux prebuilds in the dsh dependency tree).
+- Dev runs the repo-built CLI on the PATH 'node'; the packaged app carries its own Node sidecar and baked runtime (see Bundle / Packaged runtime above). Remaining gaps: no auto-update, and the Windows-only sidecar means Linux/macOS are unhandled (node-pty also lacks Linux prebuilds in the dsh dependency tree).
 - Icons derive from the DeepSeek fish logo (regenerate via `node scripts/gen-icons.mjs`); the tray reuses the bundled window icon.
 - Closing the window terminates the runtime process unless close-to-tray is enabled (see "Desktop settings, tray, and close behavior"); sessions persist on disk under $DSH_HOME.
 - The window binds nothing of its own: the runtime still serves only loopback (127.0.0.1) with no auth, matching 'dsh web' posture.

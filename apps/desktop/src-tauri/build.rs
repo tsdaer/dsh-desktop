@@ -3,6 +3,7 @@ fn main() {
         "read_dropped_file",
         "set_close_to_tray",
         "set_debug_mode",
+        "take_open_paths",
         "splash_open_webview2_download",
         "splash_start",
         "splash_status",

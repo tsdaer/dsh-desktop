@@ -56,14 +56,16 @@ export function BridgeCloseRow({ onCloseToTray, t }: BridgeCloseRowProps): React
   return (
     <div className={css.row}>
       <div className={css.title}>{t('close.title')}</div>
-      <label className={css.check}>
-        <input
-          type="checkbox"
-          checked={closeToTray}
-          onChange={e => changeCloseToTray(e.target.checked)}
-        />
-        <span>{t('close.toggle')}</span>
-      </label>
+      <div className={css.choiceGroup} role="radiogroup" aria-label={t('close.title')}>
+        <label className={css.check}>
+          <input type="radio" name="desktop-close" checked={!closeToTray} onChange={() => changeCloseToTray(false)} />
+          <span>{t('close.exit')}</span>
+        </label>
+        <label className={css.check}>
+          <input type="radio" name="desktop-close" checked={closeToTray} onChange={() => changeCloseToTray(true)} />
+          <span>{t('close.tray')}</span>
+        </label>
+      </div>
       <div className={css.actions}>
         <span className={css.status}>{status}</span>
       </div>

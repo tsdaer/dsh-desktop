@@ -23,7 +23,7 @@ use std::time::{Duration, Instant};
 use base64::Engine as _;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{DragDropEvent, Manager, Url, WebviewWindow, WindowEvent};
+use tauri::{DragDropEvent, Emitter, Manager, Url, WebviewWindow, WindowEvent};
 use tauri_plugin_opener::OpenerExt;
 
 /// Holds the spawned runtime so it can be terminated at app exit.
@@ -44,6 +44,11 @@ struct CloseToTray(Mutex<bool>);
 /// page may read back through `read_dropped_file`. The page is served on plain
 /// loopback with no auth, so the read surface stays user-gesture-bounded.
 struct DroppedPaths(Mutex<Vec<(PathBuf, Instant)>>);
+
+/// Canonical directories received from Explorer and not yet consumed by the
+/// bridge client. The queue covers both initial launch and second-instance
+/// delivery while the web page is still loading.
+struct PendingOpenPaths(Mutex<Vec<PathBuf>>);
 
 /// How long a dropped path stays readable (the page reads it immediately
 /// after the drop).
@@ -195,6 +200,34 @@ fn read_dropped_file(app: tauri::AppHandle, path: String) -> Option<String> {
     Some(base64::engine::general_purpose::STANDARD.encode(data))
 }
 
+/// Drain directories delivered by Explorer into the bridge client.
+#[tauri::command]
+fn take_open_paths(app: tauri::AppHandle) -> Vec<String> {
+    let state = app.state::<PendingOpenPaths>();
+    let mut paths = state.0.lock().unwrap();
+    paths
+        .drain(..)
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect()
+}
+
+/// Add the first directory argument from one process invocation to the
+/// pending queue. Canonical paths make client-side ancestor matching stable.
+fn enqueue_open_path(app: &tauri::AppHandle, args: &[String]) -> bool {
+    let Some(path) = args
+        .iter()
+        .skip(1)
+        .map(PathBuf::from)
+        .find(|path| path.is_dir())
+        .and_then(|path| std::fs::canonicalize(path).ok())
+        .map(|path| dunce::simplified(&path).to_owned())
+    else {
+        return false;
+    };
+    app.state::<PendingOpenPaths>().0.lock().unwrap().push(path);
+    true
+}
+
 /// Create the system tray icon with its menu (显示主窗口 / 退出). A left
 /// click on the icon shows the main window; the menu's exit is the one real
 /// quit once close-to-tray is enabled. Without a bundled window icon the tray
@@ -281,9 +314,8 @@ fn wire_main_window_events(app: &tauri::AppHandle) {
 /// (per-user, no elevation): on a folder row (`Directory`) and on a folder's
 /// empty background (`Directory\Background`). Idempotent — rewritten on every
 /// start so the command always targets the current executable. The menu runs
-/// `<exe> <folder>`; `boot` surfaces the folder to the runtime as
-/// `DSH_DESKTOP_OPEN` for the workspace jump. Registration failures are
-/// logged, never fatal.
+/// `<exe> <folder>`; the single-instance plugin queues the canonical folder
+/// for the bridge client. Registration failures are logged, never fatal.
 #[cfg(windows)]
 fn ensure_explorer_context_menu() {
     let Ok(exe) = std::env::current_exe() else {
@@ -325,15 +357,23 @@ fn reg_add(base: &str, args: &[&str]) -> std::io::Result<()> {
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            if enqueue_open_path(app, &args) {
+                show_main_window(app);
+                let _ = app.emit("dsh://open-path", ());
+            }
+        }))
         .plugin(tauri_plugin_opener::init())
         .manage(DshRuntime(Mutex::new(None)))
         .manage(SplashBoard(Mutex::new(Vec::new())))
         .manage(CloseToTray(Mutex::new(false)))
         .manage(DroppedPaths(Mutex::new(Vec::new())))
+        .manage(PendingOpenPaths(Mutex::new(Vec::new())))
         .invoke_handler(tauri::generate_handler![
             set_debug_mode,
             set_close_to_tray,
             read_dropped_file,
+            take_open_paths,
             splash_start,
             splash_status,
             splash_open_webview2_download
@@ -345,6 +385,8 @@ fn main() {
             ));
             setup_tray(app.handle())?;
             wire_main_window_events(app.handle());
+            let args = std::env::args().collect::<Vec<_>>();
+            enqueue_open_path(app.handle(), &args);
             #[cfg(windows)]
             ensure_explorer_context_menu();
             Ok(())
@@ -787,14 +829,6 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
     cmd.arg("--port").arg("0");
     if let Some(module_base) = &paths.module_base {
         cmd.env("DSH_BARE_MODULE_BASE", module_base);
-    }
-    // Explorer context-menu launch: the first argument is the folder the user
-    // opened with ("以 dsh-desktop 打开"). The bridge host resolves it to a
-    // workspace so the page can jump to it after boot.
-    if let Some(open_path) = std::env::args().nth(1) {
-        if Path::new(&open_path).is_dir() {
-            cmd.env("DSH_DESKTOP_OPEN", open_path);
-        }
     }
     // The runtime is a console-subsystem binary (node.exe); a GUI-subsystem
     // parent would otherwise give it a visible console window. CREATE_NO_WINDOW

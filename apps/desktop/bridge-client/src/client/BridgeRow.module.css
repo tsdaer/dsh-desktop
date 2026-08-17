@@ -28,7 +28,13 @@
   color: var(--dsw-alias-label-secondary);
 }
 
-/* Checkbox row for the toggles. */
+.choiceGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Choice row for checkboxes and radio buttons. */
 .check {
   display: flex;
   align-items: center;
@@ -39,7 +45,8 @@
   cursor: pointer;
 }
 
-.check input[type="checkbox"] {
+.check input[type="checkbox"],
+.check input[type="radio"] {
   width: 16px;
   height: 16px;
   accent-color: var(--dsw-static-deepseek-500, #4176e6);
@@ -52,4 +59,69 @@
   font-size: 12px;
   line-height: 18px;
   color: var(--dsw-alias-label-secondary);
+}
+
+.confirmMask {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgb(0 0 0 / 52%);
+}
+
+.confirmDialog {
+  box-sizing: border-box;
+  width: min(460px, 100%);
+  padding: 24px;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-module-platform, #1d2029);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgb(0 0 0 / 30%);
+}
+
+.confirmTitle {
+  margin-bottom: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 26px;
+}
+
+.confirmMessage {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.confirmActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.confirmCancel,
+.confirmAdd {
+  min-width: 88px;
+  height: 36px;
+  padding: 0 16px;
+  font: inherit;
+  cursor: pointer;
+  border: 0;
+  border-radius: 18px;
+}
+
+.confirmCancel {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-base, #292d38);
+}
+
+.confirmAdd {
+  color: #fff;
+  background: var(--dsw-static-deepseek-500, #4176e6);
 }

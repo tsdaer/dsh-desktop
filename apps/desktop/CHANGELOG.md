@@ -7,8 +7,8 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 ### Added
 
 - OS file drag-and-drop is handled by the shell (`onDragDropEvent`, real filesystem paths): dropped folders/files have their paths inserted into the composer input box, and dropped images re-enter the composer's native image intake through a bounded shell byte bridge.
-- A system tray icon with a menu (显示主窗口 / 退出); the 桌面设置 section gains a 关闭行为 toggle that hides the window to the tray instead of exiting when the close button is pressed.
-- A per-user Explorer context-menu entry (以 dsh-desktop 打开) on folders; launching with a folder jumps to the matching workspace (exact path or ancestor), opening its most recent session.
+- A system tray icon with a menu (显示主窗口 / 退出); the 桌面设置 section offers an explicit close-button choice between exiting and retaining the application in the tray.
+- A per-user Explorer context-menu entry (以 dsh-desktop 打开) on folders; the single application instance opens the most specific owning Workspace, or asks before adding an unmatched directory as a new Workspace.
 
 ### Removed
 

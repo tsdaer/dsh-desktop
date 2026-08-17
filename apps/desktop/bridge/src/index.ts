@@ -10,23 +10,18 @@
 // - GET /dsh-bridge/balance — resolve the DeepSeek key through the runtime's
 //   credentials seam and proxy the official /user/balance endpoint for the
 //   title bar's balance pill.
-// - GET /dsh-bridge/workspace — resolve the folder the shell was launched
-//   with ("以 dsh-desktop 打开") against the workspace registry, so the page
-//   can jump to the matching workspace after boot.
-import { realpath } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import z from '@deepseek-ai/schemastery'
 import type { SettingsNamespace } from '@deepseek-ai/dsh-settings'
 import type {} from '@deepseek-ai/dsh-host-webserver'
-import type {} from '@deepseek-ai/dsh-workspace'
 
 /** Stable Cordis plugin name. */
 export const name = 'desktop-bridge'
 
 /** Services required before the route can serve. */
-export const inject = ['webServer', 'workspaceRegistry']
+export const inject = ['webServer']
 
 /** Durable settings namespace for the desktop settings ($DSH_HOME/settings.yaml, same seam as every other setting). */
 export const BRIDGE_SETTINGS_NS = 'desktop-bridge' as SettingsNamespace
@@ -124,63 +119,7 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
     await handleBalance(res, ctx)
     return
   }
-  if (pathname === '/dsh-bridge/workspace') {
-    if (req.method !== 'GET') {
-      res.statusCode = 405
-      res.end()
-      return
-    }
-    await handleWorkspace(res, ctx)
-    return
-  }
   json(res, 404, { error: 'not found' })
-}
-
-/** Environment variable the shell sets with the folder opened via "以 dsh-desktop 打开". */
-const OPEN_WORKSPACE_ENV = 'DSH_DESKTOP_OPEN'
-
-/**
- * Serve GET /dsh-bridge/workspace: resolve the folder the shell was launched
- * with against the workspace registry. An exact workspace path matches; a
- * folder inside a workspace matches its owning workspace (ancestor check on
- * canonical paths). Folders outside every workspace resolve with a null
- * workspace, and a missing/unreadable path resolves with a null path — both
- * mean "no jump" to the page.
- */
-async function handleWorkspace(res: ServerResponse, ctx: Context): Promise<void> {
-  const raw = process.env[OPEN_WORKSPACE_ENV]
-  if (raw === undefined || raw === '') {
-    json(res, 200, { path: null, workspace: null })
-    return
-  }
-  try {
-    const canonical = await realpath(raw)
-    const workspaces = ctx.workspaceRegistry.list()
-    const match = workspaces.find(w => samePath(w.path, canonical))
-      ?? workspaces.find(w => isSubpath(canonical, w.path))
-    if (match === undefined) {
-      json(res, 200, { path: canonical, workspace: null })
-      return
-    }
-    json(res, 200, {
-      path: canonical,
-      workspace: { workspaceId: match.id, path: match.path, sessionIds: [...match.sessionIds] },
-    })
-  } catch {
-    json(res, 200, { path: null, workspace: null })
-  }
-}
-
-/** Path equality under the platform's case rules (Windows paths are case-insensitive). */
-function samePath(left: string, right: string): boolean {
-  return process.platform === 'win32' ? left.toLowerCase() === right.toLowerCase() : left === right
-}
-
-/** Whether `candidate` (canonical) lives inside `ancestor` (canonical), on a path-segment boundary. */
-function isSubpath(candidate: string, ancestor: string): boolean {
-  const prefix = ancestor.endsWith('/') || ancestor.endsWith(String.fromCharCode(92)) ? ancestor : ancestor + '/'
-  const fold = (value: string): string => process.platform === 'win32' ? value.toLowerCase() : value
-  return fold(candidate).startsWith(fold(prefix))
 }
 
 /** One balance entry from the DeepSeek /user/balance response. */

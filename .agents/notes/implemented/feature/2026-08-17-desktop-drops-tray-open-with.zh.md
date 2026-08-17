@@ -18,9 +18,9 @@ WebView2 对拖入的文件不暴露 `File.path`,桌面壳因此无法把真实�
 
 读取命令有白名单:main.rs 的窗口事件处理器记录拖入路径(5 分钟窗口),命令只服务该列表中的路径 —— 页面跑在无鉴权的纯 loopback 上,读取面因此被限制在用户手势内。桥接的复制到 `drops/` 管线、其策略行与 `maxBytes`/`copyEnabled` 设置随本次改动移除。
 
-**托盘与关闭行为。** tauri 依赖新增 `tray-icon` feature;`setup_tray` 用捆绑的窗口图标构建托盘与两项菜单(显示主窗口 / 退出)。左键点击图标显示并聚焦主窗口;退出先显式停掉运行时子进程再 `app.exit(0)`(关闭到托盘开启后,这是唯一的真正退出)。桌面设置新增 关闭行为 开关,持久化在桥接设置命名空间(`$DSH_HOME/settings.yaml`,经 `POST /dsh-bridge/policy`);桥接 client 在启动时与每次变更时,把持久化的值经 `set_close_to_tray` 命令镜像进 Rust;主窗口的 `CloseRequested` 处理器在该值开启时阻止关闭并隐藏窗口。默认 `false` —— 文档化的真实退出行为保持默认;托盘始终存在,与开关无关。
+**托盘与关闭行为。** tauri 依赖新增 `tray-icon` feature;`setup_tray` 用捆绑的窗口图标构建托盘与两项菜单(显示主窗口 / 退出)。左键点击图标显示并聚焦主窗口;退出先显式停掉运行时子进程再 `app.exit(0)`。桌面设置明确提供直接退出与保留在托盘两个选项,以 `closeToTray` 持久化在桥接设置命名空间(`$DSH_HOME/settings.yaml`,经 `POST /dsh-bridge/policy`);桥接 client 在启动时与每次变更时,把持久化的值经 `set_close_to_tray` 命令镜像进 Rust;选择保留在托盘时,主窗口的 `CloseRequested` 处理器阻止关闭并隐藏窗口。默认直接退出;托盘始终存在,与选项无关。
 
-**资源管理器"以 dsh-desktop 打开"。** 每次启动时,壳子经 `reg.exe` 在 HKCU 下(重新)注册按用户的右键菜单项(无需提权、幂等、始终指向当前 exe):`Software\\Classes\\Directory\\shell\\dsh-desktop`(文件夹行)与 `Software\\Classes\\Directory\\Background\\shell\\dsh-desktop`(文件夹空白背景),标签 以 dsh-desktop 打开,命令 `"<exe>" "%V"`。启动的文件夹以 `DSH_DESKTOP_OPEN` 传给运行时;桥接 host 的 `GET /dsh-bridge/workspace` 规范化该路径(`fs.realpath`)并对照工作区注册表做精确匹配或祖先匹配(Windows 上大小写不敏感);桥接 client 随后在页面工作区基线就绪后跳转 —— 打开该工作区最近的会话,没有会话则新建一个。未匹配的文件夹按正常流程启动。注册失败只记日志,绝不致命;NSIS 安装器目前卸载时不移除这些键。
+**资源管理器"以 dsh-desktop 打开"。** 每次启动时,壳子经 `reg.exe` 在 HKCU 下(重新)注册按用户的右键菜单项(无需提权、幂等、始终指向当前 exe):`Software\\Classes\\Directory\\shell\\dsh-desktop`(文件夹行)与 `Software\\Classes\\Directory\\Background\\shell\\dsh-desktop`(文件夹空白背景),标签 以 dsh-desktop 打开,命令 `"<exe>" "%V"`。`tauri-plugin-single-instance` 让首个进程保持权威;后续调用把规范化目录排入该进程的队列,聚焦现有窗口,发出唤醒事件,然后退出。桥接 client 在监听器安装后排空队列,选择规范路径是该目录最长祖先的工作区,再打开其最近会话,没有会话则新建一个。目录未匹配时,页面先询问用户,确认后调用 `workspaces.create({ path })` 并打开结果。注册失败只记日志,绝不致命;NSIS 安装器目前卸载时不移除这些键。
 
 **dev 桥接保鲜。** `ensure_bridge` 现在在每次 dev 启动时从仓库检出把桥接包拷进 profile(打包路径本来就在每次启动时对齐 profile 副本),因此重建的桥接总能到达既有 profile。原有的 npm 安装路径已移除:npm 的 peer 自动安装会解析已发布的 @deepseek-ai 清单,其 workspace: 协议会以 EUNSUPPORTEDPROTOCOL 失败 —— npm 安装在那里永远无法成功。
 
@@ -42,8 +42,8 @@ WebView2 对拖入的文件不暴露 `File.path`,桌面壳因此无法把真实�
 
 ## 后果
 
-拖放现在把工作区沙箱之外的主机路径交给模型 —— 文件系统策略决定 agent 能读什么,旧的"复制进 `drops/`"保证随之消失。图片保持完整输入框接收。设置页的拖放策略行(复制开关、大小上限)已移除;调试模式保留。托盘始终存在;只有开启设置后关闭才隐藏。按用户的注册表键在实现卸载清理之前会残留。dev 启动用目录拷贝刷新 profile 桥接(不经过 npm);dev 流程还要求仓库的 workspace lib 已构建(`pnpm run build:lib`),因为 dev profile 的模块回退目录指向本仓库。
+拖放现在把工作区沙箱之外的主机路径交给模型 —— 文件系统策略决定 agent 能读什么,旧的"复制进 `drops/`"保证随之消失。图片保持完整输入框接收。设置页的拖放策略行(复制开关、大小上限)已移除;调试模式保留。托盘始终存在;关闭选项决定标题栏按钮退出还是隐藏。资源管理器启动汇入单一应用进程,并可能在确认后创建工作区。按用户的注册表键在实现卸载清理之前会残留。dev 启动用目录拷贝刷新 profile 桥接(不经过 npm);dev 流程还要求仓库的 workspace lib 已构建(`pnpm run build:lib`),因为 dev profile 的模块回退目录指向本仓库。
 
 ## 验证
 
-`cargo build` 与桥接的 tsc + tsdown 构建通过。对真实 web profile 的端到端启动(临时 DSH_HOME、拷入桥接包、合并 patch 行)验证:`GET /dsh-bridge/config` 返回新形状,`POST /dsh-bridge/policy {closeToTray:true}` 把 `desktop-bridge.closeToTray` 写进 settings.yaml 且随后的 `/config` 读回该值,`GET /dsh-bridge/workspace` 把未拥有的启动文件夹规范化为 `workspace: null`,`/dsh-bridge/balance` 保持归一化。精确/祖先路径匹配按平台大小写规则检查过。仓库 lib 构建完成后,仓库 CLI 能把真实 web profile 启动到就绪行(`dsh web: http://127.0.0.1:<port>`)。托盘、关闭拦截与右键菜单注册在应用启动时生效;HKCU 前缀修复后的首次真实运行会写入注册表条目。
+`cargo build` 与桥接的 tsc + tsdown 构建通过。对真实 web profile 的端到端启动(临时 DSH_HOME、拷入桥接包、合并 patch 行)验证:`GET /dsh-bridge/config` 返回新形状,`POST /dsh-bridge/policy {closeToTray:true}` 把 `desktop-bridge.closeToTray` 写进 settings.yaml 且随后的 `/config` 读回该值,`/dsh-bridge/balance` 保持归一化。仓库 lib 构建完成后,仓库 CLI 能把真实 web profile 启动到就绪行(`dsh web: http://127.0.0.1:<port>`)。携带嵌套目录的真实第二次调用以代码 0 退出,只留下一个桌面进程,聚焦现有窗口,路由到所属工作区且不提示;未匹配的规范目录到达确认文字时不带 Windows verbatim 路径前缀。托盘、关闭拦截与右键菜单注册在应用启动时生效;HKCU 前缀修复后的首次真实运行会写入注册表条目。
