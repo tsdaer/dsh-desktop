@@ -20,6 +20,7 @@ Planned for 0.3.0:
 - [ ] A Workspace/Worktree sidebar switch with Explorer, Search, and read-only Source Control views
 - [ ] A visually consistent copy action beside every ordinary user and assistant message
 - [ ] API connection status beside the balance, with click-to-refresh balance updates
+- [ ] Automatic update checks against this repository's GitHub Releases, with installation of available updates
 - [ ] One black application icon shared by the splash screen, window, tray, and installer
 - [ ] An accessible title-bar emoji that reports local application workload
 
