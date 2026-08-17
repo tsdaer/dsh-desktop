@@ -1,23 +1,50 @@
-# Build the dsh-desktop NSIS installer and keep a draft GitHub release for the
-# current version. The version is read from apps/desktop/package.json (kept in
-# sync with apps/desktop/src-tauri/tauri.conf.json; the job fails loudly if they
-# drift). Three outcomes on the release side: no release yet -> create a draft
-# with the installer attached; a draft already exists -> refresh its notes and
-# replace the installer; a published release exists -> leave it alone. The
-# release notes come from the matching CHANGELOG.zh.md section.
-# workflow_dispatch also runs it manually.
+# Build the dsh-desktop NSIS installer only for an explicit release tag. A
+# manual run must select the same tag, so rebuilt assets cannot drift from the
+# source named by the Release. The validated version comes from package.json
+# and must match Cargo.toml, tauri.conf.json, the vX.Y.Z tag, and the Chinese
+# Changelog section before the Windows build starts.
 name: Draft desktop release
 
 on:
   push:
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
+  validate:
+    name: validate desktop release ref
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read and verify the desktop version
+        id: version
+        shell: pwsh
+        run: |
+          $PackageVersion = node -p 'require("./apps/desktop/package.json").version'
+          $TauriVersion = node -p 'require("./apps/desktop/src-tauri/tauri.conf.json").version'
+          $CargoVersion = node -p 'require("node:fs").readFileSync("apps/desktop/src-tauri/Cargo.toml", "utf8").match(/^version = "([^"]+)"/m)[1]'
+          $ExpectedTag = "v${PackageVersion}"
+          if ($PackageVersion -ne $TauriVersion -or $PackageVersion -ne $CargoVersion) {
+            throw "desktop versions disagree: package=${PackageVersion}, tauri=${TauriVersion}, cargo=${CargoVersion}"
+          }
+          if ($env:GITHUB_REF_TYPE -ne 'tag' -or $env:GITHUB_REF_NAME -ne $ExpectedTag) {
+            throw "desktop release must run from tag ${ExpectedTag}; selected ref is $($env:GITHUB_REF)"
+          }
+          node apps/desktop/scripts/changelog-section.mjs $PackageVersion | Out-Null
+          "version=${PackageVersion}" >> $env:GITHUB_OUTPUT
+          "tag=${ExpectedTag}" >> $env:GITHUB_OUTPUT
+
   build:
     name: build the NSIS installer
+    needs: validate
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -55,27 +82,15 @@ jobs:
 
   draft-release:
     name: draft release for the desktop version
-    needs: build
+    needs: [validate, build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Read and verify the desktop version
-        id: version
-        run: |
-          PKG_VERSION="$(node -p "require('./apps/desktop/package.json').version")"
-          TAURI_VERSION="$(node -p "require('./apps/desktop/src-tauri/tauri.conf.json').version")"
-          if [ "$PKG_VERSION" != "$TAURI_VERSION" ]; then
-            echo "::error::package.json version ${PKG_VERSION} != tauri.conf.json version ${TAURI_VERSION}; run \`pnpm --filter @deepseek-ai/dsh-desktop sync-version\` and commit the result"
-            exit 1
-          fi
-          echo "version=${PKG_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "tag=v${PKG_VERSION}" >> "$GITHUB_OUTPUT"
-
       - name: Check the existing release state
         id: check
         run: |
-          if DRAFT="$(gh release view "${{ steps.version.outputs.tag }}" --json isDraft --jq '.isDraft' 2>/dev/null)"; then
+          if DRAFT="$(gh release view "${{ needs.validate.outputs.tag }}" --json isDraft --jq '.isDraft' 2>/dev/null)"; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
             echo "is_draft=${DRAFT}" >> "$GITHUB_OUTPUT"
           else
@@ -92,10 +107,10 @@ jobs:
       - name: Create the draft release
         if: steps.check.outputs.exists == 'false'
         run: |
-          node apps/desktop/scripts/changelog-section.mjs "${{ steps.version.outputs.version }}" > release-notes.md
-          gh release create "${{ steps.version.outputs.tag }}" \
+          node apps/desktop/scripts/changelog-section.mjs "${{ needs.validate.outputs.version }}" > release-notes.md
+          gh release create "${{ needs.validate.outputs.tag }}" \
             --draft \
-            --title "dsh-desktop v${{ steps.version.outputs.version }}" \
+            --title "dsh-desktop v${{ needs.validate.outputs.version }}" \
             --target "${{ github.sha }}" \
             --notes-file release-notes.md \
             dist/*.exe
@@ -105,10 +120,10 @@ jobs:
       - name: Refresh the draft release
         if: steps.check.outputs.exists == 'true' && steps.check.outputs.is_draft == 'true'
         run: |
-          node apps/desktop/scripts/changelog-section.mjs "${{ steps.version.outputs.version }}" > release-notes.md
-          gh release edit "${{ steps.version.outputs.tag }}" \
-            --title "dsh-desktop v${{ steps.version.outputs.version }}" \
+          node apps/desktop/scripts/changelog-section.mjs "${{ needs.validate.outputs.version }}" > release-notes.md
+          gh release edit "${{ needs.validate.outputs.tag }}" \
+            --title "dsh-desktop v${{ needs.validate.outputs.version }}" \
             --notes-file release-notes.md
-          gh release upload "${{ steps.version.outputs.tag }}" dist/*.exe --clobber
+          gh release upload "${{ needs.validate.outputs.tag }}" dist/*.exe --clobber
         env:
           GH_TOKEN: ${{ github.token }}
