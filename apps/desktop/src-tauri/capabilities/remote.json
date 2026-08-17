@@ -16,6 +16,9 @@
     "core:window:allow-is-fullscreen",
     "core:window:allow-set-fullscreen",
     "core:event:allow-listen",
-    "core:event:allow-unlisten"
+    "core:event:allow-unlisten",
+    "allow-read-dropped-file",
+    "allow-set-close-to-tray",
+    "allow-set-debug-mode"
   ]
 }

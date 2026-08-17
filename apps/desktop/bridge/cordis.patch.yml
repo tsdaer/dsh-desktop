@@ -9,8 +9,9 @@
     - id: desktop-bridge-client
       name: '@deepseek-ai/dsh-desktop-bridge-client'
 
-# Bridge policy: edit this entry to change which dropped files are accepted.
+# Desktop settings defaults: edit this entry to change the out-of-box
+# behavior (the in-app settings page overrides these).
 - id: desktop-bridge
   config:
-    allowedExtensions: []
-    maxBytes: 52428800
+    closeToTray: false
+    debugMode: false

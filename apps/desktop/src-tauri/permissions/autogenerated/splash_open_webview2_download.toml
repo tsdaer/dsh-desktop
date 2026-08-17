@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-splash-open-webview2-download"
+description = "Enables the splash_open_webview2_download command without any pre-configured scope."
+commands.allow = ["splash_open_webview2_download"]
+
+[[permission]]
+identifier = "deny-splash-open-webview2-download"
+description = "Denies the splash_open_webview2_download command without any pre-configured scope."
+commands.deny = ["splash_open_webview2_download"]

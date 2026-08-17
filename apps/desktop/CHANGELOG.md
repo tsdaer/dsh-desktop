@@ -4,6 +4,21 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+### Added
+
+- OS file drag-and-drop is handled by the shell (`onDragDropEvent`, real filesystem paths): dropped folders/files have their paths inserted into the composer input box, and dropped images re-enter the composer's native image intake through a bounded shell byte bridge.
+- A system tray icon with a menu (显示主窗口 / 退出); the 桌面设置 section gains a 关闭行为 toggle that hides the window to the tray instead of exiting when the close button is pressed.
+- A per-user Explorer context-menu entry (以 dsh-desktop 打开) on folders; launching with a folder jumps to the matching workspace (exact path or ancestor), opening its most recent session.
+
+### Removed
+
+- The bridge's copy-to-`drops/` drop pipeline and its policy rows (copy switch, size cap) — drops now put real paths into the input box instead.
+
+### Fixed
+
+- The dev flow installs the bridge packages by copying them from the checkout instead of `npm install` (the published @deepseek-ai manifests carry `workspace:` protocol specs npm's peer auto-install cannot resolve).
+- The Explorer context-menu registration uses the full `HKCU\` root key.
+
 ## [0.2.0] - 2026-08-16
 
 ### Added

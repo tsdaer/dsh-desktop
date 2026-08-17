@@ -10,7 +10,7 @@ Prerequisites:
 
 - Rust toolchain (rustc/cargo)
 - Node ^22.19 || >=24 on PATH (or set DSH_NODE to an explicit executable)
-- The repo built: `pnpm run build:lib` (dsh CLI) and `pnpm run build:web` (web frontend dist)
+- The repo built: `pnpm run build` — build:lib emits every workspace package's lib/ (the web profile resolves its whole plugin roster through the profile's module fallback, which points at this checkout in dev) and build:web emits the frontend dist. A partial checkout (only apps/cli built) fails at boot with ERR_MODULE_NOT_FOUND for the missing package libs.
 
 Start:
 
@@ -61,30 +61,63 @@ Known test-version gaps: no Windows 11 snap-layout flyout (frameless), resize bo
 
 ## Drag and drop
 
-Native file drops are enabled by disabling the Tauri drag-drop handler ("dragDropEnabled": false): WebView2 delivers OS drops straight to the dsh page, whose own document-level intake (InputBar + DropOverlay) accepts images into the composer with browser-identical behavior. Non-image files follow the dsh page's own filtering.
+The shell owns OS file drops through Tauri's drag-drop handler (`onDragDropEvent`, enabled by default — the window no longer sets `dragDropEnabled: false`). WebView2 cannot expose dropped-file paths (`File.path` does not exist there), so this is the only route that yields real filesystem paths; the browser page never sees the OS drag itself.
+
+The bridge client listens on the main window and handles a drop as follows:
+
+- Image files are read back through the shell's bounded `read_dropped_file` command (base64, 20 MiB cap, only paths from the recent drop are readable) and re-entered into the dsh composer's native image intake as a synthetic drop — image previews keep working exactly like before.
+- Every other file has its path inserted into the composer input box as text (one path per line), ready to send to the agent. A dropped folder's path lands the same way.
+- While the OS drag is over the window, a full-window overlay shows "拖放文件到输入框" (drag feedback the page cannot render itself, since it never receives the drag events).
+
+The bridge's old copy-to-`drops/` machinery and its policy rows were removed with this change; the model sees the paths the user chose, and only the paths.
 
 ## Shell bridge
 
-The shell auto-installs the dsh-desktop-bridge packages into the web profile (npm tarball copies, offline) and mounts bridge/cordis.patch.yml on every boot. The bridge packages are not pnpm workspace members, so every desktop flow builds them first via scripts/build-bridge.mjs (the npm `dev`/`build`/`bake`/`bundle` scripts wire it in), and a packaged boot re-syncs the profile's bridge copy from the runtime so a rebuilt bridge replaces a stale profile copy automatically. The bridge host half serves POST /dsh-bridge/drop: it copies dropped non-image files into the session workspace's drops/ directory and injects a user-message announcement (durable, model-visible). It also serves GET /dsh-bridge/balance for the title bar's balance pill: the route resolves the DeepSeek key through the credentials service and proxies the official /user/balance endpoint (see "Custom title bar"). The bridge client half forwards non-image drops (WebView2 File.path) to the route; images keep using the dsh composer's native intake.
+The shell installs the dsh-desktop-bridge packages into the web profile as plain directory copies — dev mode copies them from this checkout (apps/desktop/bridge, apps/desktop/bridge-client, and the vendored schemastery), a packaged boot copies them from the runtime — and mounts bridge/cordis.patch.yml on every boot. The bridge packages are not pnpm workspace members, so every desktop flow builds them first via scripts/build-bridge.mjs (the npm `dev`/`build`/`bake`/`bundle` scripts wire it in); dev mode re-copies on every boot so a rebuilt bridge always reaches the profile, and a packaged boot re-syncs the profile copy from the runtime for the same reason. (No npm install anywhere: the published @deepseek-ai manifests carry workspace: protocol specs that npm's peer auto-install cannot resolve.)
 
-## Bridge policy
+Bridge host routes (under /dsh-bridge):
 
-The bridge accepts only files matching its policy: an extension allowlist (empty = every extension) and a size cap. Defaults: allow all extensions, 50 MiB.
+- `GET /config` — the effective desktop settings (close-to-tray, debug mode), read per request so settings-page saves take effect immediately.
+- `POST /policy` — persist desktop settings through the runtime's settings seam ($DSH_HOME/settings.yaml). The dsh configuration boundary refuses browser writes to non-listed namespaces, so the settings rows save through this route instead of the client settingsScope.
+- `GET /balance` — the title bar's balance pill: resolves the DeepSeek key through the credentials service and proxies the official /user/balance endpoint (see "Custom title bar").
+- `GET /workspace` — resolves the folder the shell was launched with against the workspace registry (see "Open with dsh-desktop").
 
-The title bar's gear button opens a settings panel (persisted through tauri-plugin-store at the app config dir's settings.json); saved values take effect immediately — the bridge host reads the store file per request and the client refreshes the policy per drop. Static fallback lives in the bridge row config (see below), used until the store holds values:
+The bridge client half owns the shell-side behaviors on the page: the drag-drop handling above, the close-to-tray mirror, the debug guard, and the launch-folder workspace jump.
+
+## Desktop settings, tray, and close behavior
+
+The dsh settings page's 桌面设置 (Desktop) section (registered by the bridge client) hosts two rows, both persisted through the bridge host route:
+
+- 关闭行为 (Close behavior): whether the title-bar close button really exits the app or hides to the system tray. When on, closing the window (button or Alt+F4) prevents the close and hides the window; the runtime keeps serving and sessions keep running. The tray menu's 退出 is then the real exit (it stops the runtime child and terminates the app).
+- 调试模式 (Debug mode): unchanged — while off, right-click and devtools shortcuts are suppressed, and the shell flips WebView2's AreDevToolsEnabled.
+
+Both settings are stored in the bridge settings namespace ($DSH_HOME/settings.yaml, same seam as every other setting), with static fallbacks in the bridge row config:
 
     - id: desktop-bridge
       config:
-        allowedExtensions: ['md', 'txt', 'pdf']
-        maxBytes: 10485760
+        closeToTray: false
+        debugMode: false
 
-The client pre-filters before upload; the host enforces the same policy again at write time.
+The close-to-tray value lives in the runtime, but the close interception happens in the shell: the bridge client mirrors the durable value into Rust via the `set_close_to_tray` command on boot and on every settings change, and the main window's `CloseRequested` handler hides instead of closing while it is set.
+
+The tray itself always exists: left-click (or the 显示主窗口 menu item) shows and focuses the main window; right-click opens the menu. The tray icon is the app's bundled icon (default_window_icon).
+
+## Open with dsh-desktop (Explorer context menu)
+
+On every start the shell (re)registers a per-user Explorer context-menu entry under HKCU (no elevation needed), so the command always points at the current executable:
+
+- `Software\Classes\Directory\shell\dsh-desktop` — right-click on a folder row shows 以 dsh-desktop 打开.
+- `Software\Classes\Directory\Background\shell\dsh-desktop` — the same entry for right-click on a folder's empty background.
+
+The menu runs `<exe> <folder>`. On launch the shell passes the folder to the runtime as `DSH_DESKTOP_OPEN`, and the bridge host's `GET /dsh-bridge/workspace` resolves it against the workspace registry: an exact workspace path matches, and any folder inside a workspace matches its owning workspace (canonical ancestor check). The bridge client then jumps to that workspace once the page's workspace baseline is ready — opening its most recent session, or starting a fresh one when it has none. Folders outside every workspace (or a plain launch without a folder) boot normally.
+
+Registration is best-effort and logged on failure; the NSIS installer does not yet remove the keys on uninstall.
 
 ## Test-version scope
 
-- Dev runs the repo-built CLI on the PATH 'node'; the packaged app carries its own Node sidecar and baked runtime (see Bundle / Packaged runtime above). Remaining gaps: no auto-update, no tray, no single-instance lock, and the Windows-only sidecar means Linux/macOS are unhandled (node-pty also lacks Linux prebuilds in the dsh dependency tree).
-- Icons derive from the DeepSeek fish logo (regenerate via `node scripts/gen-icons.mjs`).
-- Closing the window terminates the runtime process; sessions persist on disk under $DSH_HOME.
+- Dev runs the repo-built CLI on the PATH 'node'; the packaged app carries its own Node sidecar and baked runtime (see Bundle / Packaged runtime above). Remaining gaps: no auto-update, no single-instance lock, and the Windows-only sidecar means Linux/macOS are unhandled (node-pty also lacks Linux prebuilds in the dsh dependency tree).
+- Icons derive from the DeepSeek fish logo (regenerate via `node scripts/gen-icons.mjs`); the tray reuses the bundled window icon.
+- Closing the window terminates the runtime process unless close-to-tray is enabled (see "Desktop settings, tray, and close behavior"); sessions persist on disk under $DSH_HOME.
 - The window binds nothing of its own: the runtime still serves only loopback (127.0.0.1) with no auth, matching 'dsh web' posture.
 
 ## Layout

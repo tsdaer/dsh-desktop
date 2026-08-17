@@ -1,108 +1,54 @@
 // @deepseek-ai/dsh-desktop-bridge — host half of the shell bridge.
-// POST /dsh-bridge/drop with `{ sessionId, files: [{ name, base64?, size? }] }`
-// (WebView2 exposes no File.path, so bytes travel instead of paths;
-// oversized files travel as metadata only). Per the user's drop rules:
 //
-// 1. image files → native pipeline (the page's composer intake; the shell
-//    never sends images here).
-// 2. non-binary files within the size cap and with copy enabled → copied
-//    into a drops/ folder inside the session workspace (repeated drops
-//    overwrite, so re-dropping updates the file).
-// 3. binary files, oversized files, or drops while copy is disabled → the
-//    file is NOT copied; the announcement names the file and the reason.
-//
-// One announcement user message is injected into the session log: durable,
-// model-visible, and replayable without any new session event type; the
-// copy keeps the file inside the workspace sandbox the agent's fs tools
-// see.
-import { mkdir, writeFile } from 'node:fs/promises'
+// Routes under /dsh-bridge:
+// - GET /dsh-bridge/config — the effective desktop settings (close-to-tray
+//   behavior + debug mode), read per request so settings-page saves take
+//   effect immediately.
+// - POST /dsh-bridge/policy — persist desktop settings through the runtime's
+//   settings seam (the dsh configuration boundary refuses browser writes to
+//   non-listed namespaces, so saves go through this route).
+// - GET /dsh-bridge/balance — resolve the DeepSeek key through the runtime's
+//   credentials seam and proxy the official /user/balance endpoint for the
+//   title bar's balance pill.
+// - GET /dsh-bridge/workspace — resolve the folder the shell was launched
+//   with ("以 dsh-desktop 打开") against the workspace registry, so the page
+//   can jump to the matching workspace after boot.
+import { realpath } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import z from '@deepseek-ai/schemastery'
-import type { UserMessage } from '@deepseek-ai/dsh-llm'
 import type { SettingsNamespace } from '@deepseek-ai/dsh-settings'
-import type { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-workspace'
-import type {} from '@deepseek-ai/dsh-agent'
 
 /** Stable Cordis plugin name. */
 export const name = 'desktop-bridge'
 
 /** Services required before the route can serve. */
-export const inject = ['webServer', 'workspaceRegistry', 'sessions']
+export const inject = ['webServer', 'workspaceRegistry']
 
-/** Durable settings namespace for the bridge policy ($DSH_HOME/settings.yaml, same seam as every other setting). */
+/** Durable settings namespace for the desktop settings ($DSH_HOME/settings.yaml, same seam as every other setting). */
 export const BRIDGE_SETTINGS_NS = 'desktop-bridge' as SettingsNamespace
 
-/** Bridge policy: how dropped non-image files are handled. */
+/** Desktop settings: shell behavior the page can read and persist. */
 export interface Config {
-  /** Master switch: when off, every non-image drop is announced as a reference instead of a copy. */
-  copyEnabled: boolean
-  /** Maximum accepted file size in bytes (non-image files only). */
-  maxBytes: number
+  /** When true, closing the main window hides it to the system tray instead of exiting (the tray menu holds the real exit). */
+  closeToTray: boolean
   /** Debug mode: when off, the page suppresses right-click and devtools shortcuts; when on they stay available. */
   debugMode: boolean
 }
 
 export const Config: z<Config> = z.object({
-  copyEnabled: z.boolean().default(true),
-  maxBytes: z.natural().default(50 * 1024 * 1024),
+  closeToTray: z.boolean().default(false),
   debugMode: z.boolean().default(false),
 })
 
-/** Cap on the JSON request body (base64 payloads, so roomier than the file cap). */
-const MAX_BODY_BYTES = 80 * 1024 * 1024
-
-/** Subdirectory (relative to the session workspace) receiving copied drops. */
-const DROPS_DIR = 'drops'
-
-/** How many bytes of a file are scanned for binary detection. */
-const BINARY_SNIFF_BYTES = 8192
-
-// Dedupe window: identical announcements within this span are appended once
-// (a duplicated POST from the page must not duplicate the context entry).
-const APPEND_DEDUPE_MS = 10_000
-const lastAppend = new Map<string, number>()
-
-/** Timeout for the upstream DeepSeek balance request. */
-const BALANCE_TIMEOUT_MS = 10_000
-
-/** Public DeepSeek API base (the llm-deepseek provider default). */
-const PUBLIC_API_BASE = 'https://api.deepseek.com'
-
-/** Credential reference for balance reads: the llm-deepseek provider default. */
-const BALANCE_KEY_REF = credentialRef('DEEPSEEK_API_KEY')
-
-/** One balance entry from the DeepSeek /user/balance response. */
-interface BalanceInfo {
-  currency: string
-  total_balance: string
-}
-
-function isBalanceInfo(value: unknown): value is BalanceInfo {
-  if (typeof value !== 'object' || value === null) return false
-  const info = value as Record<string, unknown>
-  return typeof info.currency === 'string' && typeof info.total_balance === 'string'
-}
-
-/** One uploaded file: name plus base64 content. Oversized files travel as metadata only (no base64). */
-interface DropFile {
-  name: string
-  size?: number
-  base64?: string
-}
-
-/** One drop request: the target session id and uploaded files. */
-interface DropRequest {
-  sessionId?: unknown
-  files?: unknown
-}
+/** Cap on the JSON request body (small; settings only). */
+const MAX_BODY_BYTES = 64 * 1024
 
 /**
- * Resolve the effective policy: the durable settings section layered over
+ * Resolve the effective settings: the durable settings section layered over
  * the plugin config (schema defaults < entry config < user document). Read
  * per request so settings-page saves take effect immediately.
  */
@@ -110,8 +56,7 @@ function effectiveConfig(ctx: Context, config: Config): Config {
   const settings = ctx.get('settings')
   const section = settings?.get(BRIDGE_SETTINGS_NS) as Partial<Config> | undefined
   return {
-    copyEnabled: section?.copyEnabled ?? config.copyEnabled,
-    maxBytes: section?.maxBytes ?? config.maxBytes,
+    closeToTray: section?.closeToTray ?? config.closeToTray,
     debugMode: section?.debugMode ?? config.debugMode,
   }
 }
@@ -130,10 +75,6 @@ export function apply(ctx: Context, config: Config): void {
 async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, config: Config): Promise<void> {
   const effective = effectiveConfig(ctx, config)
   const pathname = (req.url ?? '').split('?')[0] ?? ''
-  if (pathname === '/dsh-bridge/drop') {
-    await handleDrop(req, res, ctx, effective)
-    return
-  }
   if (pathname === '/dsh-bridge/policy') {
     if (req.method !== 'POST') {
       res.statusCode = 405
@@ -141,22 +82,15 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
       return
     }
     try {
-      const body = JSON.parse(await readBody(req)) as { copyEnabled?: unknown; maxBytes?: unknown; debugMode?: unknown }
+      const body = JSON.parse(await readBody(req)) as { closeToTray?: unknown; debugMode?: unknown }
       const settings = ctx.get('settings')
       if (settings === undefined) {
         json(res, 500, { error: 'settings service unavailable' })
         return
       }
-      // Host-side write: the dsh configuration boundary (apiproxy's exposed
-      // namespace allowlist) refuses browser writes to non-listed namespaces,
-      // so the settings row saves through this route instead of the client
-      // settingsScope (which would swallow the refusal as a silent no-op).
       const ops: Array<{ op: 'set'; path: string[]; value: unknown }> = []
-      if (typeof body.copyEnabled === 'boolean') {
-        ops.push({ op: 'set', path: ['copyEnabled'], value: body.copyEnabled })
-      }
-      if (typeof body.maxBytes === 'number' && Number.isFinite(body.maxBytes) && body.maxBytes > 0) {
-        ops.push({ op: 'set', path: ['maxBytes'], value: body.maxBytes })
+      if (typeof body.closeToTray === 'boolean') {
+        ops.push({ op: 'set', path: ['closeToTray'], value: body.closeToTray })
       }
       if (typeof body.debugMode === 'boolean') {
         ops.push({ op: 'set', path: ['debugMode'], value: body.debugMode })
@@ -178,7 +112,7 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
       res.end()
       return
     }
-    json(res, 200, { copyEnabled: effective.copyEnabled, maxBytes: effective.maxBytes, debugMode: effective.debugMode })
+    json(res, 200, { closeToTray: effective.closeToTray, debugMode: effective.debugMode })
     return
   }
   if (pathname === '/dsh-bridge/balance') {
@@ -190,8 +124,85 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
     await handleBalance(res, ctx)
     return
   }
+  if (pathname === '/dsh-bridge/workspace') {
+    if (req.method !== 'GET') {
+      res.statusCode = 405
+      res.end()
+      return
+    }
+    await handleWorkspace(res, ctx)
+    return
+  }
   json(res, 404, { error: 'not found' })
 }
+
+/** Environment variable the shell sets with the folder opened via "以 dsh-desktop 打开". */
+const OPEN_WORKSPACE_ENV = 'DSH_DESKTOP_OPEN'
+
+/**
+ * Serve GET /dsh-bridge/workspace: resolve the folder the shell was launched
+ * with against the workspace registry. An exact workspace path matches; a
+ * folder inside a workspace matches its owning workspace (ancestor check on
+ * canonical paths). Folders outside every workspace resolve with a null
+ * workspace, and a missing/unreadable path resolves with a null path — both
+ * mean "no jump" to the page.
+ */
+async function handleWorkspace(res: ServerResponse, ctx: Context): Promise<void> {
+  const raw = process.env[OPEN_WORKSPACE_ENV]
+  if (raw === undefined || raw === '') {
+    json(res, 200, { path: null, workspace: null })
+    return
+  }
+  try {
+    const canonical = await realpath(raw)
+    const workspaces = ctx.workspaceRegistry.list()
+    const match = workspaces.find(w => samePath(w.path, canonical))
+      ?? workspaces.find(w => isSubpath(canonical, w.path))
+    if (match === undefined) {
+      json(res, 200, { path: canonical, workspace: null })
+      return
+    }
+    json(res, 200, {
+      path: canonical,
+      workspace: { workspaceId: match.id, path: match.path, sessionIds: [...match.sessionIds] },
+    })
+  } catch {
+    json(res, 200, { path: null, workspace: null })
+  }
+}
+
+/** Path equality under the platform's case rules (Windows paths are case-insensitive). */
+function samePath(left: string, right: string): boolean {
+  return process.platform === 'win32' ? left.toLowerCase() === right.toLowerCase() : left === right
+}
+
+/** Whether `candidate` (canonical) lives inside `ancestor` (canonical), on a path-segment boundary. */
+function isSubpath(candidate: string, ancestor: string): boolean {
+  const prefix = ancestor.endsWith('/') || ancestor.endsWith(String.fromCharCode(92)) ? ancestor : ancestor + '/'
+  const fold = (value: string): string => process.platform === 'win32' ? value.toLowerCase() : value
+  return fold(candidate).startsWith(fold(prefix))
+}
+
+/** One balance entry from the DeepSeek /user/balance response. */
+interface BalanceInfo {
+  currency: string
+  total_balance: string
+}
+
+function isBalanceInfo(value: unknown): value is BalanceInfo {
+  if (typeof value !== 'object' || value === null) return false
+  const info = value as Record<string, unknown>
+  return typeof info.currency === 'string' && typeof info.total_balance === 'string'
+}
+
+/** Timeout for the upstream DeepSeek balance request. */
+const BALANCE_TIMEOUT_MS = 10_000
+
+/** Public DeepSeek API base (the llm-deepseek provider default). */
+const PUBLIC_API_BASE = 'https://api.deepseek.com'
+
+/** Credential reference for balance reads: the llm-deepseek provider default. */
+const BALANCE_KEY_REF = credentialRef('DEEPSEEK_API_KEY')
 
 /**
  * Resolve the DeepSeek API key through the runtime's credentials seam (the
@@ -223,7 +234,7 @@ async function handleBalance(res: ServerResponse, ctx: Context): Promise<void> {
     }
     const base = (process.env.DEEPSEEK_BASE_URL ?? PUBLIC_API_BASE).replace(/\/+$/, '')
     const response = await fetch(base + '/user/balance', {
-      headers: { authorization: `Bearer ${key}` },
+      headers: { authorization: 'Bearer ' + key },
       signal: AbortSignal.timeout(BALANCE_TIMEOUT_MS),
     })
     if (!response.ok) {
@@ -247,135 +258,6 @@ async function handleBalance(res: ServerResponse, ctx: Context): Promise<void> {
   } catch (err) {
     json(res, 200, { ok: false, reason: 'network', message: err instanceof Error ? err.message : String(err) })
   }
-}
-
-async function handleDrop(req: IncomingMessage, res: ServerResponse, ctx: Context, config: Config): Promise<void> {
-  try {
-    if (req.method !== 'POST') {
-      res.statusCode = 405
-      res.end()
-      return
-    }
-    const payload = JSON.parse(await readBody(req)) as DropRequest
-    const rawFiles = payload.files
-    const files = Array.isArray(rawFiles)
-      ? rawFiles.filter((f): f is DropFile => {
-        return typeof f === 'object' && f !== null
-            && typeof (f as { name?: unknown }).name === 'string'
-            && ((f as { base64?: unknown }).base64 === undefined || typeof (f as { base64?: unknown }).base64 === 'string')
-            && ((f as { size?: unknown }).size === undefined || typeof (f as { size?: unknown }).size === 'number')
-      })
-      : []
-    if (typeof payload.sessionId !== 'string') {
-      json(res, 400, { error: 'sessionId is required' })
-      return
-    }
-    if (files.length === 0) {
-      json(res, 400, { error: 'files is required' })
-      return
-    }
-    const sessionId = payload.sessionId as SessionId
-    const workspace = ctx.workspaceRegistry.list().find(w => w.sessionIds.includes(sessionId))
-    if (workspace === undefined) {
-      json(res, 404, { error: 'session workspace not found' })
-      return
-    }
-    const copied: string[] = []
-    const referenced: Array<{ name: string; reason: string }> = []
-    for (const file of files) {
-      const name = sanitizeName(file.name)
-      if (!config.copyEnabled) {
-        referenced.push({ name, reason: '拖放复制已关闭' })
-        continue
-      }
-      if (file.base64 === undefined) {
-        // Metadata-only entry: the client skipped the upload because the
-        // file is oversized; announce the reference without bytes.
-        referenced.push({ name, reason: `超过大小上限 ${formatBytes(config.maxBytes)}` })
-        continue
-      }
-      let data: Buffer
-      try {
-        data = Buffer.from(file.base64, 'base64')
-      } catch {
-        referenced.push({ name, reason: '无法读取' })
-        continue
-      }
-      if (data.length > config.maxBytes) {
-        referenced.push({ name, reason: `超过大小上限 ${formatBytes(config.maxBytes)}` })
-        continue
-      }
-      if (isBinary(data)) {
-        referenced.push({ name, reason: '二进制文件' })
-        continue
-      }
-      // Copy into the workspace's drops/ folder; writeFile overwrites, so
-      // repeated drops of the same file update it.
-      try {
-        await mkdir(join(workspace.path, DROPS_DIR), { recursive: true })
-        await writeFile(join(workspace.path, DROPS_DIR, name), data)
-        copied.push(DROPS_DIR + '/' + name)
-      } catch {
-        referenced.push({ name, reason: '复制失败' })
-      }
-    }
-    // Append the announcement straight into the session log: it renders in
-    // the conversation immediately, is durable, and becomes model history on
-    // the next derivation (agent.inject would sit unclaimed until the next
-    // turn, showing nothing). Hand-rolled UserMessage: the only runtime
-    // dependency (dsh-llm's createUserMessage) would need registry
-    // resolution in the installed profile, so the id is minted here and the
-    // type imported type-only.
-    const session = ctx.sessions.get(sessionId)
-    if (session !== undefined) {
-      const signature = `${sessionId}:${[...copied, ...referenced.map(r => r.name)].join(',')}`
-      const now = Date.now()
-      const last = lastAppend.get(signature)
-      if (last !== undefined && now - last < APPEND_DEDUPE_MS) {
-        json(res, 200, { copied, referenced, appended: false, deduped: true })
-        return
-      }
-      lastAppend.set(signature, now)
-      const message = {
-        id: crypto.randomUUID(),
-        role: 'user',
-        content: [{ type: 'text', text: announceText(copied, referenced) }],
-        source: { kind: 'plugin', plugin: 'dsh-desktop-bridge' },
-      } as unknown as UserMessage
-      session.append('user/message', message, { surfaceOp: 'append' })
-    }
-    json(res, 200, { copied, referenced, appended: session !== undefined })
-  } catch (err) {
-    json(res, 500, { error: err instanceof Error ? err.message : String(err) })
-  }
-}
-
-/** Binary detection: a NUL byte within the first 8 KiB marks the file binary. */
-function isBinary(data: Buffer): boolean {
-  return data.subarray(0, BINARY_SNIFF_BYTES).includes(0)
-}
-
-/** Human-readable byte size (bytes under 1 MiB, otherwise whole MiB). */
-function formatBytes(bytes: number): string {
-  return bytes < 1048576 ? `${bytes}B` : `${Math.round(bytes / 1048576)}MB`
-}
-
-/** Compose the drop announcement text (Chinese, matching the UI language). */
-function announceText(copied: string[], referenced: Array<{ name: string; reason: string }>): string {
-  const lines: string[] = []
-  if (copied.length > 0) {
-    lines.push(`已复制到 ${DROPS_DIR}/ 文件夹：${copied.map(c => c.replace(/^drops\//, '')).join('、')}`)
-  }
-  if (referenced.length > 0) {
-    lines.push(`提供文件（未复制）：${referenced.map(r => `${r.name}（${r.reason}）`).join('、')}`)
-  }
-  return lines.join('\n') || '拖入的文件为空'
-}
-
-/** Strip path separators and forbidden filename characters from a basename. */
-function sanitizeName(name: string): string {
-  const cleaned = name.replace(/[\\/:*?"<>|]/g, '_')
-  return cleaned === '' ? 'drop' : cleaned
 }
 
 /** Collect the request body up to {@link MAX_BODY_BYTES}. */

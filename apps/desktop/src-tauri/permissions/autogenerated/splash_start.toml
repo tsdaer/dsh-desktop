@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-splash-start"
+description = "Enables the splash_start command without any pre-configured scope."
+commands.allow = ["splash_start"]
+
+[[permission]]
+identifier = "deny-splash-start"
+description = "Denies the splash_start command without any pre-configured scope."
+commands.deny = ["splash_start"]

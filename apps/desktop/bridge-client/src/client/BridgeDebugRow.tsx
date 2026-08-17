@@ -4,7 +4,7 @@
 // immediately (no save button) and the guard applies right away through
 // the injected onDebugMode callback.
 import { useEffect, useState } from 'react'
-import css from './BridgePolicyRow.module.css'
+import css from './BridgeRow.module.css'
 
 /** Injected callback: apply the new debug-mode state right away. */
 export type DebugModeWriter = (enabled: boolean) => void

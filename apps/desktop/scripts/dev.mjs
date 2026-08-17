@@ -1,8 +1,8 @@
 // Dev launcher for the dsh-desktop shell: sets the dsh CLI path and runs the
 // Tauri app through cargo. The production path (bundled Node sidecar +
 // packaged CLI) is deferred; see README.md.
-import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync } from 'node:fs';
+import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -22,27 +22,13 @@ if (!existsSync(webDist)) {
   process.exit(1);
 }
 
-const packDir = resolve(here, '../.bridge-pack');
-mkdirSync(packDir, { recursive: true });
 const env = {
   ...process.env,
   DSH_CLI: cli,
 };
-// Pack both bridge packages into tarballs; npm installs tarballs as real
-// copies (folder installs symlink, which breaks runtime resolution).
-for (const pkgDir of ['../bridge', '../bridge-client']) {
-  const r = spawnSync('npm', ['pack', '--pack-destination', packDir], {
-    cwd: resolve(here, pkgDir),
-    encoding: 'utf8',
-    shell: process.platform === 'win32',
-  });
-  if (r.status !== 0) {
-    console.error('[dsh-desktop] npm pack failed for ' + pkgDir + ': ' + (r.stderr || r.stdout));
-    process.exit(1);
-  }
-  const tgz = r.stdout.trim().split(/\r?\n/).pop();
-  env.DSH_BRIDGE_TARBALL = (env.DSH_BRIDGE_TARBALL ? env.DSH_BRIDGE_TARBALL + ';' : '') + resolve(packDir, tgz);
-}
+// No bridge packing needed: the shell copies the built bridge packages
+// straight from this checkout into the web profile on every boot (see
+// ensure_bridge in main.rs).
 if (!process.env.DSH_NODE) {
   console.log('[dsh-desktop] using node from PATH; override with DSH_NODE');
 }

@@ -20,7 +20,10 @@ use std::sync::mpsc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
-use tauri::{Manager, Url, WebviewWindow};
+use base64::Engine as _;
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use tauri::{DragDropEvent, Manager, Url, WebviewWindow, WindowEvent};
 use tauri_plugin_opener::OpenerExt;
 
 /// Holds the spawned runtime so it can be terminated at app exit.
@@ -32,25 +35,42 @@ struct DshRuntime(Mutex<Option<Child>>);
 /// status flows Rust -> board -> poll rather than Rust -> event -> listener.
 struct SplashBoard(Mutex<Vec<serde_json::Value>>);
 
+/// Close-to-tray switch (the bridge's desktop setting, mirrored into the shell
+/// by the page): when true, closing the main window hides it instead of
+/// exiting; the tray menu holds the real exit.
+struct CloseToTray(Mutex<bool>);
+
+/// Paths the user dropped on the main window recently — the ONLY files the
+/// page may read back through `read_dropped_file`. The page is served on plain
+/// loopback with no auth, so the read surface stays user-gesture-bounded.
+struct DroppedPaths(Mutex<Vec<(PathBuf, Instant)>>);
+
+/// How long a dropped path stays readable (the page reads it immediately
+/// after the drop).
+const DROP_ALLOW_SECS: u64 = 300;
+
+/// Cap on the byte-bridge image read (`read_dropped_file`); the composer's own
+/// image limits stay authoritative and reject oversized reads at intake.
+const DROPPED_READ_MAX_BYTES: usize = 20 * 1024 * 1024;
+
 /// Runtime wiring resolved at boot: where Node and the dsh CLI live, the
 /// bare-module base for the closed runtime, and how the desktop bridge packages
 /// reach the web profile.
 ///
 /// Dev (DSH_CLI set) keeps the launcher's env wiring: system node, repo-built
-/// CLI, bridge tarballs via npm. A packaged app carries the runtime in its
-/// resources and the bundled Node as a sidecar beside the exe; no npm exists,
-/// so the bridge packages are copied into the profile instead of installed.
+/// CLI, bridge packages copied from the repository checkout. A packaged app
+/// carries the runtime in its resources and the bundled Node as a sidecar
+/// beside the exe; its bridge packages are copied from the runtime instead.
 struct RuntimePaths {
     node: String,
     cli: String,
-    /// `DSH_BARE_MODULE_BASE` for the spawned runtime: anchors bare plugin
+    /// 'DSH_BARE_MODULE_BASE' for the spawned runtime: anchors bare plugin
     /// names to the runtime's own install when it is closed.
     module_base: Option<String>,
-    /// Runtime `node_modules/@deepseek-ai` package dirs to copy into the
-    /// profile (packaged, offline); empty in dev where npm installs tarballs.
+    /// Runtime 'node_modules/@deepseek-ai' package dirs to copy into the
+    /// profile (packaged, offline); empty in dev where the repository
+    /// checkout supplies the bridge packages.
     bridge_copy: Vec<PathBuf>,
-    /// npm-installable bridge tarballs (dev mode, system npm present).
-    bridge_tarballs: Vec<String>,
 }
 
 impl RuntimePaths {
@@ -60,11 +80,14 @@ impl RuntimePaths {
             cli: std::env::var("DSH_CLI").unwrap_or_default(),
             module_base: std::env::var("DSH_BARE_MODULE_BASE").ok(),
             bridge_copy: Vec::new(),
-            bridge_tarballs: std::env::var("DSH_BRIDGE_TARBALL")
-                .into_iter()
-                .flat_map(|v| v.split(';').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect::<Vec<_>>())
-                .collect(),
         }
+    }
+
+    /// Dev mode: a DSH_CLI was set (the dev launcher points it at the
+    /// repository's built CLI), so the repository checkout supplies the
+    /// bridge packages.
+    fn is_dev(&self) -> bool {
+        !self.cli.is_empty()
     }
 
     fn packaged(handle: &tauri::AppHandle) -> Option<Self> {
@@ -87,28 +110,34 @@ impl RuntimePaths {
                 .unwrap_or_else(|| "node".to_string())
         });
         let module_base = std::env::var("DSH_BARE_MODULE_BASE").ok().or_else(|| {
-            Url::from_file_path(&resource_cli).ok().map(|url| url.to_string())
+            Url::from_file_path(&resource_cli)
+                .ok()
+                .map(|url| url.to_string())
         });
         let runtime_root = resource_cli
             .parent()
             .and_then(Path::parent)
             .map(|dir| dir.to_path_buf())?;
-        let bridge_copy = ["dsh-desktop-bridge", "dsh-desktop-bridge-client", "schemastery"]
-            .into_iter()
-            .map(|pkg| runtime_root.join("node_modules").join("@deepseek-ai").join(pkg))
-            .filter(|path| path.exists())
-            .collect();
+        let bridge_copy = [
+            "dsh-desktop-bridge",
+            "dsh-desktop-bridge-client",
+            "schemastery",
+        ]
+        .into_iter()
+        .map(|pkg| {
+            runtime_root
+                .join("node_modules")
+                .join("@deepseek-ai")
+                .join(pkg)
+        })
+        .filter(|path| path.exists())
+        .collect();
         Some(RuntimePaths {
             node,
             cli: resource_cli.to_string_lossy().into_owned(),
             module_base,
             bridge_copy,
-            bridge_tarballs: Vec::new(),
         })
-    }
-
-    fn is_online(&self) -> bool {
-        !self.bridge_tarballs.is_empty()
     }
 }
 
@@ -132,17 +161,192 @@ fn set_debug_mode(window: WebviewWindow, enabled: bool) {
 /// How long to wait for the readiness URL line after spawning.
 const BOOT_TIMEOUT: Duration = Duration::from_secs(120);
 
+/// Mirror the bridge's close-to-tray desktop setting into the shell. The page
+/// (bridge client) pushes the durable value on boot and on every settings
+/// change; the main window's `CloseRequested` handler reads this flag.
+#[tauri::command]
+fn set_close_to_tray(app: tauri::AppHandle, enabled: bool) {
+    if let Some(state) = app.try_state::<CloseToTray>() {
+        *state.0.lock().unwrap() = enabled;
+    }
+}
+
+/// Read back a file the user dropped on the window as base64, bounded to
+/// {@const DROPPED_READ_MAX_BYTES}. Only paths from the recent drop allowlist
+/// are served. The bridge client uses this to keep image drops on the
+/// composer's intake path (WebView2 never sees OS drops once Tauri handles
+/// them).
+#[tauri::command]
+fn read_dropped_file(app: tauri::AppHandle, path: String) -> Option<String> {
+    let allowed = app.try_state::<DroppedPaths>().is_some_and(|state| {
+        let now = Instant::now();
+        let mut list = state.0.lock().unwrap();
+        list.retain(|(_, at)| now.duration_since(*at).as_secs() < DROP_ALLOW_SECS);
+        list.iter()
+            .any(|(candidate, _)| *candidate == PathBuf::from(&path))
+    });
+    if !allowed {
+        return None;
+    }
+    let data = std::fs::read(&path).ok()?;
+    if data.len() > DROPPED_READ_MAX_BYTES {
+        return None;
+    }
+    Some(base64::engine::general_purpose::STANDARD.encode(data))
+}
+
+/// Create the system tray icon with its menu (显示主窗口 / 退出). A left
+/// click on the icon shows the main window; the menu's exit is the one real
+/// quit once close-to-tray is enabled. Without a bundled window icon the tray
+/// is skipped (the icon is the whole tray).
+fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
+    let show = MenuItem::with_id(app, "show", "显示主窗口", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&show, &quit])?;
+    let mut builder = TrayIconBuilder::with_id("dsh-desktop-tray")
+        .tooltip("dsh-desktop")
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_menu_event(|app, event| match event.id.as_ref() {
+            "show" => show_main_window(app),
+            "quit" => quit_app(app),
+            _ => {}
+        });
+    if let Some(icon) = app.default_window_icon() {
+        builder = builder.icon(icon.clone());
+    }
+    builder
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                show_main_window(tray.app_handle());
+            }
+        })
+        .build(app)?;
+    Ok(())
+}
+
+/// Show and focus the main window (tray "show" / left click).
+fn show_main_window(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+    }
+}
+
+/// Real exit: stop the runtime child and terminate the app. This is the tray's
+/// exit path; a plain window close may now hide instead (close-to-tray).
+fn quit_app(app: &tauri::AppHandle) {
+    if let Some(state) = app.try_state::<DshRuntime>() {
+        if let Some(mut child) = state.0.lock().unwrap().take() {
+            let _ = child.kill();
+            let _ = child.wait();
+        }
+    }
+    app.exit(0);
+}
+
+/// Main-window lifecycle wiring: close-to-tray interception and the dropped-
+/// path allowlist feeding `read_dropped_file`.
+fn wire_main_window_events(app: &tauri::AppHandle) {
+    let Some(window) = app.get_webview_window("main") else {
+        return;
+    };
+    let handle = app.clone();
+    window.clone().on_window_event(move |event| match event {
+        WindowEvent::CloseRequested { api, .. } => {
+            let close_to_tray = handle.state::<CloseToTray>();
+            if *close_to_tray.0.lock().unwrap() {
+                api.prevent_close();
+                let _ = window.hide();
+            }
+        }
+        WindowEvent::DragDrop(DragDropEvent::Drop { paths, .. }) => {
+            let now = Instant::now();
+            let dropped = handle.state::<DroppedPaths>();
+            let mut list = dropped.0.lock().unwrap();
+            list.retain(|(_, at)| now.duration_since(*at).as_secs() < DROP_ALLOW_SECS);
+            list.extend(paths.iter().cloned().map(|path| (path, now)));
+        }
+        _ => {}
+    });
+}
+
+/// Register the Explorer "以 dsh-desktop 打开" context-menu entries under HKCU
+/// (per-user, no elevation): on a folder row (`Directory`) and on a folder's
+/// empty background (`Directory\Background`). Idempotent — rewritten on every
+/// start so the command always targets the current executable. The menu runs
+/// `<exe> <folder>`; `boot` surfaces the folder to the runtime as
+/// `DSH_DESKTOP_OPEN` for the workspace jump. Registration failures are
+/// logged, never fatal.
+#[cfg(windows)]
+fn ensure_explorer_context_menu() {
+    let Ok(exe) = std::env::current_exe() else {
+        return;
+    };
+    let exe = exe.to_string_lossy().into_owned();
+    let command = format!("\"{exe}\" \"%V\"");
+    let label = "以 dsh-desktop 打开";
+    for base in [
+        "HKCU\\Software\\Classes\\Directory\\shell\\dsh-desktop",
+        "HKCU\\Software\\Classes\\Directory\\Background\\shell\\dsh-desktop",
+    ] {
+        if let Err(err) = reg_add(base, &["/ve", "/d", label, "/f"]) {
+            eprintln!("[dsh-desktop] context menu registration failed for {base}: {err}");
+        }
+        if let Err(err) = reg_add(base, &["/v", "Icon", "/d", &exe, "/f"]) {
+            eprintln!("[dsh-desktop] context menu icon registration failed for {base}: {err}");
+        }
+        if let Err(err) = reg_add(&format!("{base}\\command"), &["/ve", "/d", &command, "/f"]) {
+            eprintln!("[dsh-desktop] context menu command registration failed for {base}: {err}");
+        }
+    }
+}
+
+/// Run one `reg add` against `HKCU\<base>` (reg.exe is present on every
+/// supported Windows).
+#[cfg(windows)]
+fn reg_add(base: &str, args: &[&str]) -> std::io::Result<()> {
+    let status = Command::new("reg")
+        .args(["add", base])
+        .args(args)
+        .status()?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(std::io::Error::other("reg add exited nonzero"))
+    }
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(DshRuntime(Mutex::new(None)))
         .manage(SplashBoard(Mutex::new(Vec::new())))
-        .invoke_handler(tauri::generate_handler![set_debug_mode, splash_start, splash_status, splash_open_webview2_download])
+        .manage(CloseToTray(Mutex::new(false)))
+        .manage(DroppedPaths(Mutex::new(Vec::new())))
+        .invoke_handler(tauri::generate_handler![
+            set_debug_mode,
+            set_close_to_tray,
+            read_dropped_file,
+            splash_start,
+            splash_status,
+            splash_open_webview2_download
+        ])
         .setup(|app| {
             splash_log(&format!(
                 "setup: main window found = {}",
                 app.get_webview_window("main").is_some()
             ));
+            setup_tray(app.handle())?;
+            wire_main_window_events(app.handle());
+            #[cfg(windows)]
+            ensure_explorer_context_menu();
             Ok(())
         })
         .build(tauri::generate_context!())
@@ -161,15 +365,22 @@ fn main() {
 
 /// Ensure the bridge packages are present in the web profile and return the
 /// patch overlays to mount. `DSH_PATCH` lists patch files (semicolon-
-/// separated). Online mode installs the bridge tarballs into the profile via
-/// npm (bundled with the system Node in dev); a closed runtime copies its
-/// packaged bridge packages into the profile instead — no npm is available.
+/// separated). Dev mode copies the bridge packages from the repository
+/// checkout on every boot (a rebuilt bridge must always reach the profile);
+/// a packaged runtime copies its own bridge packages. No npm anywhere — the
+/// npm install path dies on the published @deepseek-ai manifests' workspace:
+/// protocol.
 fn ensure_bridge(node: &str, cli: &str, paths: &RuntimePaths) -> Vec<String> {
     let patches: Vec<String> = std::env::var("DSH_PATCH")
         .into_iter()
-        .flat_map(|v| v.split(';').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect::<Vec<_>>())
+        .flat_map(|v| {
+            v.split(';')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect::<Vec<_>>()
+        })
         .collect();
-    if paths.bridge_tarballs.is_empty() && paths.bridge_copy.is_empty() {
+    if !paths.is_dev() && paths.bridge_copy.is_empty() {
         return patches;
     }
     let home = std::env::var("DSH_HOME").unwrap_or_else(|_| {
@@ -179,32 +390,41 @@ fn ensure_bridge(node: &str, cli: &str, paths: &RuntimePaths) -> Vec<String> {
         format!("{base}/.dsh")
     });
     let profile = std::path::Path::new(&home).join("profiles").join("web");
-    let marker = profile.join("node_modules").join("@deepseek-ai").join("dsh-desktop-bridge");
-    if marker.join("package.json").exists() {
+    let marker = profile
+        .join("node_modules")
+        .join("@deepseek-ai")
+        .join("dsh-desktop-bridge");
+    if marker.join("package.json").exists() && !paths.is_dev() {
         // Packaged mode keeps the profile's bridge in lockstep with the
         // runtime's on every boot: the bridge lib is a build artifact that
         // source changes refresh, so a one-time copy would leave the profile
         // on stale behavior after an upgrade (missing routes, dead plugin).
-        // Dev mode (tarballs) installs once and leaves refreshes to the
-        // developer.
-        if !paths.bridge_copy.is_empty() {
-            copy_bridge_packages(&profile, &paths.bridge_copy);
-        }
+        // Dev mode copies on every boot below for the same reason.
+        copy_bridge_packages(&profile, &paths.bridge_copy);
         return patches;
     }
     if !profile.exists() {
         // First boot: let the CLI initialize the web profile template.
-        let _ = Command::new(node).arg(cli).arg("--profile").arg("web").arg("--dump-default-config").status();
+        let _ = Command::new(node)
+            .arg(cli)
+            .arg("--profile")
+            .arg("web")
+            .arg("--dump-default-config")
+            .status();
     }
     if !profile.exists() {
-        eprintln!("[dsh-desktop] profile {} missing after init; continuing without the bridge", profile.display());
+        eprintln!(
+            "[dsh-desktop] profile {} missing after init; continuing without the bridge",
+            profile.display()
+        );
         return patches;
     }
-    let installed = if paths.is_online() {
-        install_bridge_via_npm(&profile, &paths.bridge_tarballs)
+    let sources = if paths.is_dev() {
+        bridge_sources_from_repo(cli)
     } else {
-        copy_bridge_packages(&profile, &paths.bridge_copy)
+        paths.bridge_copy.clone()
     };
+    let installed = !sources.is_empty() && copy_bridge_packages(&profile, &sources);
     if installed {
         eprintln!("[dsh-desktop] bridge installed into {}", profile.display());
         install_profile_patch(&profile);
@@ -212,20 +432,32 @@ fn ensure_bridge(node: &str, cli: &str, paths: &RuntimePaths) -> Vec<String> {
     patches
 }
 
-/// Install bridge tarballs into the profile via npm (dev mode).
-fn install_bridge_via_npm(profile: &Path, bridge_tarballs: &[String]) -> bool {
-    match Command::new("cmd")
-        .args(["/c", "npm", "install", "--no-save"])
-        .args(bridge_tarballs)
-        .current_dir(profile)
-        .status()
-    {
-        Ok(status) => status.success(),
-        _ => {
-            eprintln!("[dsh-desktop] bridge install into {} failed; continuing without it", profile.display());
-            false
-        }
-    }
+/// Dev-mode bridge sources: the bridge packages plus their prod dependency
+/// (schemastery), resolved from the repository checkout the dev CLI runs from
+/// (<repo>/apps/cli/lib/bin.js). Entries missing from a partial checkout are
+/// dropped; an empty result fails the install below.
+fn bridge_sources_from_repo(cli: &str) -> Vec<PathBuf> {
+    let Some(repo) = Path::new(cli)
+        .parent()
+        .and_then(Path::parent)
+        .and_then(Path::parent)
+        .and_then(Path::parent)
+    else {
+        return Vec::new();
+    };
+    let schemastery = repo
+        .join("node_modules")
+        .join("@deepseek-ai")
+        .join("schemastery");
+    let schemastery = std::fs::canonicalize(&schemastery).unwrap_or(schemastery);
+    [
+        repo.join("apps").join("desktop").join("bridge"),
+        repo.join("apps").join("desktop").join("bridge-client"),
+        schemastery,
+    ]
+    .into_iter()
+    .filter(|path| path.join("package.json").exists())
+    .collect()
 }
 
 /// Copy the packaged bridge packages into the profile's node_modules (closed
@@ -234,16 +466,46 @@ fn install_bridge_via_npm(profile: &Path, bridge_tarballs: &[String]) -> bool {
 fn copy_bridge_packages(profile: &Path, sources: &[PathBuf]) -> bool {
     let mut ok = true;
     for source in sources {
-        let Some(name) = source.file_name() else { continue };
+        let Ok(name) = package_directory(source) else {
+            eprintln!(
+                "[dsh-desktop] failed to resolve package name from {}",
+                source.display()
+            );
+            ok = false;
+            continue;
+        };
         let target = profile.join("node_modules").join("@deepseek-ai").join(name);
         if copy_dir_recursive(source, &target).is_err() {
-            eprintln!("[dsh-desktop] failed to copy bridge package {} into {}", source.display(), profile.display());
+            eprintln!(
+                "[dsh-desktop] failed to copy bridge package {} into {}",
+                source.display(),
+                profile.display()
+            );
             ok = false;
         }
     }
     ok
 }
 
+/// Resolve the directory below `node_modules/@deepseek-ai` from a package's
+/// manifest name. Repository source directories do not necessarily match the
+/// published package name (`bridge-client` vs. `dsh-desktop-bridge-client`).
+fn package_directory(source: &Path) -> std::io::Result<String> {
+    let manifest = std::fs::read_to_string(source.join("package.json"))?;
+    let manifest: serde_json::Value = serde_json::from_str(&manifest)
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err))?;
+    let name = manifest["name"]
+        .as_str()
+        .and_then(|name| name.strip_prefix("@deepseek-ai/"))
+        .filter(|name| !name.is_empty() && !name.contains(['/', '\\']))
+        .ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "package name must belong to @deepseek-ai",
+            )
+        })?;
+    Ok(name.to_string())
+}
 /// Recursively copy a directory, replacing an existing target.
 fn copy_dir_recursive(source: &Path, target: &Path) -> std::io::Result<()> {
     if target.exists() {
@@ -268,7 +530,11 @@ fn copy_dir_recursive(source: &Path, target: &Path) -> std::io::Result<()> {
 /// layer: a `--patch` overlay applies after it, so profile patches could not
 /// configure bridge rows inserted there.
 fn install_profile_patch(profile: &std::path::Path) {
-    let bridge_patch = profile.join("node_modules").join("@deepseek-ai").join("dsh-desktop-bridge").join("cordis.patch.yml");
+    let bridge_patch = profile
+        .join("node_modules")
+        .join("@deepseek-ai")
+        .join("dsh-desktop-bridge")
+        .join("cordis.patch.yml");
     let profile_patch = profile.join("cordis.patch.yml");
     let Ok(source) = std::fs::read_to_string(&bridge_patch) else {
         eprintln!("[dsh-desktop] bridge patch file missing; skipping profile patch install");
@@ -293,9 +559,15 @@ fn install_profile_patch(profile: &std::path::Path) {
         merged
     };
     if std::fs::write(&profile_patch, merged).is_ok() {
-        eprintln!("[dsh-desktop] bridge rows appended to {}; edit the desktop-bridge config there", profile_patch.display());
+        eprintln!(
+            "[dsh-desktop] bridge rows appended to {}; edit the desktop-bridge config there",
+            profile_patch.display()
+        );
     } else {
-        eprintln!("[dsh-desktop] failed to append bridge rows to {}", profile_patch.display());
+        eprintln!(
+            "[dsh-desktop] failed to append bridge rows to {}",
+            profile_patch.display()
+        );
     }
 }
 
@@ -303,14 +575,24 @@ fn install_profile_patch(profile: &std::path::Path) {
 /// has no console, so stderr is invisible; the file is the diagnostic channel.
 fn splash_log(message: &str) {
     let path = std::env::temp_dir().join("dsh-desktop-splash.log");
-    if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
+    if let Ok(mut file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+    {
         let _ = writeln!(file, "{message}");
     }
 }
 
 /// Record a splash status entry on the polled board; the latest write for a
 /// step wins, and the splashscreen page renders the board on each poll.
-fn push_status(handle: &tauri::AppHandle, step: &str, status: &str, message: &str, suggestion: Option<&str>) {
+fn push_status(
+    handle: &tauri::AppHandle,
+    step: &str,
+    status: &str,
+    message: &str,
+    suggestion: Option<&str>,
+) {
     splash_log(&format!("push_status: {step} = {status}"));
     let entry = serde_json::json!({ "step": step, "status": status, "message": message, "suggestion": suggestion });
     if let Some(board) = handle.try_state::<SplashBoard>() {
@@ -373,7 +655,13 @@ fn run_checks(handle: &tauri::AppHandle, paths: &RuntimePaths) -> bool {
 
     // dsh CLI entry.
     if paths.cli.is_empty() || !Path::new(&paths.cli).is_file() {
-        push_status(handle, "runtime", "error", "dsh 运行时缺失", Some("请重新安装 dsh-desktop"));
+        push_status(
+            handle,
+            "runtime",
+            "error",
+            "dsh 运行时缺失",
+            Some("请重新安装 dsh-desktop"),
+        );
         fatal = true;
     } else {
         push_status(handle, "runtime", "ok", "dsh 运行时就绪", None);
@@ -384,7 +672,13 @@ fn run_checks(handle: &tauri::AppHandle, paths: &RuntimePaths) -> bool {
     if std::fs::create_dir_all(&home).is_ok() {
         push_status(handle, "home", "ok", "数据目录可写", None);
     } else {
-        push_status(handle, "home", "error", "无法创建数据目录", Some(format!("请检查 {home} 的权限").as_str()));
+        push_status(
+            handle,
+            "home",
+            "error",
+            "无法创建数据目录",
+            Some(format!("请检查 {home} 的权限").as_str()),
+        );
         fatal = true;
     }
 
@@ -392,7 +686,13 @@ fn run_checks(handle: &tauri::AppHandle, paths: &RuntimePaths) -> bool {
     if std::env::var("DEEPSEEK_API_KEY").is_ok() {
         push_status(handle, "api-key", "ok", "已配置 API Key", None);
     } else {
-        push_status(handle, "api-key", "warn", "未配置 DEEPSEEK_API_KEY（可稍后在设置中配置）", None);
+        push_status(
+            handle,
+            "api-key",
+            "warn",
+            "未配置 DEEPSEEK_API_KEY（可稍后在设置中配置）",
+            None,
+        );
     }
 
     !fatal
@@ -403,7 +703,10 @@ fn run_checks(handle: &tauri::AppHandle, paths: &RuntimePaths) -> bool {
 fn run_splash_flow(window: WebviewWindow, handle: tauri::AppHandle) {
     splash_log("run_splash_flow: begin");
     let paths = resolve_paths(&handle);
-    splash_log(&format!("run_splash_flow: cli={} node={}", paths.cli, paths.node));
+    splash_log(&format!(
+        "run_splash_flow: cli={} node={}",
+        paths.cli, paths.node
+    ));
     if !run_checks(&handle, &paths) {
         splash_log("run_splash_flow: checks failed, staying on splash");
         return;
@@ -485,11 +788,21 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
     if let Some(module_base) = &paths.module_base {
         cmd.env("DSH_BARE_MODULE_BASE", module_base);
     }
+    // Explorer context-menu launch: the first argument is the folder the user
+    // opened with ("以 dsh-desktop 打开"). The bridge host resolves it to a
+    // workspace so the page can jump to it after boot.
+    if let Some(open_path) = std::env::args().nth(1) {
+        if Path::new(&open_path).is_dir() {
+            cmd.env("DSH_DESKTOP_OPEN", open_path);
+        }
+    }
     // The runtime is a console-subsystem binary (node.exe); a GUI-subsystem
     // parent would otherwise give it a visible console window. CREATE_NO_WINDOW
     // keeps the spawn headless, and null stdin stops node from attaching to the
     // absent console.
-    cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
+    cmd.stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
@@ -500,7 +813,10 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
         Err(err) => {
             fail(
                 &handle,
-                &format!("failed to spawn `{} {} web --port 0`: {err}", paths.node, paths.cli),
+                &format!(
+                    "failed to spawn `{} {} web --port 0`: {err}",
+                    paths.node, paths.cli
+                ),
             );
             return;
         }
@@ -556,7 +872,10 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
                                     let _ = splash.close();
                                 }
                                 if let Err(err) = window.show() {
-                                    fail(&handle, &format!("failed to show the main window: {err}"));
+                                    fail(
+                                        &handle,
+                                        &format!("failed to show the main window: {err}"),
+                                    );
                                     return;
                                 }
                                 if window.navigate(url).is_err() {
@@ -591,7 +910,10 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
                 }
             }
             Err(mpsc::RecvTimeoutError::Disconnected) => {
-                fail(&handle, "dsh runtime exited before printing its readiness line");
+                fail(
+                    &handle,
+                    "dsh runtime exited before printing its readiness line",
+                );
                 return;
             }
         }

@@ -1,32 +1,48 @@
+import { BridgeCloseRow } from './BridgeCloseRow.tsx'
 import { BridgeDebugRow } from './BridgeDebugRow.tsx'
-import { BridgePolicyRow } from './BridgePolicyRow.tsx'
 import { BridgeSection } from './BridgeSection.tsx'
 import { en, zh } from './locales.ts'
 
-// @deepseek-ai/dsh-desktop-bridge-client — browser half of the shell
-// bridge: picks non-image files out of native drops and forwards them to
-// the bridge host route (WebView2 exposes no File.path, so bytes travel
-// instead; oversized files travel as metadata only). Images are left
-// untouched for the dsh composer's own intake pipeline. The host decides
-// copy vs. path per the bridge policy (copy switch, size cap, binary
-// sniff), so the client mirrors only the size cap to keep the request
-// body bounded. Also hosts the debug-mode guard: while debug mode is off
-// (default), right-click and devtools shortcuts are suppressed; the host
-// additionally flips WebView2's AreDevToolsEnabled via the
-// set_debug_mode command (the browser-level F12 escape hatch a page
-// cannot intercept).
+// @deepseek-ai/dsh-desktop-bridge-client — browser half of the shell bridge.
+//
+// OS file drops are handled by the Tauri shell (`onDragDropEvent`), which
+// yields real filesystem paths — WebView2's own drops expose no File.path.
+// On drop: image files travel back through the shell's bounded
+// `read_dropped_file` command and re-enter the dsh composer's native image
+// intake as a synthetic drop; every other file has its path inserted into
+// the composer input box. A drop overlay gives drag feedback while the OS
+// drag is over the window. The plugin also hosts the desktop settings
+// section (close-to-tray + debug mode): close-to-tray is mirrored into the
+// shell via `set_close_to_tray` so the close button can hide instead of
+// exiting, and the debug guard suppresses right-click and devtools
+// shortcuts while off. Finally, when the shell was launched with a folder
+// ("以 dsh-desktop 打开"), the page jumps to the matching workspace after
+// the workspace baseline is ready.
 
 /** Stable Cordis plugin name. */
 export const name = 'desktop-bridge-client'
 
-/** Services required before the listener and settings row can run. */
-export const inject = ['sessions', 'slots', 'locale']
+/** Services required before the listener and settings rows can run. */
+export const inject = ['sessions', 'workspaces', 'slots', 'locale']
 
 /** Minimal view of the client-runtime sessions service this plugin consumes. */
 interface SessionsLike {
   list: {
-    getSnapshot(): { current: string | undefined }
+    getSnapshot(): { current: string | undefined; ids: readonly string[]; byId: Record<string, { updatedAt?: number } | undefined> }
   }
+  open(id: string): void
+}
+
+/** Minimal view of the client-runtime workspaces service this plugin consumes. */
+interface WorkspacesLike {
+  list: {
+    getSnapshot(): {
+      baselinesReady: boolean
+      items: readonly { workspaceId: string; path: string; sessionIds: readonly string[] }[]
+    }
+    subscribe(listener: () => void): () => void
+  }
+  startSession(workspaceId?: string): void
 }
 
 /** Minimal view of the slots service this plugin consumes. */
@@ -44,6 +60,7 @@ interface LocaleLike {
 /** Minimal view of the cordis context this plugin consumes. */
 interface BridgeClientContext {
   sessions: SessionsLike
+  workspaces: WorkspacesLike
   slots: SlotsLike
   locale: LocaleLike
 }
@@ -53,20 +70,47 @@ interface TauriEventApi {
   listen(event: string, handler: (event: { payload: unknown }) => void): Promise<() => void>
 }
 
+interface TauriWebviewApi {
+  getCurrentWebview(): {
+    onDragDropEvent(handler: (event: { payload: DragDropPayload }) => void): Promise<() => void>
+  }
+}
+
 interface TauriLike {
   event?: TauriEventApi
   core?: {
     invoke(command: string, args?: Record<string, unknown>): Promise<unknown>
   }
+  webview?: TauriWebviewApi
 }
 
-const tauri = (window as unknown as { __TAURI__?: TauriLike }).__TAURI__
+function getTauri(): TauriLike | undefined {
+  return (window as unknown as { __TAURI__?: TauriLike }).__TAURI__
+}
+
+function hasTauriInternals(): boolean {
+  return '__TAURI_INTERNALS__' in window
+}
+
+/** One Tauri drag-drop payload (`enter`/`over` carry no paths; `leave` none at all). */
+interface DragDropPayload {
+  type: 'enter' | 'over' | 'drop' | 'leave'
+  paths?: string[]
+}
 
 const IMAGE_RE = /\.(png|jpe?g|webp|gif)$/i
 
+const IMAGE_MIME: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  webp: 'image/webp',
+  gif: 'image/gif',
+}
+
 // Module-level binding guard: however many times the plugin fiber applies,
-// only the first bind owns the document listener and settings registrations
-// (duplicate binds would POST every drop once per bind).
+// only the first bind owns the listeners and settings registrations
+// (duplicate binds would handle every drop once per bind).
 let bound = false
 
 // Debug mode mirror: while false (default), right-click and devtools
@@ -97,6 +141,7 @@ function onKeyDownCapture(event: KeyboardEvent): void {
  */
 function applyDebugMode(enabled: boolean): void {
   debugMode = enabled
+  const tauri = getTauri()
   if (tauri?.core) {
     void tauri.core.invoke('set_debug_mode', { enabled }).catch(() => {
       /* shell command unavailable (plain browser dev): page guard still applies */
@@ -104,43 +149,151 @@ function applyDebugMode(enabled: boolean): void {
   }
 }
 
-// Mirror of the host bridge policy; refreshed per drop (fallback: 50 MiB).
-let maxBytes = 50 * 1024 * 1024
-
-/** Refresh the size-cap mirror from the bridge host; keeps the last value on failure. */
-function refreshPolicy(): Promise<number> {
-  return fetch('/dsh-bridge/config').then(r => r.json()).then((c) => {
-    if (typeof c.maxBytes === 'number') maxBytes = c.maxBytes
-    return maxBytes
-  }).catch(() => maxBytes)
+// Close-to-tray mirror: the durable setting lives in the bridge host's
+// settings section; the shell decides what a close means, so every change
+// (and the boot-time read) is pushed through `set_close_to_tray`.
+function applyCloseToTray(enabled: boolean): void {
+  const tauri = getTauri()
+  if (tauri?.core) {
+    void tauri.core.invoke('set_close_to_tray', { enabled }).catch(() => {
+      /* shell command unavailable (plain browser dev): no close interception */
+    })
+  }
 }
 
-/** Read a File's bytes as a bare base64 string (data URL prefix stripped). */
-function readAsBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const dataUrl = String(reader.result ?? '')
-      const comma = dataUrl.indexOf(',')
-      resolve(comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl)
+/**
+ * The drop overlay: fixed full-window feedback while an OS file drag is over
+ * the window (the Tauri shell owns the drag, so the composer's own overlay
+ * never sees dragenter).
+ */
+let overlayEl: HTMLDivElement | null = null
+
+function showDropOverlay(): void {
+  if (overlayEl !== null) return
+  overlayEl = document.createElement('div')
+  overlayEl.id = 'dsh-desktop-drop-overlay'
+  overlayEl.textContent = '拖放文件到输入框'
+  overlayEl.style.cssText = [
+    'position:fixed;inset:0;z-index:2147483646;display:flex;align-items:center;justify-content:center;',
+    'background:color-mix(in srgb,var(--dsw-alias-bg-base,#0f1117) 70%,transparent);',
+    'pointer-events:none;font-family:var(--dsw-font-family,system-ui,sans-serif);font-size:15px;',
+    'color:var(--dsw-alias-label-primary,#e6e8ee);',
+  ].join('')
+  document.body.appendChild(overlayEl)
+}
+
+function hideDropOverlay(): void {
+  overlayEl?.remove()
+  overlayEl = null
+}
+
+/**
+ * Insert paths into the composer input box as text (one per line). The box
+ * is React-controlled, so the write goes through the native value setter and
+ * an `input` event — the composer's own onChange path feeds the draft into
+ * the input machine like any typed edit.
+ * @param paths - filesystem paths to insert.
+ * @returns whether a live composer accepted the insertion.
+ */
+function insertPathsIntoComposer(paths: readonly string[]): boolean {
+  const textarea = document.querySelector<HTMLTextAreaElement>('[data-composer-card] textarea')
+  if (textarea === null || textarea.disabled) return false
+  const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set
+  if (setter === undefined) return false
+  const text = paths.join('\n')
+  setter.call(textarea, textarea.value.length > 0 ? textarea.value + '\n' + text : text)
+  textarea.dispatchEvent(new Event('input', { bubbles: true }))
+  return true
+}
+
+/**
+ * Read one dropped file back through the shell's bounded byte bridge.
+ * @param path - the dropped file path (allowlisted shell-side).
+ * @returns a File when the shell served the bytes, null otherwise.
+ */
+async function droppedFile(path: string): Promise<File | null> {
+  const tauri = getTauri()
+  const base64 = await tauri?.core?.invoke('read_dropped_file', { path })
+  if (typeof base64 !== 'string' || base64 === '') return null
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  const name = path.split(/[\\/]/).pop() ?? 'drop'
+  const ext = (name.split('.').pop() ?? '').toLowerCase()
+  return new File([bytes], name, { type: IMAGE_MIME[ext] ?? 'application/octet-stream' })
+}
+
+/**
+ * Handle one OS drop: images re-enter the composer's native image intake
+ * (synthetic drop over the document, the same route a mixed drop used
+ * before); every other file gets its path inserted into the input box.
+ * @param paths - dropped filesystem paths.
+ */
+async function handleDropPaths(paths: readonly string[]): Promise<void> {
+  const images: File[] = []
+  const textPaths: string[] = []
+  for (const path of paths) {
+    if (IMAGE_RE.test(path)) {
+      const file = await droppedFile(path)
+      if (file !== null) images.push(file)
+      else textPaths.push(path) // read refused (oversized/expired): the path still lands in the box
+    } else {
+      textPaths.push(path)
     }
-    reader.onerror = () => reject(reader.error)
-    reader.readAsDataURL(file)
+  }
+  if (textPaths.length > 0) insertPathsIntoComposer(textPaths)
+  if (images.length > 0) {
+    const dt = new DataTransfer()
+    images.forEach(file => dt.items.add(file))
+    document.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }))
+  }
+}
+
+/** Dictionary namespace owned by this plugin (the bridge settings section). */
+const NS = 'settings.bridge'
+
+/**
+ * Jump to the workspace the shell was launched with once its baseline is
+ * ready: open its most recent session, or start one when it has none. No
+ * workspace match (or no launch folder) leaves the normal boot selection.
+ * @param ctx - the client context (sessions, workspaces).
+ * @param workspaceId - the target workspace id from the bridge host.
+ */
+function jumpToWorkspace(ctx: BridgeClientContext, workspaceId: string): void {
+  const list = ctx.workspaces.list
+  const reconcile = (): void => {
+    const snapshot = list.getSnapshot()
+    if (!snapshot.baselinesReady) return
+    const workspace = snapshot.items.find(item => item.workspaceId === workspaceId)
+    if (workspace === undefined) return
+    const sessions = ctx.sessions.list.getSnapshot()
+    const mostRecent = workspace.sessionIds
+      .filter(id => sessions.byId[id] !== undefined)
+      .sort((a, b) => (sessions.byId[b]?.updatedAt ?? 0) - (sessions.byId[a]?.updatedAt ?? 0))[0]
+    if (mostRecent !== undefined) ctx.sessions.open(mostRecent)
+    else ctx.workspaces.startSession(workspaceId)
+  }
+  if (list.getSnapshot().baselinesReady) {
+    reconcile()
+    return
+  }
+  const unsubscribe = list.subscribe(() => {
+    if (list.getSnapshot().baselinesReady) {
+      unsubscribe()
+      reconcile()
+    }
   })
 }
 
 /**
- * Bind the drop listener and settings registrations.
- * @param ctx - the client context (sessions, slots).
+ * Bind the shell drag-drop listener, the settings registrations, and the
+ * workspace jump.
+ * @param ctx - the client context (sessions, workspaces, slots).
  * @returns the disposer removing the listeners.
  */
-/** Dictionary namespace owned by this plugin (the bridge settings section). */
-const NS = 'settings.bridge'
-
 export function apply(ctx: BridgeClientContext): () => void {
   if (bound) return () => {}
   bound = true
-  void refreshPolicy()
   const offLocale = ctx.locale.register(NS, { zh, en })
   const t = ctx.locale.bind(NS)
   ctx.slots.inject('settings.section', () => ctx.slots.register({
@@ -153,13 +306,15 @@ export function apply(ctx: BridgeClientContext): () => void {
   }, BridgeSection))
   ctx.slots.inject('settings.bridge.item', () => ctx.slots.register({
     name: 'settings.bridge.item',
-    id: 'bridge-policy',
+    id: 'bridge-close',
     order: 0,
     locale: NS,
-    // No inject face: the row fetches the bridge host route directly (the
-    // dsh configuration boundary refuses browser writes to non-listed
-    // settings namespaces, so saves must go through the host).
-  }, BridgePolicyRow))
+    // The row fetches the bridge host route directly for its persisted value
+    // (the dsh configuration boundary refuses browser writes to non-listed
+    // settings namespaces, so saves must go through the host); the inject
+    // face carries the shell mirror applied after a successful save.
+    inject: () => ({ onCloseToTray: applyCloseToTray }),
+  }, BridgeCloseRow))
   ctx.slots.inject('settings.bridge.item2', () => ctx.slots.register({
     name: 'settings.bridge.item2',
     id: 'bridge-debug',
@@ -168,56 +323,61 @@ export function apply(ctx: BridgeClientContext): () => void {
     // inject must be a factory: the renderer calls it per entry.
     inject: () => ({ onDebugMode: applyDebugMode }),
   }, BridgeDebugRow))
-  // Debug guard: read the stored mode and enforce it for this page session.
+  // Shell wiring at bind: read the stored desktop settings and mirror them
+  // into the shell (close-to-tray interception, WebView2 devtools).
   void fetch('/dsh-bridge/config').then(r => r.json()).then((c) => {
+    if (typeof c.closeToTray === 'boolean') applyCloseToTray(c.closeToTray)
     if (typeof c.debugMode === 'boolean') applyDebugMode(c.debugMode)
-  }).catch(() => { /* keep the default (off) */ })
+  }).catch(() => { /* keep the defaults (real exit, debug off) */ })
+  // OS drops: the shell intercepts them (real paths) and hands them here.
+  let disposed = false
+  let retryDragDrop: ReturnType<typeof setTimeout> | undefined
+  let offDragDrop: (() => void) | undefined
+  const bindDragDrop = (): void => {
+    if (disposed) return
+    const webview = getTauri()?.webview?.getCurrentWebview()
+    if (webview === undefined) {
+      if (hasTauriInternals()) retryDragDrop = setTimeout(bindDragDrop, 100)
+      return
+    }
+    void webview.onDragDropEvent((event) => {
+      const payload = event.payload
+      if (payload.type === 'enter' || payload.type === 'over') {
+        showDropOverlay()
+      } else if (payload.type === 'leave') {
+        hideDropOverlay()
+      } else if (payload.type === 'drop') {
+        hideDropOverlay()
+        if (payload.paths !== undefined && payload.paths.length > 0) {
+          void handleDropPaths(payload.paths)
+        }
+      }
+    }).then((off) => {
+      if (disposed) off()
+      else offDragDrop = off
+    }).catch(() => {
+      if (!disposed) retryDragDrop = setTimeout(bindDragDrop, 100)
+    })
+  }
+  bindDragDrop()
+  // Launch-folder jump ("以 dsh-desktop 打开"): resolve once, then let the
+  // baseline subscription pick the moment the workspace list is ready.
+  void fetch('/dsh-bridge/workspace').then(r => r.json()).then((resp) => {
+    const workspace = resp?.workspace
+    if (workspace !== null && workspace !== undefined && typeof workspace.workspaceId === 'string') {
+      jumpToWorkspace(ctx, workspace.workspaceId)
+    }
+  }).catch(() => { /* no launch folder or bridge unavailable: normal boot */ })
+  // Debug guard: read the stored mode and enforce it for this page session.
   document.addEventListener('contextmenu', onContextMenuCapture, true)
   document.addEventListener('keydown', onKeyDownCapture, true)
-  // Capture-phase listener: non-image drops are taken over before the dsh
-  // composer's bubble listeners can see them (its intake would toast a
-  // format rejection). Pure-image drops pass through untouched; images in a
-  // mixed drop are re-dispatched to the composer as a synthetic drop.
-  const onDropCapture = (event: DragEvent): void => {
-    const files = [...(event.dataTransfer?.files ?? [])]
-    const nonImages = files.filter(file => !IMAGE_RE.test(file.name))
-    if (nonImages.length === 0) return
-    event.preventDefault()
-    event.stopPropagation()
-    // The composer's drop listener owns the drag-depth reset that hides its
-    // drop overlay; it never sees this drop (stopped above), so synthesize
-    // a file-carrying dragleave to bring its depth back to zero.
-    const leaveDt = new DataTransfer()
-    nonImages.forEach(file => leaveDt.items.add(file))
-    document.dispatchEvent(new DragEvent('dragleave', { bubbles: true, cancelable: false, dataTransfer: leaveDt }))
-    void (async () => {
-      await refreshPolicy()
-      const sessionId = ctx.sessions.list.getSnapshot().current
-      if (sessionId === undefined) return
-      // Oversized files travel as metadata only: the host announces them as
-      // path references without us uploading their bytes.
-      const payload = await Promise.all(nonImages.map(async (file) => {
-        if (file.size > maxBytes) return { name: file.name, size: file.size }
-        return { name: file.name, size: file.size, base64: await readAsBase64(file) }
-      }))
-      void fetch('/dsh-bridge/drop', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ sessionId, files: payload }),
-      }).catch(() => { /* bridge unavailable: the drop is simply not taken */ })
-    })()
-    const images = files.filter(file => IMAGE_RE.test(file.name))
-    if (images.length > 0) {
-      const dt = new DataTransfer()
-      images.forEach(file => dt.items.add(file))
-      document.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }))
-    }
-  }
-  document.addEventListener('drop', onDropCapture, true)
   return () => {
+    disposed = true
+    if (retryDragDrop !== undefined) clearTimeout(retryDragDrop)
+    offDragDrop?.()
     offLocale()
+    hideDropOverlay()
     document.removeEventListener('contextmenu', onContextMenuCapture, true)
     document.removeEventListener('keydown', onKeyDownCapture, true)
-    document.removeEventListener('drop', onDropCapture, true)
   }
 }
