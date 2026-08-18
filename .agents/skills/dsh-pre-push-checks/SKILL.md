@@ -82,7 +82,7 @@ If post-sync evidence fails, leave the lease-protected published heads in place,
 
 ## Handle failures
 
-If a relevant check fails before an ordinary push, stop and fix or explain the blocker. Do not push and hope CI differs. For the post-sync exception, block the merge and follow the repair procedure above.
+If a check fails before an ordinary push, determine whether the outgoing change introduced the failure or can affect its subject. Stop and fix failures in the changed scope; do not push and hope CI differs. A proven pre-existing failure outside the changed scope does not block the push when the affected-surface evidence passes: record the exact command and failure, show the comparison or ownership evidence that makes it unrelated, and report it with the push. For the post-sync exception, block the merge on failures in any rewritten layer and follow the repair procedure above.
 
 If a failure looks environment-specific, prove it:
 
