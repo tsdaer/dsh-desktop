@@ -24,3 +24,7 @@
     searchMaxFileBytes: 2097152
     searchGraceMs: 1000
     searchTimeoutMs: 5000
+    sourceControlMaxEntries: 256
+    sourceControlMaxBytes: 131072
+    sourceControlGraceMs: 1000
+    sourceControlTimeoutMs: 5000

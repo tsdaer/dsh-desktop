@@ -18,6 +18,8 @@ The desktop client contributes the Workbench through the desktop footer slot and
 
 The mode switch uses matching inline vector icons in the collapsed rail. Directory rows are accessible buttons across their full width; the disclosure glyph reports state but is not a separate interaction target. The Explorer flattens expanded directories into a reusable fixed-row-height `DesktopVirtualList`, which bounds DOM row count while retaining the full scroll extent for large trees.
 
+Files and in-root directories use an internal pointer-drag protocol. The browser dispatches only a validated Workspace-relative path; dropping it on the composer inserts `./<relative-path>` and adds a visible focus ring to the composer while the pointer is over it. Outside-root entries and other entry types do not start a pointer drag. The existing shell-owned external file drop path remains unchanged.
+
 ## Alternatives considered
 
 **Expose the Workspace absolute path to the browser** — rejected: the browser needs only relative display paths, while the Host retains authority over canonical resolution and containment.
@@ -28,8 +30,8 @@ The mode switch uses matching inline vector icons in the collapsed rail. Directo
 
 ## Consequences
 
-Explorer is read-only and does not open files or expose file contents; Source Control and Search remain separate Worktree deliveries. The underlying filesystem provider may enumerate a complete directory before the bridge projects its configured response bound, so a provider-native bounded listing remains a future capability improvement. Symlink or junction children that resolve outside the Workspace remain visible as blocked entries, making the rejection observable without following them in the UI. The virtual list assumes a fixed row height; variable-height consumers need a separate measurement policy.
+Explorer is read-only and does not expose file contents. Git status is rendered as file and directory decorations in the same tree, while Search remains the Worktree toolbar mode. Dragging a Worktree entry transfers a relative display path only; it does not read the file or grant the composer an absolute path. The underlying filesystem provider may enumerate a complete directory before the bridge projects its configured response bound, so a provider-native bounded listing remains a future capability improvement. Symlink or junction children that resolve outside the Workspace remain visible as blocked entries, making the rejection observable without following them in the UI. The virtual list assumes a fixed row height; variable-height consumers need a separate measurement policy.
 
 ## Testing
 
-The desktop Explorer tests pin relative-path validation, escape rejection, directory-first ordering, entry truncation, and outside-root projection. The virtual-list tests pin empty collections, overscan, and end-of-content clamping. The standalone desktop bridge build compiles both Host and Client packages and bundles the Explorer route and UI.
+The desktop Explorer tests pin relative-path validation, escape rejection, directory-first ordering, entry truncation, and outside-root projection. The virtual-list tests pin empty collections, overscan, and end-of-content clamping. The standalone desktop bridge build compiles both Host and Client packages and bundles the Explorer route and UI. Focused client tests validate pointer-drag path formatting, absolute-path rejection, and decoration aggregation.

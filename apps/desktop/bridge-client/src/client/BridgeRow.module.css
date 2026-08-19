@@ -125,3 +125,8 @@
   color: #fff;
   background: var(--dsw-static-deepseek-500, #4176e6);
 }
+
+.composerDropActive {
+  outline: 2px solid var(--dsw-static-deepseek-500, #4176e6);
+  outline-offset: 3px;
+}

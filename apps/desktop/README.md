@@ -18,7 +18,7 @@ Delivered:
 Planned for 0.3.0:
 
 - [x] A desktop-only Workspace/Worktree sidebar switch that preserves the shared Workspace browser
-- [ ] Explorer, Search, and read-only Source Control views for Worktree mode
+- [ ] Explorer, Search, read-only Git decorations, and Worktree path drops into the composer
 - [ ] A visually consistent copy action beside every ordinary user and assistant message
 - [ ] API connection status beside the balance, with click-to-refresh balance updates
 - [ ] Automatic update checks against this repository's GitHub Releases, with installation of available updates

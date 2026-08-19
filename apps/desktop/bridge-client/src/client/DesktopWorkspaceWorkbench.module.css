@@ -258,6 +258,54 @@
   font-weight: 600;
 }
 
+.explorerGitState,
+.explorerGitDecoration {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.explorerGitState {
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: var(--dsw-alias-bg-secondary);
+}
+
+.explorerGitDecoration {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  min-width: 13px;
+  justify-content: flex-end;
+}
+
+.explorerGitCount {
+  font-size: 9px;
+}
+
+.explorerGitConflicted {
+  color: var(--dsw-alias-label-danger);
+}
+
+.explorerGitUnstaged {
+  color: var(--dsw-alias-label-secondary);
+}
+
+.explorerGitStaged {
+  color: var(--dsw-alias-interactive-primary);
+}
+
+.explorerGitUntracked,
+.explorerGitRenamed {
+  color: var(--dsw-alias-interactive-primary);
+}
+
+.explorerGitUnsupported {
+  color: var(--dsw-alias-label-tertiary);
+}
+
 .explorerRefresh,
 .explorerState button {
   border: 0;
@@ -312,6 +360,16 @@
 
 .explorerRowButton:hover {
   background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.explorerDraggable {
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.explorerDraggable:active {
+  cursor: grabbing;
 }
 
 .explorerRowButton:focus-visible,

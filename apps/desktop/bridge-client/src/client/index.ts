@@ -3,6 +3,7 @@ import { BridgeDebugRow } from './BridgeDebugRow.tsx'
 import css from './BridgeRow.module.css'
 import { BridgeSection } from './BridgeSection.tsx'
 import { createDesktopWorkspaceWorkbench } from './DesktopWorkspaceWorkbench.tsx'
+import { formatWorktreePath, normalizeWorktreePath, WORKTREE_PATH_POINTER_EVENT } from './DesktopWorkspacePathDrop.ts'
 import { en, zh } from './locales.ts'
 
 // @deepseek-ai/dsh-desktop-bridge-client — browser half of the shell bridge.
@@ -209,6 +210,52 @@ function insertPathsIntoComposer(paths: readonly string[]): boolean {
   setter.call(textarea, textarea.value.length > 0 ? textarea.value + '\n' + text : text)
   textarea.dispatchEvent(new Event('input', { bubbles: true }))
   return true
+}
+
+function composerCardFromTarget(target: EventTarget | null): HTMLElement | null {
+  return target instanceof Element ? target.closest<HTMLElement>('[data-composer-card]') : null
+}
+
+function setComposerDropActive(active: boolean): void {
+  document.querySelector<HTMLElement>('[data-composer-card]')?.classList.toggle(css.composerDropActive as string, active)
+}
+
+interface ActiveWorktreePointerDrag {
+  path: string
+  pointerId: number
+  startX: number
+  startY: number
+  dragging: boolean
+}
+
+let activeWorktreePointerDrag: ActiveWorktreePointerDrag | null = null
+
+function onWorktreePointerDown(event: Event): void {
+  const detail = (event as CustomEvent<{ path?: unknown; pointerId?: unknown; clientX?: unknown; clientY?: unknown }>).detail
+  const path = normalizeWorktreePath(detail?.path)
+  if (path === null || typeof detail.pointerId !== 'number' || typeof detail.clientX !== 'number' || typeof detail.clientY !== 'number') return
+  activeWorktreePointerDrag = { path, pointerId: detail.pointerId, startX: detail.clientX, startY: detail.clientY, dragging: false }
+}
+
+function onWorktreePointerMove(event: PointerEvent): void {
+  const active = activeWorktreePointerDrag
+  if (active === null || event.pointerId !== active.pointerId) return
+  if (!active.dragging && Math.hypot(event.clientX - active.startX, event.clientY - active.startY) < 5) return
+  active.dragging = true
+  event.preventDefault()
+  setComposerDropActive(composerCardFromTarget(document.elementFromPoint(event.clientX, event.clientY)) !== null)
+}
+
+function onWorktreePointerUp(event: PointerEvent): void {
+  const active = activeWorktreePointerDrag
+  if (active === null || event.pointerId !== active.pointerId) return
+  const droppedOnComposer = active.dragging && composerCardFromTarget(document.elementFromPoint(event.clientX, event.clientY)) !== null
+  if (droppedOnComposer) {
+    event.preventDefault()
+    insertPathsIntoComposer([formatWorktreePath(active.path)])
+  }
+  activeWorktreePointerDrag = null
+  setComposerDropActive(false)
 }
 
 /**
@@ -479,6 +526,10 @@ export function apply(ctx: BridgeClientContext): () => void {
   // Debug guard: read the stored mode and enforce it for this page session.
   document.addEventListener('contextmenu', onContextMenuCapture, true)
   document.addEventListener('keydown', onKeyDownCapture, true)
+  document.addEventListener(WORKTREE_PATH_POINTER_EVENT, onWorktreePointerDown, true)
+  document.addEventListener('pointermove', onWorktreePointerMove, true)
+  document.addEventListener('pointerup', onWorktreePointerUp, true)
+  document.addEventListener('pointercancel', onWorktreePointerUp, true)
   return () => {
     disposed = true
     if (retryDragDrop !== undefined) clearTimeout(retryDragDrop)
@@ -489,5 +540,11 @@ export function apply(ctx: BridgeClientContext): () => void {
     hideDropOverlay()
     document.removeEventListener('contextmenu', onContextMenuCapture, true)
     document.removeEventListener('keydown', onKeyDownCapture, true)
+    document.removeEventListener(WORKTREE_PATH_POINTER_EVENT, onWorktreePointerDown, true)
+    document.removeEventListener('pointermove', onWorktreePointerMove, true)
+    document.removeEventListener('pointerup', onWorktreePointerUp, true)
+    document.removeEventListener('pointercancel', onWorktreePointerUp, true)
+    activeWorktreePointerDrag = null
+    setComposerDropActive(false)
   }
 }

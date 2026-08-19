@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import css from './DesktopWorkspaceWorkbench.module.css'
 import { DesktopVirtualList } from './DesktopVirtualList.tsx'
+import { dispatchWorktreePathPointerDown } from './DesktopWorkspacePathDrop.ts'
 
 type WorkspaceId = string
 
@@ -46,6 +47,32 @@ interface ExplorerListing {
   truncated: boolean
 }
 
+type SourceControlStatus = 'staged' | 'unstaged' | 'untracked' | 'conflicted' | 'renamed' | 'unsupported'
+
+interface SourceControlEntry {
+  path: string
+  statuses: readonly SourceControlStatus[]
+  oldPath?: string
+}
+
+interface SourceControlListing {
+  workspaceId: string
+  state: 'repository' | 'not-repository' | 'unavailable'
+  entries: readonly SourceControlEntry[]
+  truncated: boolean
+}
+
+type SourceControlState =
+  | { status: 'loading' }
+  | { status: 'ready'; listing: SourceControlListing }
+  | { status: 'error' }
+
+/** Git statuses aggregated for one file or its visible parent directory. */
+export interface GitDecoration {
+  statuses: readonly SourceControlStatus[]
+  count: number
+}
+
 type NodeState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
@@ -79,6 +106,8 @@ export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions
   const workspaceId = workspace?.workspaceId
   const [nodes, setNodes] = useState<Record<string, NodeState>>({})
   const [expandedByWorkspace, setExpandedByWorkspace] = useState<Record<string, readonly string[]>>(() => readExpanded())
+  const [sourceControl, setSourceControl] = useState<SourceControlState>({ status: 'loading' })
+  const [sourceControlRefresh, setSourceControlRefresh] = useState(0)
   const request = useRef<AbortController | null>(null)
 
   useEffect(() => {
@@ -111,6 +140,21 @@ export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions
     return () => { request.current?.abort() }
   }, [load, workspaceId])
 
+  useEffect(() => {
+    if (workspaceId === undefined) return
+    const controller = new AbortController()
+    setSourceControl({ status: 'loading' })
+    void fetch(`/dsh-bridge/worktree/source-control?${new URLSearchParams({ workspaceId })}`, { signal: controller.signal })
+      .then(async (response) => {
+        const body = await response.json() as unknown
+        if (!response.ok) throw new Error('Git status request failed')
+        return parseSourceControlListing(body)
+      })
+      .then((listing) => { setSourceControl({ status: 'ready', listing }) })
+      .catch(() => { if (!controller.signal.aborted) setSourceControl({ status: 'error' }) })
+    return () => { controller.abort() }
+  }, [sourceControlRefresh, workspaceId])
+
   const expanded = useMemo(
     () => new Set(workspaceId === undefined ? [] : expandedByWorkspace[workspaceId] ?? []),
     [expandedByWorkspace, workspaceId],
@@ -131,6 +175,10 @@ export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions
   }
 
   const rows = useMemo(() => buildVisibleRows('', 0, nodes, expanded), [expanded, nodes])
+  const gitDecorations = useMemo(
+    () => sourceControl.status === 'ready' ? buildGitDecorations(sourceControl.listing) : new Map<string, GitDecoration>(),
+    [sourceControl],
+  )
 
   const renderRow = (row: VisibleRow): React.ReactNode => {
     if (row.kind === 'state') {
@@ -150,28 +198,100 @@ export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions
     }
     const { entry } = row
     const directory = entry.type === 'directory' && entry.outsideRoot !== true
+    const decoration = gitDecorations.get(entry.path)
+    const draggable = entry.outsideRoot !== true && (entry.type === 'directory' || entry.type === 'file')
     const className = `${css.explorerRow}${entry.outsideRoot === true ? ` ${css.explorerOutside}` : ''}${directory ? ` ${css.explorerRowButton}` : ''}`
     const content = (
       <>
         <span className={css.explorerDisclosure} aria-hidden="true">{directory ? (row.expanded ? '▾' : '▸') : entry.type === 'file' ? '·' : '!'}</span>
         <span className={css.explorerName} title={entry.name}>{entry.name}</span>
         {entry.outsideRoot === true ? <span className={css.explorerMeta}>{t('worktree.outside')}</span> : null}
+        {decoration === undefined ? null : <GitDecorationView decoration={decoration} t={t} />}
       </>
     )
     return directory
-      ? <button key={row.key} type="button" className={className} style={{ paddingLeft: `${8 + row.depth * 14}px` }} aria-expanded={row.expanded} aria-label={`${row.expanded ? t('worktree.collapse') : t('worktree.expand')}: ${entry.name}`} onClick={() => { toggle(entry.path) }}>{content}</button>
-      : <div key={row.key} className={className} style={{ paddingLeft: `${8 + row.depth * 14}px` }}>{content}</div>
+      ? <button key={row.key} type="button" className={`${className}${draggable ? ` ${css.explorerDraggable}` : ''}`} style={{ paddingLeft: `${8 + row.depth * 14}px` }} aria-expanded={row.expanded} aria-label={`${row.expanded ? t('worktree.collapse') : t('worktree.expand')}: ${entry.name}`} onPointerDown={(event) => { if (draggable && event.button === 0) dispatchWorktreePathPointerDown(event.currentTarget, event, entry.path) }} onClick={() => { toggle(entry.path) }}>{content}</button>
+      : <div key={row.key} className={`${className}${draggable ? ` ${css.explorerDraggable}` : ''}`} style={{ paddingLeft: `${8 + row.depth * 14}px` }} onPointerDown={(event) => { if (draggable && event.button === 0) dispatchWorktreePathPointerDown(event.currentTarget, event, entry.path) }}>{content}</div>
   }
 
   return (
     <div className={css.explorer} aria-label={t('worktree.explorerLabel')}>
       <div className={css.explorerHeader}>
         <span className={css.explorerTitle}>{workspace.title}</span>
-        <button type="button" className={css.explorerRefresh} onClick={() => { void load('') }}>{t('worktree.refresh')}</button>
+        <GitStateIndicator state={sourceControl} t={t} />
+        <button type="button" className={css.explorerRefresh} onClick={() => { void load(''); setSourceControlRefresh(value => value + 1) }}>{t('worktree.refresh')}</button>
       </div>
       <DesktopVirtualList items={rows} rowHeight={26} overscan={6} className={css.explorerTree} renderItem={renderRow} />
     </div>
   )
+}
+
+/** Add Git status markers to changed files and all visible parent directories. */
+export function buildGitDecorations(listing: SourceControlListing): Map<string, GitDecoration> {
+  const decorations = new Map<string, GitDecoration>()
+  if (listing.state !== 'repository') return decorations
+  for (const entry of listing.entries) {
+    addGitDecoration(decorations, entry.path, entry.statuses)
+    const parts = entry.path.split('/')
+    for (let index = 1; index < parts.length; index += 1) {
+      addGitDecoration(decorations, parts.slice(0, index).join('/'), entry.statuses)
+    }
+  }
+  return decorations
+}
+
+function addGitDecoration(map: Map<string, GitDecoration>, path: string, statuses: readonly SourceControlStatus[]): void {
+  const previous = map.get(path)
+  const merged = new Set(previous?.statuses)
+  for (const status of statuses) merged.add(status)
+  map.set(path, { statuses: [...merged], count: (previous?.count ?? 0) + 1 })
+}
+
+function GitDecorationView({ decoration, t }: { decoration: GitDecoration; t: (key: string) => string }): React.ReactElement {
+  const status = primaryGitStatus(decoration.statuses)
+  const label = decoration.statuses.map(value => t(`worktree.status.${value}`)).join(', ')
+  return (
+    <span className={`${css.explorerGitDecoration} ${gitDecorationClass(status)}`} title={label} aria-label={label}>
+      {gitStatusMarker(status)}{decoration.count > 1 ? <span className={css.explorerGitCount}>{decoration.count}</span> : null}
+    </span>
+  )
+}
+
+function GitStateIndicator({ state, t }: { state: SourceControlState; t: (key: string) => string }): React.ReactElement {
+  const label = state.status === 'loading'
+    ? t('worktree.gitStatusLoading')
+    : state.status === 'error'
+      ? t('worktree.gitStatusUnavailable')
+      : state.listing.state === 'not-repository'
+        ? t('worktree.notRepository')
+        : state.listing.state === 'unavailable'
+          ? t('worktree.gitStatusUnavailable')
+          : state.listing.truncated
+            ? t('worktree.gitStatusTruncated')
+            : t('worktree.gitStatus')
+  return <span className={css.explorerGitState} role="status" title={label} aria-label={label}>{state.status === 'error' || (state.status === 'ready' && state.listing.state === 'unavailable') ? 'Git !' : 'Git'}</span>
+}
+
+function primaryGitStatus(statuses: readonly SourceControlStatus[]): SourceControlStatus {
+  for (const status of ['conflicted', 'unstaged', 'staged', 'untracked', 'renamed', 'unsupported'] as const) {
+    if (statuses.includes(status)) return status
+  }
+  return 'unsupported'
+}
+
+function gitStatusMarker(status: SourceControlStatus): string {
+  return { conflicted: 'C', unstaged: 'M', staged: 'S', untracked: 'U', renamed: 'R', unsupported: '?' }[status] ?? '?'
+}
+
+function gitDecorationClass(status: SourceControlStatus): string {
+  return {
+    conflicted: css.explorerGitConflicted,
+    unstaged: css.explorerGitUnstaged,
+    staged: css.explorerGitStaged,
+    untracked: css.explorerGitUntracked,
+    renamed: css.explorerGitRenamed,
+    unsupported: css.explorerGitUnsupported,
+  }[status] ?? css.explorerGitUnsupported ?? ''
 }
 
 function buildVisibleRows(path: string, depth: number, nodes: Record<string, NodeState>, expanded: ReadonlySet<string>): VisibleRow[] {
@@ -209,6 +329,25 @@ function parseListing(value: unknown): ExplorerListing {
   const entries = record.entries.filter(isEntry)
   if (entries.length !== record.entries.length) throw new Error('Explorer returned an invalid entry')
   return { workspaceId: record.workspaceId, path: record.path, entries, truncated: record.truncated }
+}
+
+/** Validate the bounded Git projection before using it for file decorations. */
+export function parseSourceControlListing(value: unknown): SourceControlListing {
+  if (typeof value !== 'object' || value === null) throw new Error('Source Control returned an invalid response')
+  const record = value as Record<string, unknown>
+  if (typeof record.workspaceId !== 'string' || (record.state !== 'repository' && record.state !== 'not-repository' && record.state !== 'unavailable') || typeof record.truncated !== 'boolean' || !Array.isArray(record.entries) || !record.entries.every(isSourceControlEntry)) {
+    throw new Error('Source Control returned an invalid response')
+  }
+  return { workspaceId: record.workspaceId, state: record.state, entries: record.entries, truncated: record.truncated }
+}
+
+function isSourceControlEntry(value: unknown): value is SourceControlEntry {
+  if (typeof value !== 'object' || value === null) return false
+  const record = value as Record<string, unknown>
+  return typeof record.path === 'string'
+    && Array.isArray(record.statuses)
+    && record.statuses.every(status => status === 'staged' || status === 'unstaged' || status === 'untracked' || status === 'conflicted' || status === 'renamed' || status === 'unsupported')
+    && (record.oldPath === undefined || typeof record.oldPath === 'string')
 }
 
 function isEntry(value: unknown): value is ExplorerEntry {

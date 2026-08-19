@@ -21,6 +21,7 @@ import type {} from '@deepseek-ai/dsh-workspace'
 import type {} from '@deepseek-ai/dsh-subprocess'
 import { handleExplorerRequest } from './explorer.ts'
 import { handleSearchRequest } from './search.ts'
+import { handleSourceControlRequest } from './source-control.ts'
 
 /** Stable Cordis plugin name. */
 export const name = 'desktop-bridge'
@@ -55,6 +56,14 @@ export interface Config {
   searchGraceMs: number
   /** Maximum elapsed time for one Search request. */
   searchTimeoutMs: number
+  /** Maximum Source Control entries projected for one request. */
+  sourceControlMaxEntries: number
+  /** Maximum UTF-8 JSON bytes projected for one Source Control response. */
+  sourceControlMaxBytes: number
+  /** Process termination grace for Source Control. */
+  sourceControlGraceMs: number
+  /** Maximum elapsed time for one Source Control request. */
+  sourceControlTimeoutMs: number
 }
 
 export const Config: z<Config> = z.object({
@@ -69,6 +78,10 @@ export const Config: z<Config> = z.object({
   searchMaxFileBytes: z.number().default(2 * 1024 * 1024),
   searchGraceMs: z.number().default(1_000),
   searchTimeoutMs: z.number().default(5_000),
+  sourceControlMaxEntries: z.number().default(256),
+  sourceControlMaxBytes: z.number().default(128 * 1024),
+  sourceControlGraceMs: z.number().default(1_000),
+  sourceControlTimeoutMs: z.number().default(5_000),
 })
 
 function validateExplorerConfig(config: Config): void {
@@ -88,6 +101,10 @@ function validateExplorerConfig(config: Config): void {
     searchMaxFileBytes: config.searchMaxFileBytes,
     searchGraceMs: config.searchGraceMs,
     searchTimeoutMs: config.searchTimeoutMs,
+    sourceControlMaxEntries: config.sourceControlMaxEntries,
+    sourceControlMaxBytes: config.sourceControlMaxBytes,
+    sourceControlGraceMs: config.sourceControlGraceMs,
+    sourceControlTimeoutMs: config.sourceControlTimeoutMs,
   })) {
     if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`desktop-bridge: ${name} must be a positive safe integer`)
   }
@@ -116,6 +133,10 @@ function effectiveConfig(ctx: Context, config: Config): Config {
     searchMaxFileBytes: config.searchMaxFileBytes,
     searchGraceMs: config.searchGraceMs,
     searchTimeoutMs: config.searchTimeoutMs,
+    sourceControlMaxEntries: config.sourceControlMaxEntries,
+    sourceControlMaxBytes: config.sourceControlMaxBytes,
+    sourceControlGraceMs: config.sourceControlGraceMs,
+    sourceControlTimeoutMs: config.sourceControlTimeoutMs,
   }
 }
 
@@ -199,6 +220,15 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
       return
     }
     await handleSearchRequest(req, res, ctx, config)
+    return
+  }
+  if (pathname === '/dsh-bridge/worktree/source-control') {
+    if (req.method !== 'GET') {
+      res.statusCode = 405
+      res.end()
+      return
+    }
+    await handleSourceControlRequest(req, res, ctx, config)
     return
   }
   json(res, 404, { error: 'not found' })
