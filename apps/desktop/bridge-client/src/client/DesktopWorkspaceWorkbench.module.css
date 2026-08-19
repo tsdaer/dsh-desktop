@@ -1,4 +1,13 @@
+.anchor {
+  display: none;
+}
+
 .root {
+  order: -1;
+  flex: none;
+}
+
+.root.worktree {
   flex: 1;
   min-height: 0;
   display: flex;
@@ -51,14 +60,10 @@
   font-size: 12px;
 }
 
-.content {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-}
-
 .empty {
-  margin: auto;
+  flex: 1;
+  display: grid;
+  place-items: center;
   padding: 24px;
   color: var(--dsw-alias-label-tertiary);
   text-align: center;

@@ -14,6 +14,10 @@ export const zh = {
   'workspace.cancel': '取消',
   'workspace.add': '添加工作区',
   'workspace.addFailed': '添加工作区失败: ',
+  'workbench.modeLabel': '工作区视图模式',
+  'workbench.workspace': '工作区',
+  'workbench.worktree': '项目文件',
+  'workbench.empty': '项目文件视图尚未启用。',
   'debug.title': '调试模式',
   'debug.toggle': '开启调试模式（关闭时禁用右键菜单和 F12 等调试快捷键）',
 } satisfies Record<string, string>
@@ -35,6 +39,10 @@ export const en = {
   'workspace.cancel': 'Cancel',
   'workspace.add': 'Add Workspace',
   'workspace.addFailed': 'Failed to add Workspace: ',
+  'workbench.modeLabel': 'Workspace view mode',
+  'workbench.workspace': 'Workspace',
+  'workbench.worktree': 'Worktree',
+  'workbench.empty': 'The project-file view is not enabled yet.',
   'debug.title': 'Debug mode',
   'debug.toggle': 'Enable debug mode (when off, disables the context menu and F12 debug shortcuts)',
 } satisfies Record<BridgeKey, string>

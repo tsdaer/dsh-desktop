@@ -27,7 +27,6 @@ import type { HostObservable, PropsLocale, PropsRenderSlots, PropsRuntime, Props
 // runtime shares below.
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type { SidebarSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type {
   SessionId, SessionSearchResultItem, WorkspaceId, WorkspaceView,
 } from '@deepseek-ai/dsh-client-runtime/client'
@@ -53,10 +52,6 @@ export interface DirectoryFlowOwnerProps {
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
-    /** Workspace mode child rendered by the Workbench owner. */
-    'sidebar.workspaces.workspace': { kind: 'single'; scope: 'root'; owner: SidebarSectionOwnerProps }
-    /** Worktree mode child rendered by the Workbench owner. */
-    'sidebar.workspaces.worktree': { kind: 'single'; scope: 'root'; owner: SidebarSectionOwnerProps }
     /** Directory-flow hole under the conversation empty-state picker (declared by the WorkspacePicker entry). */
     'conversation.hero.workspace.directoryFlow': { kind: 'single'; scope: 'root'; owner: DirectoryFlowOwnerProps }
     /** Directory-flow hole under the sidebar browsing region (declared by the WorkspaceBrowser entry). */
@@ -68,12 +63,6 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 export type DirectoryFlowSlotName =
   | 'conversation.hero.workspace.directoryFlow'
   | 'sidebar.workspaces.directoryFlow'
-
-/** Workbench mode owner props passed through the sidebar slot. */
-export type WorkspaceWorkbenchProps =
-  PropsRuntime<'sidebar.workspaces'>
-  & PropsRenderSlots<'sidebar.workspaces.workspace' | 'sidebar.workspaces.worktree'>
-  & PropsLocale<'workspace'>
 
 /**
  * Directory-picking share both trigger surfaces consume. Occupancy rides the

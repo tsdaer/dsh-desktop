@@ -2,6 +2,7 @@ import { BridgeCloseRow } from './BridgeCloseRow.tsx'
 import { BridgeDebugRow } from './BridgeDebugRow.tsx'
 import css from './BridgeRow.module.css'
 import { BridgeSection } from './BridgeSection.tsx'
+import { DesktopWorkspaceWorkbench } from './DesktopWorkspaceWorkbench.tsx'
 import { en, zh } from './locales.ts'
 
 // @deepseek-ai/dsh-desktop-bridge-client — browser half of the shell bridge.
@@ -400,6 +401,12 @@ export function apply(ctx: BridgeClientContext): () => void {
     // inject must be a factory: the renderer calls it per entry.
     inject: () => ({ onDebugMode: applyDebugMode }),
   }, BridgeDebugRow))
+  ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
+    name: 'sidebar.footer.action',
+    id: 'desktop-workspace-workbench',
+    order: -100,
+    locale: NS,
+  }, DesktopWorkspaceWorkbench))
   // Shell wiring at bind: read the stored desktop settings and mirror them
   // into the shell (close-to-tray interception, WebView2 devtools).
   void fetch('/dsh-bridge/config').then(r => r.json()).then((c) => {

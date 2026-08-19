@@ -17,7 +17,8 @@ Delivered:
 
 Planned for 0.3.0:
 
-- [ ] A Workspace/Worktree sidebar switch with Explorer, Search, and read-only Source Control views
+- [x] A desktop-only Workspace/Worktree sidebar switch that preserves the shared Workspace browser
+- [ ] Explorer, Search, and read-only Source Control views for Worktree mode
 - [ ] A visually consistent copy action beside every ordinary user and assistant message
 - [ ] API connection status beside the balance, with click-to-refresh balance updates
 - [ ] Automatic update checks against this repository's GitHub Releases, with installation of available updates
@@ -25,6 +26,8 @@ Planned for 0.3.0:
 - [ ] An accessible title-bar emoji that reports local application workload
 
 “Worktree” refers to a project view rooted in the selected Workspace; it does not manage Git worktree checkouts. The [Desktop 0.3 plan](../../.agents/notes/proposed/feature/2026-08-17-desktop-0.3-worktree-and-runtime-chrome.md) defines the scope and acceptance criteria.
+
+The switch is contributed by `bridge-client` through the existing sidebar plugin lifecycle. It portals desktop chrome into the Workspace region and leaves the shared `ui-workspace` package and its browser registration unchanged; unloading the desktop plugin removes the switch and restores the standard web composition.
 
 ## Run (test version)
 
