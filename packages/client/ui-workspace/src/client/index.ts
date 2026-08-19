@@ -16,11 +16,13 @@ import type { WorkspaceBrowserInjected, WorkspacePickerInjected } from './contra
 import { createWorkspaceViewStore } from './stores.ts'
 import { WorkspaceBrowser } from './WorkspaceBrowser.tsx'
 import { WorkspacePicker } from './WorkspacePicker.tsx'
+import { WorkspaceWorkbench } from './WorkspaceWorkbench.tsx'
 import { en, zh, type WorkspaceKey } from './locales.ts'
 
 export type {
   DirectoryFlowOwnerProps, DirectoryFlowSlotName, DirectoryPickingHooks, DirectoryPickingInjected,
   WorkspaceBrowserInjected, WorkspaceBrowserProps, WorkspacePickerInjected, WorkspacePickerProps,
+  WorkspaceWorkbenchProps,
 } from './contract/slots.ts'
 export type { WorkspaceKey } from './locales.ts'
 
@@ -110,6 +112,17 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('sidebar.workspaces', () => ctx.slots.register(
     {
       name: 'sidebar.workspaces',
+      children: {
+        'sidebar.workspaces.workspace': { kind: 'single', scope: 'root' },
+        'sidebar.workspaces.worktree': { kind: 'single', scope: 'root' },
+      },
+      locale: NS,
+    },
+    WorkspaceWorkbench,
+  ))
+  ctx.slots.inject('sidebar.workspaces.workspace', () => ctx.slots.register(
+    {
+      name: 'sidebar.workspaces.workspace',
       children: { 'sidebar.workspaces.directoryFlow': { kind: 'single', scope: 'root' } },
       store: createWorkspaceViewStore(),
       inject: browserInjected,

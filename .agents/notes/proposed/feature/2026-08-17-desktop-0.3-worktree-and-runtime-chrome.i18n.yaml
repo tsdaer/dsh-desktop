@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-08-17-desktop-0.3-worktree-and-runtime-chrome.md
-2026-08-17-desktop-0.3-worktree-and-runtime-chrome.md: 74eb24a8b39e14d568b52efe25de6281db7cd81b
-2026-08-17-desktop-0.3-worktree-and-runtime-chrome.zh.md: e2b22c23a8412acfedb098691bc64f33c1569706
+2026-08-17-desktop-0.3-worktree-and-runtime-chrome.md: 375d1ffad6aa0ac031347b49f3c9fd5a9cf1637e
+2026-08-17-desktop-0.3-worktree-and-runtime-chrome.zh.md: 18cf5501d8b953b70652451ea5e9bb40360ef851

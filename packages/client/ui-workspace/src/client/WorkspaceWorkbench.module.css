@@ -1,0 +1,66 @@
+.root {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.modeTabs {
+  flex: none;
+  display: flex;
+  gap: 4px;
+  min-height: 36px;
+  padding: 4px 4px 0;
+  box-sizing: border-box;
+}
+
+.modeTab {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+
+.modeTab:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.modeTab:focus-visible {
+  outline: 2px solid var(--dsw-alias-interactive-primary);
+  outline-offset: -2px;
+}
+
+.modeTabSelected {
+  background: var(--dsw-alias-interactive-bg-active);
+  color: var(--dsw-alias-label-primary);
+  font-weight: 600;
+}
+
+.rail .modeTab {
+  padding: 0 2px;
+  font-size: 0;
+}
+
+.rail .modeTab::first-letter {
+  font-size: 12px;
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.empty {
+  margin: auto;
+  padding: 24px;
+  color: var(--dsw-alias-label-tertiary);
+  text-align: center;
+  font-size: 12px;
+}

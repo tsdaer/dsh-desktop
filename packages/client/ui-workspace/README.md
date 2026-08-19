@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-Shared Workspace browser and picker plugin. `WorkspaceBrowser` fills the sidebar's `sidebar.workspaces` slot, while `WorkspacePicker` fills the page-local Session Intent hero's `conversation.hero.workspace` slot; both surfaces use the same Workspace menu and add flow.
+Shared Workspace browser and picker plugin. `WorkspaceWorkbench` fills the sidebar's `sidebar.workspaces` slot and owns its Workspace/Worktree mode switch; `WorkspaceBrowser` fills the Workbench's `sidebar.workspaces.workspace` child slot, while `WorkspacePicker` fills the page-local Session Intent hero's `conversation.hero.workspace` slot. Both Workspace surfaces use the same Workspace menu and add flow.
 
 The browser renders grouped or flat Session rows from the global runtime hooks and owns Workspace add/rename/reorder plus Session reorder. A Workspace remembers whether it is closed or showing Sessions; an open Workspace shows five Sessions by default, offers a transient **Show more** control for the remainder, and returns to five after the whole Workspace is closed and reopened. Creating a Session from a Workspace row first opens that group so the new row remains visible when the Session state arrives. Once the Workspace list baseline is ready, browser-persisted expansion and Session-order records retain only current Workspace ids plus Ungrouped and the flat-list account. View options combine grouping with one browser-persisted Session order per account: real Workspaces initialize from `WorkspaceView.sessionIds`, while Ungrouped and the cross-Workspace flat list initialize from recency. **Manual** and **Last updated** apply in either presentation. Entering Last updated performs a complete recency sort and later user prompts or steers promote their Session once, while entering Manual preserves every current position and disables later promotion. Dragging edits the current order in either mode; Manual-mode drags for real Workspaces also update the Host Session account, while Ungrouped and flat-list orders remain browser-local because neither has one Workspace account. Flat rows omit the empty leading status slot because they have no parent hierarchy, but retain it when a Session status is visible. Workspace drag order is Host-durable in either Session order mode.
 
@@ -29,6 +29,8 @@ None, as the picker is browser chrome; nothing here reaches a model request.
 None; this package neither assembles nor sends a provider request.
 
 ## Known Limitations and Deferred Work
+
+- **The Worktree child slot is empty** — the read-only Explorer, Search, and Source Control plugin will occupy `sidebar.workspaces.worktree` in the next delivery steps. Changing mode does not change the selected Workspace or Session.
 
 - **No fuzzy content search or event deep links** — the content backend uses literal token/phrase matching, and selecting a result opens the Session rather than the matching event.
 - **No Session deletion or unarchive control** — sessions can be archived, but archived sessions have no viewing or unarchive surface, and Workspace registration deletion does not delete Sessions.
