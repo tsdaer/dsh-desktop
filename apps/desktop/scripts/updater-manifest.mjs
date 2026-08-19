@@ -19,15 +19,17 @@ const signature = (await readFile(join(dist, signatureName), 'utf8')).trim()
 if (signature.length === 0) throw new Error(`updater signature ${signatureName} is empty`)
 
 const repo = 'tsdaer/dsh-desktop'
+const release = {
+  signature,
+  url: `https://github.com/${repo}/releases/download/${tag}/${encodeURIComponent(basename(installer))}`,
+}
 const manifest = {
   version,
   notes: `dsh-desktop v${version}`,
   pub_date: new Date().toISOString(),
   platforms: {
-    'windows-x86_64-nsis': {
-      signature,
-      url: `https://github.com/${repo}/releases/download/${tag}/${encodeURIComponent(basename(installer))}`,
-    },
+    'windows-x86_64-nsis': release,
+    'windows-x86_64': release,
   },
 }
 await writeFile(resolve('latest.json'), `${JSON.stringify(manifest, null, 2)}\n`)

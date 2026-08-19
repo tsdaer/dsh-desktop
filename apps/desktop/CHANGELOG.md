@@ -4,6 +4,12 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-08-19
+
+### Fixed
+
+- The updater manifest includes the Windows architecture fallback alongside the NSIS-specific entry, so installed builds whose bundle type is unavailable can still find the signed installer.
+
 ## [0.3.0] - 2026-08-19
 
 ### Added

@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-19-windows-updater-target-fallback.md
+2026-08-19-windows-updater-target-fallback.md: c0b4bd24e399bb8816956481fd5c5163120df967
+2026-08-19-windows-updater-target-fallback.zh.md: 56b0f12d739bf1c4a3af3b066074e59f2d302cea
