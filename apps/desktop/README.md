@@ -21,7 +21,7 @@ Planned for 0.3.0:
 - [x] Explorer, Search, read-only Git decorations, and Worktree path drops into the composer
 - [ ] A visually consistent copy action beside every ordinary user and assistant message
 - [x] API connection status beside the balance, with click-to-refresh balance updates
-- [ ] Automatic update checks against this repository's GitHub Releases, with installation of available updates
+- [x] Automatic update checks against this repository's GitHub Releases, with installation of available updates
 - [x] One black application icon shared by the splash screen, window, tray, and installer
 - [x] An accessible title-bar emoji that reports local application workload
 
@@ -84,6 +84,12 @@ Right of the title (before the window controls), the bar shows API state, local 
 
 The splash screen and packaged icon family use the same black transparent source at `apps/desktop/src/icon.svg`. `scripts/gen-icons.mjs` emits 16, 32, 48, 256, and 512 pixel PNG-backed assets; the splash uses the SVG on a light neutral backing shape for contrast.
 
+## Automatic updates
+
+After the main page boots, the title bar checks the published GitHub Release manifest at `latest.json` and reports no update, an available version, download progress, installation readiness, or a categorized recoverable failure. Download and installation require separate user confirmations; Windows uses Tauri's passive installer mode and restarts the application during installation.
+
+The updater accepts only an artifact whose detached signature matches the public key embedded in `src-tauri/tauri.conf.json`. Draft Release assets are not update endpoints; publish the accepted Release before clients can discover it. The tag-gated workflow requires the matching `TAURI_SIGNING_PRIVATE_KEY` GitHub Secret, runs Tauri in CI mode, and never stores the private key in the repository or application. `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` is optional for password-protected keys and is unnecessary for a passwordless key.
+
 Known test-version gaps: no Windows 11 snap-layout flyout (frameless), resize borders come from tao's default hit-testing, maximize icon syncs on click/resize events.
 
 ## Drag and drop
@@ -142,7 +148,7 @@ Registration is best-effort and logged on failure; the NSIS installer does not y
 
 ## Test-version scope
 
-- Dev runs the repo-built CLI on the PATH 'node'; the packaged app carries its own Node sidecar and baked runtime (see Bundle / Packaged runtime above). Remaining gaps: no auto-update, and the Windows-only sidecar means Linux/macOS are unhandled (node-pty also lacks Linux prebuilds in the dsh dependency tree).
+- Dev runs the repo-built CLI on the PATH 'node'; the packaged app carries its own Node sidecar and baked runtime (see Bundle / Packaged runtime above). The updater is available on the supported Windows package; the Windows-only sidecar means Linux/macOS are unhandled (node-pty also lacks Linux prebuilds in the dsh dependency tree).
 - Icons derive from the DeepSeek fish logo (regenerate via `node scripts/gen-icons.mjs`); the tray reuses the bundled window icon.
 - Closing the window terminates the runtime process unless close-to-tray is enabled (see "Desktop settings, tray, and close behavior"); sessions persist on disk under $DSH_HOME.
 - The window binds nothing of its own: the runtime still serves only loopback (127.0.0.1) with no auth, matching 'dsh web' posture.

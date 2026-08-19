@@ -525,6 +525,7 @@ fn main() {
             }
         }))
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(DshRuntime(Mutex::new(None)))
         .manage(SplashBoard(Mutex::new(Vec::new())))
         .manage(CloseToTray(Mutex::new(false)))

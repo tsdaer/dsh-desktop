@@ -6,6 +6,15 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [0.3.0] - Unreleased
 
+### Added
+
+- A signed Windows updater checks the latest published GitHub Release, reports download progress, requires confirmation before downloading and installing, and keeps the application running when an update fails.
+- The desktop shell provides workspace Explorer, search, source-control decorations, runtime status chrome, and bounded startup artwork for the web profile.
+
+### Fixed
+
+- The release workflow requires the updater signing key, produces the NSIS signature artifact, and publishes the matching `latest.json` manifest with the installer.
+
 ## [0.2.1] - 2026-08-17
 
 ### Added

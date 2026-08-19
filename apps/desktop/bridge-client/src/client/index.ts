@@ -3,6 +3,7 @@ import { BridgeDebugRow } from './BridgeDebugRow.tsx'
 import css from './BridgeRow.module.css'
 import { BridgeSection } from './BridgeSection.tsx'
 import { createDesktopWorkspaceWorkbench } from './DesktopWorkspaceWorkbench.tsx'
+import { mountDesktopUpdater } from './DesktopUpdater.ts'
 import { formatWorktreePath, normalizeWorktreePath, WORKTREE_PATH_POINTER_EVENT } from './DesktopWorkspacePathDrop.ts'
 import { en, zh } from './locales.ts'
 
@@ -423,6 +424,20 @@ export function apply(ctx: BridgeClientContext): () => void {
   bound = true
   const offLocale = ctx.locale.register(NS, { zh, en })
   const t = ctx.locale.bind(NS)
+  const disposeUpdater = mountDesktopUpdater({
+    checking: t('updater.checking'),
+    upToDate: t('updater.upToDate'),
+    available: version => t('updater.available').replace('{version}', version),
+    downloading: percent => t('updater.downloading').replace('{percent}', percent === undefined ? '…' : ` ${percent}%`),
+    ready: version => t('updater.ready').replace('{version}', version),
+    networkFailure: t('updater.networkFailure'),
+    manifestFailure: t('updater.manifestFailure'),
+    verificationFailure: t('updater.verificationFailure'),
+    installFailure: t('updater.installFailure'),
+    unknownFailure: t('updater.unknownFailure'),
+    confirmDownload: version => t('updater.confirmDownload').replace('{version}', version),
+    confirmInstall: version => t('updater.confirmInstall').replace('{version}', version),
+  })
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
     id: 'bridge',
@@ -537,6 +552,7 @@ export function apply(ctx: BridgeClientContext): () => void {
     offDragDrop?.()
     offOpenPath?.()
     offLocale()
+    disposeUpdater()
     hideDropOverlay()
     document.removeEventListener('contextmenu', onContextMenuCapture, true)
     document.removeEventListener('keydown', onKeyDownCapture, true)

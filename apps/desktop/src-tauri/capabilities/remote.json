@@ -21,6 +21,7 @@
     "allow-runtime-status",
     "allow-set-close-to-tray",
     "allow-set-debug-mode",
-    "allow-take-open-paths"
+    "allow-take-open-paths",
+    "updater:default"
   ]
 }

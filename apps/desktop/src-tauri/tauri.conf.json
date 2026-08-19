@@ -43,6 +43,7 @@
     "targets": [
       "nsis"
     ],
+    "createUpdaterArtifacts": true,
     "externalBin": [
       "binaries/node"
     ],
@@ -57,6 +58,17 @@
     "windows": {
       "webviewInstallMode": {
         "type": "embedBootstrapper"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEYxQjI0MUJDMEI5M0E4QkIKUldTN3FKTUx2RUd5OFhHN1BMa0padmxXdlBaMiszeE13c2lSL2psYVhtZGZPUFFOaXRtTTBIT1IK",
+      "endpoints": [
+        "https://github.com/tsdaer/dsh-desktop/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
       }
     }
   }

@@ -12,11 +12,12 @@
     "size-report": "node scripts/size-report.mjs",
     "size-check": "node scripts/size-report.mjs --check",
     "sync-version": "node scripts/sync-version.mjs",
-    "bundle": "node scripts/sync-version.mjs && node scripts/build-bridge.mjs && node scripts/bake-runtime.mjs && node scripts/fetch-node-sidecar.mjs && tauri build"
+    "bundle": "node scripts/sync-version.mjs && node scripts/build-bridge.mjs && node scripts/bake-runtime.mjs && node scripts/fetch-node-sidecar.mjs && tauri build --ci"
   },
   "devDependencies": {
     "@tauri-apps/api": "^2.0.0",
-    "@tauri-apps/cli": "^2.11.4"
+    "@tauri-apps/cli": "^2.11.4",
+    "@tauri-apps/plugin-updater": "^2.10.1"
   },
   "license": "MIT"
 }

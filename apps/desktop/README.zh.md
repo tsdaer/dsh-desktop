@@ -21,7 +21,7 @@
 - [x] 工作树模式的资源管理器、搜索、只读 Git 状态装饰和路径拖入聊天框
 - [ ] 在每条普通用户消息和助手消息旁提供视觉一致的复制操作
 - [x] 在余额旁显示 API 连接状态,并支持点击刷新余额
-- [ ] 自动检查本仓库的 GitHub Releases,并安装可用更新
+- [x] 自动检查本仓库的 GitHub Releases,并安装可用更新
 - [x] 启动界面、窗口、托盘和安装器共用同一套黑色应用图标
 - [x] 在标题栏用带无障碍文本的 emoji 显示本地应用负载
 
@@ -84,6 +84,12 @@ main.rs 的环境变量接线:DSH_CLI/DSH_NODE/DSH_BARE_MODULE_BASE/DSH_BRIDGE_T
 
 启动界面与打包图标系列共用 `apps/desktop/src/icon.svg` 中的黑色透明源资产。`scripts/gen-icons.mjs` 生成 16、32、48、256 和 512 像素的 PNG 资产,启动界面在浅色中性承托形状上显示该 SVG 以保持对比度。
 
+## 自动更新
+
+主页面启动后,标题栏会检查已发布 GitHub Release 的 `latest.json`,并报告无更新、发现版本、下载进度、可安装或可恢复的分类失败。下载和安装分别需要用户确认;Windows 使用 Tauri 的被动安装模式,并在安装时重启应用。
+
+更新器只接受与 `src-tauri/tauri.conf.json` 内置公钥匹配的分离签名构件。Draft Release 构件不是更新 endpoint;必须发布已验收的 Release,客户端才能发现它。标签门控工作流需要匹配的 GitHub Secret `TAURI_SIGNING_PRIVATE_KEY`,并以 CI 模式运行 Tauri;私钥不会存入仓库或应用。带密码的私钥可以配置 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`,无密码私钥不需要该 secret。
+
 已知测试版缺口:无 Windows 11 贴靠布局弹出层(无边框),缩放边框来自 tao 的默认命中测试,最大化图标在点击/缩放事件上同步。
 
 ## 拖放
@@ -142,7 +148,7 @@ dsh 设置页的 桌面设置 分区(由桥接 client 注册)有两行,都经桥
 
 ## 测试版范围
 
-- dev 用 PATH 上的 'node' 跑仓库构建出的 CLI;打包应用自带 Node sidecar 和烤出的运行时(见上文 打包 / 打包运行时)。剩余缺口:无自动更新,且 Windows-only sidecar 意味着 Linux/macOS 未处理(dsh 依赖树里 node-pty 也没有 Linux 预编译)。
+- dev 用 PATH 上的 'node' 跑仓库构建出的 CLI;打包应用自带 Node sidecar 和烤出的运行时(见上文 打包 / 打包运行时)。更新器用于受支持的 Windows 安装包;Windows-only sidecar 仍意味着 Linux/macOS 未处理(dsh 依赖树里 node-pty 也没有 Linux 预编译)。
 - 图标源自 DeepSeek 鱼形 logo(用 `node scripts/gen-icons.mjs` 重新生成);托盘复用捆绑的窗口图标。
 - 关闭窗口即终止运行时进程,除非开启了关闭到托盘(见“桌面设置、托盘与关闭行为”);会话持久化在 $DSH_HOME 下的磁盘上。
 - 窗口自身不绑定任何东西:运行时仍只服务 loopback(127.0.0.1)且无鉴权,与 'dsh web' 的姿态一致。

@@ -50,6 +50,11 @@
     '#dsh-desktop-titlebar .bar-balance[hidden]{display:none !important;}' +
     '#dsh-desktop-titlebar .bar-balance svg{flex:none;opacity:0.8;}' +
     '#dsh-desktop-titlebar .bar-api-status,#dsh-desktop-titlebar .bar-load{display:flex;align-items:center;gap:5px;padding:0 8px;white-space:nowrap;flex:none;}' +
+    '#dsh-desktop-titlebar .bar-updater{border:0;border-radius:6px;margin:0 4px;padding:4px 7px;background:transparent;color:var(--dsw-alias-label-secondary,#9aa3b5);font:inherit;font-size:11px;white-space:nowrap;cursor:pointer;flex:none;}' +
+    '#dsh-desktop-titlebar .bar-updater:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,0.08));color:inherit;}' +
+    '#dsh-desktop-titlebar .bar-updater[data-state="available"],#dsh-desktop-titlebar .bar-updater[data-state="ready"]{color:#8bc4ff;}' +
+    '#dsh-desktop-titlebar .bar-updater[data-state="failed"]{color:#ffb4c8;}' +
+    '#dsh-desktop-titlebar .bar-updater:disabled{cursor:default;opacity:0.82;}' +
     '#dsh-desktop-titlebar .bar-api-dot{width:7px;height:7px;border-radius:50%;background:#9aa3b5;flex:none;}' +
     '#dsh-desktop-titlebar .bar-api-status.connected .bar-api-dot{background:#3fb96f;}' +
     '#dsh-desktop-titlebar .bar-api-status.unavailable .bar-api-dot{background:#e0a33f;}' +

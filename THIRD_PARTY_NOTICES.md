@@ -126,6 +126,7 @@ External packages **directly declared** only by repository tooling, test infrast
 | [`@stylistic/eslint-plugin`](https://github.com/eslint-stylistic/eslint-stylistic) | MIT |
 | [`@tauri-apps/api`](https://github.com/tauri-apps/tauri) | Apache-2.0 OR MIT |
 | [`@tauri-apps/cli`](https://github.com/tauri-apps/tauri) | Apache-2.0 OR MIT |
+| [`@tauri-apps/plugin-updater`](https://github.com/tauri-apps/plugins-workspace) | MIT OR Apache-2.0 |
 | [`@testing-library/dom`](https://github.com/testing-library/dom-testing-library) | MIT |
 | [`@testing-library/react`](https://github.com/testing-library/react-testing-library) | MIT |
 | [`@types/babel__code-frame`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
