@@ -21,6 +21,7 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use base64::Engine as _;
+use sysinfo::{Pid, System};
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{DragDropEvent, Emitter, Manager, Url, WebviewWindow, WindowEvent};
@@ -49,6 +50,102 @@ struct DroppedPaths(Mutex<Vec<(PathBuf, Instant)>>);
 /// bridge client. The queue covers both initial launch and second-instance
 /// delivery while the web page is still loading.
 struct PendingOpenPaths(Mutex<Vec<PathBuf>>);
+
+/// Holds the sampler's process view and the hysteresis state used by the
+/// title-bar workload indicator. Only the normalized tier leaves this state.
+struct WorkloadSampler(Mutex<WorkloadSamplerState>);
+
+struct WorkloadSamplerState {
+    system: System,
+    ready: bool,
+    hysteresis: WorkloadHysteresis,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum WorkloadTier {
+    Unknown,
+    Calm,
+    Active,
+    Busy,
+    Saturated,
+}
+
+impl WorkloadTier {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Unknown => "unknown",
+            Self::Calm => "calm",
+            Self::Active => "active",
+            Self::Busy => "busy",
+            Self::Saturated => "saturated",
+        }
+    }
+}
+
+struct WorkloadHysteresis {
+    current: WorkloadTier,
+    candidate: Option<(WorkloadTier, Instant)>,
+}
+
+const WORKLOAD_MIN_DWELL: Duration = Duration::from_secs(4);
+
+impl WorkloadHysteresis {
+    fn new() -> Self {
+        Self {
+            current: WorkloadTier::Unknown,
+            candidate: None,
+        }
+    }
+
+    fn update(&mut self, pressure: f32, now: Instant) -> WorkloadTier {
+        if self.current == WorkloadTier::Unknown {
+            self.current = tier_for_pressure(pressure);
+            return self.current;
+        }
+        let next = transition_target(self.current, pressure);
+        if next == self.current {
+            self.candidate = None;
+            return self.current;
+        }
+        match self.candidate {
+            Some((candidate, since))
+                if candidate == next && now.duration_since(since) >= WORKLOAD_MIN_DWELL =>
+            {
+                self.current = next;
+                self.candidate = None;
+            }
+            Some((candidate, _)) if candidate == next => {}
+            _ => self.candidate = Some((next, now)),
+        }
+        self.current
+    }
+}
+
+fn tier_for_pressure(pressure: f32) -> WorkloadTier {
+    if pressure >= 85.0 {
+        WorkloadTier::Saturated
+    } else if pressure >= 60.0 {
+        WorkloadTier::Busy
+    } else if pressure >= 30.0 {
+        WorkloadTier::Active
+    } else {
+        WorkloadTier::Calm
+    }
+}
+
+/// Enter and exit thresholds are deliberately asymmetric so a boundary value
+/// does not make the title-bar emoji alternate between adjacent tiers.
+fn transition_target(current: WorkloadTier, pressure: f32) -> WorkloadTier {
+    match current {
+        WorkloadTier::Calm if pressure >= 35.0 => tier_for_pressure(pressure),
+        WorkloadTier::Active if pressure < 25.0 => WorkloadTier::Calm,
+        WorkloadTier::Active if pressure >= 65.0 => tier_for_pressure(pressure),
+        WorkloadTier::Busy if pressure < 55.0 => tier_for_pressure(pressure),
+        WorkloadTier::Busy if pressure >= 90.0 => WorkloadTier::Saturated,
+        WorkloadTier::Saturated if pressure < 75.0 => tier_for_pressure(pressure),
+        _ => current,
+    }
+}
 
 /// How long a dropped path stays readable (the page reads it immediately
 /// after the drop).
@@ -174,6 +271,70 @@ fn set_close_to_tray(app: tauri::AppHandle, enabled: bool) {
     if let Some(state) = app.try_state::<CloseToTray>() {
         *state.0.lock().unwrap() = enabled;
     }
+}
+
+/// Return the title-bar workload tier for the desktop process and its managed
+/// runtime descendants. The response intentionally contains no process ids,
+/// names, or raw measurements; unsupported or incomplete samples are neutral.
+#[tauri::command]
+fn runtime_status(app: tauri::AppHandle) -> serde_json::Value {
+    let Some(sampler) = app.try_state::<WorkloadSampler>() else {
+        return serde_json::json!({ "tier": "unknown" });
+    };
+    let Some(runtime_pid) = app
+        .try_state::<DshRuntime>()
+        .and_then(|state| state.0.lock().unwrap().as_ref().map(|child| child.id()))
+    else {
+        return serde_json::json!({ "tier": "unknown" });
+    };
+
+    let mut state = sampler.0.lock().unwrap();
+    state.system.refresh_all();
+    let current_pid = Pid::from_u32(std::process::id());
+    let runtime_pid = Pid::from_u32(runtime_pid);
+    let mut roots = vec![current_pid, runtime_pid];
+    let mut process_ids = std::collections::HashSet::new();
+    let mut index = 0;
+    while index < roots.len() {
+        let parent = roots[index];
+        index += 1;
+        for (pid, process) in state.system.processes() {
+            if process.parent() == Some(parent) && !roots.contains(pid) {
+                roots.push(*pid);
+            }
+        }
+    }
+    for pid in roots {
+        if state.system.process(pid).is_some() {
+            process_ids.insert(pid);
+        }
+    }
+    if process_ids.is_empty() || state.system.cpus().is_empty() || state.system.total_memory() == 0
+    {
+        return serde_json::json!({ "tier": "unknown" });
+    }
+    let cpu = process_ids
+        .iter()
+        .filter_map(|pid| state.system.process(*pid))
+        .map(|process| process.cpu_usage())
+        .sum::<f32>()
+        / state.system.cpus().len() as f32;
+    let memory = process_ids
+        .iter()
+        .filter_map(|pid| state.system.process(*pid))
+        .map(|process| process.memory() as f32)
+        .sum::<f32>()
+        / state.system.total_memory() as f32
+        * 100.0;
+    if !cpu.is_finite() || !memory.is_finite() {
+        return serde_json::json!({ "tier": "unknown" });
+    }
+    if !state.ready {
+        state.ready = true;
+        return serde_json::json!({ "tier": "unknown" });
+    }
+    let tier = state.hysteresis.update(cpu.max(memory), Instant::now());
+    serde_json::json!({ "tier": tier.as_str() })
 }
 
 /// Read back a file the user dropped on the window as base64, bounded to
@@ -367,11 +528,17 @@ fn main() {
         .manage(DshRuntime(Mutex::new(None)))
         .manage(SplashBoard(Mutex::new(Vec::new())))
         .manage(CloseToTray(Mutex::new(false)))
+        .manage(WorkloadSampler(Mutex::new(WorkloadSamplerState {
+            system: System::new(),
+            ready: false,
+            hysteresis: WorkloadHysteresis::new(),
+        })))
         .manage(DroppedPaths(Mutex::new(Vec::new())))
         .manage(PendingOpenPaths(Mutex::new(Vec::new())))
         .invoke_handler(tauri::generate_handler![
             set_debug_mode,
             set_close_to_tray,
+            runtime_status,
             read_dropped_file,
             take_open_paths,
             splash_start,
@@ -1015,4 +1182,40 @@ fn js_string(value: &str) -> String {
     }
     out.push('"');
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn workload_tiers_have_stable_thresholds() {
+        assert_eq!(tier_for_pressure(0.0), WorkloadTier::Calm);
+        assert_eq!(tier_for_pressure(30.0), WorkloadTier::Active);
+        assert_eq!(tier_for_pressure(60.0), WorkloadTier::Busy);
+        assert_eq!(tier_for_pressure(85.0), WorkloadTier::Saturated);
+    }
+
+    #[test]
+    fn workload_hysteresis_requires_dwell_before_transition() {
+        let start = Instant::now();
+        let mut state = WorkloadHysteresis::new();
+        assert_eq!(state.update(10.0, start), WorkloadTier::Calm);
+        assert_eq!(
+            state.update(40.0, start + Duration::from_secs(1)),
+            WorkloadTier::Calm
+        );
+        assert_eq!(
+            state.update(40.0, start + Duration::from_secs(5)),
+            WorkloadTier::Active
+        );
+        assert_eq!(
+            state.update(20.0, start + Duration::from_secs(5)),
+            WorkloadTier::Active
+        );
+        assert_eq!(
+            state.update(20.0, start + Duration::from_secs(9)),
+            WorkloadTier::Calm
+        );
+    }
 }

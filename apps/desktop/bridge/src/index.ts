@@ -280,7 +280,7 @@ async function handleBalance(res: ServerResponse, ctx: Context): Promise<void> {
   try {
     const key = await resolveBalanceKey(ctx)
     if (key === undefined) {
-      json(res, 200, { ok: false, reason: 'unconfigured' })
+      json(res, 200, { ok: false, state: 'unconfigured', reason: 'unconfigured' })
       return
     }
     const base = (process.env.DEEPSEEK_BASE_URL ?? PUBLIC_API_BASE).replace(/\/+$/, '')
@@ -290,24 +290,25 @@ async function handleBalance(res: ServerResponse, ctx: Context): Promise<void> {
     })
     if (!response.ok) {
       const reason = response.status === 401 || response.status === 403 ? 'auth' : 'api'
-      json(res, 200, { ok: false, reason, status: response.status })
+      json(res, 200, { ok: false, state: 'unavailable', reason, status: response.status })
       return
     }
     const body = await response.json() as { is_available?: unknown; balance_infos?: unknown }
     const infos = Array.isArray(body.balance_infos) ? body.balance_infos : []
     const first = infos.find(isBalanceInfo)
     if (first === undefined) {
-      json(res, 200, { ok: false, reason: 'api', message: 'balance response missing balance_infos' })
+      json(res, 200, { ok: false, state: 'unavailable', reason: 'api', message: 'balance response missing balance_infos' })
       return
     }
     json(res, 200, {
       ok: true,
+      state: 'connected',
       available: body.is_available === true,
       currency: first.currency,
       totalBalance: first.total_balance,
     })
   } catch (err) {
-    json(res, 200, { ok: false, reason: 'network', message: err instanceof Error ? err.message : String(err) })
+    json(res, 200, { ok: false, state: 'unavailable', reason: 'network', message: err instanceof Error ? err.message : String(err) })
   }
 }
 

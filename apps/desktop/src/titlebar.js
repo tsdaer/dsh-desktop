@@ -14,13 +14,9 @@
 // loading page (plain <script src>) has no global and renders the bare
 // title.
 //
-// Right side (before the window controls): a balance pill fed by
-// GET /dsh-bridge/balance - the desktop bridge host resolves the DeepSeek
-// key through the runtime's credentials seam and proxies the official
-// /user/balance endpoint. The pill polls every 5 minutes and on window
-// visibility; it stays hidden until the first successful read, keeps the
-// last good amount while a refresh fails, and never touches the API key
-// itself (the browser only ever sees the amount).
+// Right side (before the window controls): an API state, workload tier, and
+// balance control. The bridge host resolves credentials and proxies balance;
+// the native host returns only a normalized workload tier.
 (function () {
   'use strict';
   if (document.getElementById('dsh-desktop-titlebar')) return;
@@ -48,10 +44,18 @@
     '}' +
     '#dsh-desktop-titlebar .bar-balance{' +
       'display:flex;align-items:center;gap:6px;padding:0 12px;white-space:nowrap;' +
-      'color:var(--dsw-alias-label-primary,#e6e8ee);cursor:default;flex:none;' +
+      'border:0;background:transparent;font:inherit;color:var(--dsw-alias-label-primary,#e6e8ee);cursor:pointer;flex:none;' +
     '}' +
+    '#dsh-desktop-titlebar .bar-balance:disabled{opacity:0.65;cursor:wait;}' +
     '#dsh-desktop-titlebar .bar-balance[hidden]{display:none !important;}' +
     '#dsh-desktop-titlebar .bar-balance svg{flex:none;opacity:0.8;}' +
+    '#dsh-desktop-titlebar .bar-api-status,#dsh-desktop-titlebar .bar-load{display:flex;align-items:center;gap:5px;padding:0 8px;white-space:nowrap;flex:none;}' +
+    '#dsh-desktop-titlebar .bar-api-dot{width:7px;height:7px;border-radius:50%;background:#9aa3b5;flex:none;}' +
+    '#dsh-desktop-titlebar .bar-api-status.connected .bar-api-dot{background:#3fb96f;}' +
+    '#dsh-desktop-titlebar .bar-api-status.unavailable .bar-api-dot{background:#e0a33f;}' +
+    '#dsh-desktop-titlebar .bar-api-status.unconfigured .bar-api-dot{background:#7d8598;}' +
+    '#dsh-desktop-titlebar .bar-api-status.checking .bar-api-dot{background:#4d9fff;box-shadow:0 0 0 3px rgba(77,159,255,0.18);}' +
+    '#dsh-desktop-titlebar .bar-api-label,#dsh-desktop-titlebar .bar-load-label{color:var(--dsw-alias-label-secondary,#9aa3b5);}' +
     '#dsh-desktop-titlebar .bar-btn{' +
       'width:46px;border:0;margin:0;padding:0;display:flex;align-items:center;justify-content:center;' +
       'background:transparent;color:inherit;cursor:pointer;' +
@@ -91,20 +95,40 @@
   }
   bar.appendChild(drag);
 
-  // Balance pill (right side, before the window controls): fed by the
-  // bridge host's /dsh-bridge/balance route, polled every 5 minutes and on
-  // window visibility. Hidden until the first successful read; a failed
-  // refresh keeps the last good amount, and the API key never reaches this
-  // page (the bridge resolves it host-side).
+  var apiStatus = document.createElement('div');
+  apiStatus.className = 'bar-api-status checking';
+  apiStatus.setAttribute('role', 'status');
+  apiStatus.setAttribute('aria-live', 'polite');
+  var apiDot = document.createElement('span');
+  apiDot.className = 'bar-api-dot';
+  apiDot.setAttribute('aria-hidden', 'true');
+  var apiLabel = document.createElement('span');
+  apiLabel.className = 'bar-api-label';
+  apiStatus.append(apiDot, apiLabel);
+  bar.appendChild(apiStatus);
+
+  var load = document.createElement('div');
+  load.className = 'bar-load';
+  load.setAttribute('role', 'status');
+  var loadEmoji = document.createElement('span');
+  loadEmoji.className = 'bar-load-emoji';
+  loadEmoji.setAttribute('aria-hidden', 'true');
+  var loadLabel = document.createElement('span');
+  loadLabel.className = 'bar-load-label';
+  load.append(loadEmoji, loadLabel);
+  bar.appendChild(load);
+
   var BALANCE_REFRESH_MS = 5 * 60 * 1000;
   var balanceTimer = null;
   var balanceEverShown = false;
+  var balanceRequest = null;
 
-  var balance = document.createElement('div');
+  var balance = document.createElement('button');
+  balance.type = 'button';
   balance.className = 'bar-balance';
   balance.hidden = true;
-  balance.title = '余额';
-  balance.setAttribute('aria-label', '余额');
+  balance.title = '刷新余额';
+  balance.setAttribute('aria-label', '刷新余额');
   balance.innerHTML = '' +
     '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">' +
       '<circle cx="6" cy="6" r="4.75" stroke="currentColor" stroke-width="1"/>' +
@@ -114,6 +138,37 @@
   bar.appendChild(balance);
 
   var CURRENCY_SYMBOLS = { CNY: '¥', USD: '$', EUR: '€', GBP: '£' };
+  var apiLabels = {
+    checking: ['检查 API', 'Checking API'],
+    connected: ['API 已连接', 'API connected'],
+    unavailable: ['API 不可用', 'API unavailable'],
+    unconfigured: ['未配置 API', 'API unconfigured']
+  };
+  var loadLabels = {
+    unknown: ['负载未知', 'Workload unknown'],
+    calm: ['负载平稳', 'Workload calm'],
+    active: ['负载活跃', 'Workload active'],
+    busy: ['负载繁忙', 'Workload busy'],
+    saturated: ['负载饱和', 'Workload saturated']
+  };
+  var loadEmojiByTier = { unknown: '▫️', calm: '🌿', active: '⚡', busy: '🔥', saturated: '🟥' };
+  var isZh = (document.documentElement.lang || '').toLowerCase().indexOf('zh') === 0;
+
+  function localized(pair) { return isZh ? pair[0] : pair[1]; }
+
+  function applyApiState(state) {
+    if (!apiLabels[state]) state = 'unavailable';
+    apiStatus.className = 'bar-api-status ' + state;
+    apiLabel.textContent = localized(apiLabels[state]);
+    apiStatus.setAttribute('aria-label', localized(apiLabels[state]));
+  }
+
+  function applyWorkload(data) {
+    var tier = data && typeof data.tier === 'string' && loadLabels[data.tier] ? data.tier : 'unknown';
+    loadEmoji.textContent = loadEmojiByTier[tier];
+    loadLabel.textContent = localized(loadLabels[tier]);
+    load.setAttribute('aria-label', localized(loadLabels[tier]));
+  }
 
   function formatBalance(currency, total) {
     var symbol = CURRENCY_SYMBOLS[currency] || (currency + ' ');
@@ -121,7 +176,9 @@
   }
 
   function applyBalance(data) {
-    if (data && data.ok === true && typeof data.totalBalance === 'string') {
+    var state = data && typeof data.state === 'string' ? data.state : (data && data.ok === true ? 'connected' : 'unavailable');
+    applyApiState(state);
+    if (data && state === 'connected' && typeof data.totalBalance === 'string') {
       balanceEverShown = true;
       balance.querySelector('.bar-balance-value').textContent =
         formatBalance(data.currency, data.totalBalance);
@@ -132,25 +189,50 @@
   }
 
   function refreshBalance() {
+    if (balanceRequest !== null) return balanceRequest;
     if (balanceTimer !== null) {
       clearTimeout(balanceTimer);
       balanceTimer = null;
     }
+    applyApiState('checking');
+    balance.disabled = true;
+    balance.setAttribute('aria-busy', 'true');
     var controller = new AbortController();
     var abort = setTimeout(function () { controller.abort(); }, 8000);
-    fetch('/dsh-bridge/balance', { signal: controller.signal })
+    balanceRequest = fetch('/dsh-bridge/balance', { signal: controller.signal })
       .then(function (response) { return response.json(); })
       .then(applyBalance)
-      .catch(function () { /* transient: keep the last shown amount */ })
+      .catch(function () { applyApiState('unavailable'); })
       .finally(function () {
         clearTimeout(abort);
+        balanceRequest = null;
+        balance.disabled = false;
+        balance.removeAttribute('aria-busy');
         balanceTimer = setTimeout(refreshBalance, BALANCE_REFRESH_MS);
       });
+    return balanceRequest;
   }
+  balance.addEventListener('click', refreshBalance);
   refreshBalance();
   document.addEventListener('visibilitychange', function () {
     if (!document.hidden) refreshBalance();
   });
+
+  function refreshWorkload() {
+    try {
+      if (window.__TAURI__ && window.__TAURI__.core) {
+        window.__TAURI__.core.invoke('runtime_status').then(applyWorkload).catch(function () { applyWorkload(null); });
+      } else {
+        applyWorkload(null);
+      }
+    } catch (err) {
+      applyWorkload(null);
+    }
+  }
+  applyApiState('checking');
+  applyWorkload(null);
+  refreshWorkload();
+  setInterval(refreshWorkload, 2000);
 
   var win = null;
   try {

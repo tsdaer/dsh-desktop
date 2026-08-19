@@ -18,12 +18,12 @@
 计划在 0.3.0 交付:
 
 - [x] 桌面专用的工作区/工作树侧边栏切换,保持共享 Workspace 浏览器不变
-- [ ] 工作树模式的资源管理器、搜索、只读 Git 状态装饰和路径拖入聊天框
+- [x] 工作树模式的资源管理器、搜索、只读 Git 状态装饰和路径拖入聊天框
 - [ ] 在每条普通用户消息和助手消息旁提供视觉一致的复制操作
-- [ ] 在余额旁显示 API 连接状态,并支持点击刷新余额
+- [x] 在余额旁显示 API 连接状态,并支持点击刷新余额
 - [ ] 自动检查本仓库的 GitHub Releases,并安装可用更新
-- [ ] 启动界面、窗口、托盘和安装器共用同一套黑色应用图标
-- [ ] 在标题栏用带无障碍文本的 emoji 显示本地应用负载
+- [x] 启动界面、窗口、托盘和安装器共用同一套黑色应用图标
+- [x] 在标题栏用带无障碍文本的 emoji 显示本地应用负载
 
 “工作树”指以当前所选工作区为根目录的项目视图,不负责管理 Git worktree checkout。[桌面端 0.3 计划](../../.agents/notes/proposed/feature/2026-08-17-desktop-0.3-worktree-and-runtime-chrome.md)定义了范围与验收标准。
 
@@ -80,7 +80,9 @@ main.rs 的环境变量接线:DSH_CLI/DSH_NODE/DSH_BARE_MODULE_BASE/DSH_BRIDGE_T
 
 标题左侧、应用标题旁边显示版本徽标:main.rs 在 eval 脚本前先写入 `window.__DSH_DESKTOP_VERSION__` 全局变量(取值来自 tauri.conf.json 的版本号,由 package.json 同步而来),因此徽标始终显示打包应用版本;加载页没有该全局变量,只渲染标题本身。
 
-标题右侧(窗口控制按钮之前)以带硬币图标的小药丸显示 DeepSeek 账户余额。药丸每 5 分钟轮询一次 `GET /dsh-bridge/balance`,并在窗口可见时刷新;桥接 host 通过运行时的凭据接缝解析 API key(与 llm-deepseek provider 使用的 `DEEPSEEK_API_KEY` 引用一致)并代理官方 `/user/balance` 接口,API key 永不进入浏览器。药丸在首次成功读取前保持隐藏,刷新失败时保留上次的金额。
+标题右侧(窗口控制按钮之前)显示 API 状态、本地应用负载和 DeepSeek 账户余额。API 状态为 `checking`、`connected`、`unavailable` 或 `unconfigured`;桥接 host 从同一条凭据安全的 `/dsh-bridge/balance` 请求派生状态,API key 永不进入浏览器。余额控件支持点击刷新,会去重进行中的请求,向辅助技术暴露 `aria-busy`,每 5 分钟轮询一次并在窗口可见时刷新;首次成功读取前保持隐藏,刷新失败时保留上次金额。原生 `runtime_status` 命令以低频率采样桌面进程及其管理的运行时子进程,只返回 `unknown`、`calm`、`active`、`busy` 或 `saturated`;非对称阈值与四秒最短停留时间避免快速变化。emoji 带本地化文本标签,采样不可用时显示中性状态。
+
+启动界面与打包图标系列共用 `apps/desktop/src/icon.svg` 中的黑色透明源资产。`scripts/gen-icons.mjs` 生成 16、32、48、256 和 512 像素的 PNG 资产,启动界面在浅色中性承托形状上显示该 SVG 以保持对比度。
 
 已知测试版缺口:无 Windows 11 贴靠布局弹出层(无边框),缩放边框来自 tao 的默认命中测试,最大化图标在点击/缩放事件上同步。
 

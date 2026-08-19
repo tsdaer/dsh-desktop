@@ -18,12 +18,12 @@ Delivered:
 Planned for 0.3.0:
 
 - [x] A desktop-only Workspace/Worktree sidebar switch that preserves the shared Workspace browser
-- [ ] Explorer, Search, read-only Git decorations, and Worktree path drops into the composer
+- [x] Explorer, Search, read-only Git decorations, and Worktree path drops into the composer
 - [ ] A visually consistent copy action beside every ordinary user and assistant message
-- [ ] API connection status beside the balance, with click-to-refresh balance updates
+- [x] API connection status beside the balance, with click-to-refresh balance updates
 - [ ] Automatic update checks against this repository's GitHub Releases, with installation of available updates
-- [ ] One black application icon shared by the splash screen, window, tray, and installer
-- [ ] An accessible title-bar emoji that reports local application workload
+- [x] One black application icon shared by the splash screen, window, tray, and installer
+- [x] An accessible title-bar emoji that reports local application workload
 
 “Worktree” refers to a project view rooted in the selected Workspace; it does not manage Git worktree checkouts. The [Desktop 0.3 plan](../../.agents/notes/proposed/feature/2026-08-17-desktop-0.3-worktree-and-runtime-chrome.md) defines the scope and acceptance criteria.
 
@@ -80,7 +80,9 @@ Theme following: the bar consumes the dsh theme tokens that ui-theme writes on <
 
 Left of the title, the bar shows a version badge next to the app title: main.rs prepends a `window.__DSH_DESKTOP_VERSION__` global before eval'ing the script (the value comes from tauri.conf.json's version, synced from package.json), so the badge always shows the packaged app version; the loading page has no global and renders the bare title.
 
-Right of the title (before the window controls), the bar shows the DeepSeek account balance as a small pill with a coin glyph. The pill polls `GET /dsh-bridge/balance` every 5 minutes and on window visibility; the bridge host resolves the API key through the runtime's credentials seam (the same `DEEPSEEK_API_KEY` reference the llm-deepseek provider uses) and proxies the official `/user/balance` endpoint, so the API key never reaches the browser. The pill stays hidden until the first successful read and keeps the last good amount while a refresh fails.
+Right of the title (before the window controls), the bar shows API state, local application workload, and the DeepSeek account balance. API state is `checking`, `connected`, `unavailable`, or `unconfigured`; the bridge host derives it from the same credential-safe `/dsh-bridge/balance` request and never sends the API key to the browser. The balance control refreshes on click, deduplicates in-flight requests, exposes `aria-busy`, polls every 5 minutes, refreshes when the window becomes visible, stays hidden until the first successful read, and keeps the last good amount while a refresh fails. The native `runtime_status` command samples the desktop process and managed runtime descendants at a low frequency and returns only `unknown`, `calm`, `active`, `busy`, or `saturated`; asymmetric thresholds and a four-second minimum dwell prevent rapid changes. The emoji has a localized text label and renders a neutral state when sampling is unavailable.
+
+The splash screen and packaged icon family use the same black transparent source at `apps/desktop/src/icon.svg`. `scripts/gen-icons.mjs` emits 16, 32, 48, 256, and 512 pixel PNG-backed assets; the splash uses the SVG on a light neutral backing shape for contrast.
 
 Known test-version gaps: no Windows 11 snap-layout flyout (frameless), resize borders come from tao's default hit-testing, maximize icon syncs on click/resize events.
 

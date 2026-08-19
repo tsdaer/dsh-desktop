@@ -15,6 +15,7 @@ tauri-plugin-single-instance = "2"
 serde_json = "1"
 dunce = "1"
 base64 = "0.22"
+sysinfo = "0.37"
 
 [target.'cfg(windows)'.dependencies]
 webview2-com = "0.38"
