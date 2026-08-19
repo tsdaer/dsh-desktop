@@ -4,7 +4,7 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
-## [0.3.0] - Unreleased
+## [0.3.0] - 2026-08-19
 
 ### Added
 
