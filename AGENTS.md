@@ -2,6 +2,10 @@
 
 DeepSeek Harness is a plugin-based agent harness on vendored Cordis: **everything is a plugin**. Read [docs/architecture.md](docs/architecture.md) before changing `packages/`; follow [docs/AGENTS.md](docs/AGENTS.md) for documentation.
 
+## Desktop fork boundary
+
+**Desktop development MUST stay under `apps/desktop` and use the plugin architecture.** Never modify upstream-owned files solely to support the desktop edition; contribute desktop UI, Host integration, packaging, and configuration through the desktop app or its bridge plugins. Change shared upstream code only when the behavior is independently required by the shared harness, and keep that change separable from desktop composition.
+
 ## Pre-release stance: foundation over blast radius
 
 **Remove this section at the first tagged release.** With no external consumers, prefer the correct foundation over compatibility shims: rename or repackage freely and update every reference together. Backends reject old on-disk formats. SQLite uses monotonic `SCHEMA_VERSION`; `dsh-session` keeps `SESSION_FORMAT_VERSION` at `0` with no compatibility promise.
