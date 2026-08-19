@@ -18,13 +18,15 @@ import type { SettingsNamespace } from '@deepseek-ai/dsh-settings'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-fs'
 import type {} from '@deepseek-ai/dsh-workspace'
+import type {} from '@deepseek-ai/dsh-subprocess'
 import { handleExplorerRequest } from './explorer.ts'
+import { handleSearchRequest } from './search.ts'
 
 /** Stable Cordis plugin name. */
 export const name = 'desktop-bridge'
 
 /** Services required before the bridge routes can serve. */
-export const inject = ['webServer', 'fs', 'workspaceRegistry']
+export const inject = ['webServer', 'fs', 'workspaceRegistry', 'subprocess']
 
 /** Durable settings namespace for the desktop settings ($DSH_HOME/settings.yaml, same seam as every other setting). */
 export const BRIDGE_SETTINGS_NS = 'desktop-bridge' as SettingsNamespace
@@ -41,6 +43,18 @@ export interface Config {
   explorerMaxBytes: number
   /** Maximum elapsed time for one Explorer request. */
   explorerTimeoutMs: number
+  /** Maximum matches returned by one Search page. */
+  searchMaxMatches: number
+  /** Maximum UTF-8 JSON bytes returned by one Search page. */
+  searchMaxBytes: number
+  /** Maximum raw ripgrep output retained for one Search page. */
+  searchMaxRawBytes: number
+  /** Maximum file size ripgrep will inspect. */
+  searchMaxFileBytes: number
+  /** Process termination grace for Search. */
+  searchGraceMs: number
+  /** Maximum elapsed time for one Search request. */
+  searchTimeoutMs: number
 }
 
 export const Config: z<Config> = z.object({
@@ -49,6 +63,12 @@ export const Config: z<Config> = z.object({
   explorerMaxEntries: z.number().default(256),
   explorerMaxBytes: z.number().default(128 * 1024),
   explorerTimeoutMs: z.number().default(5_000),
+  searchMaxMatches: z.number().default(50),
+  searchMaxBytes: z.number().default(128 * 1024),
+  searchMaxRawBytes: z.number().default(2 * 1024 * 1024),
+  searchMaxFileBytes: z.number().default(2 * 1024 * 1024),
+  searchGraceMs: z.number().default(1_000),
+  searchTimeoutMs: z.number().default(5_000),
 })
 
 function validateExplorerConfig(config: Config): void {
@@ -60,6 +80,16 @@ function validateExplorerConfig(config: Config): void {
   }
   if (!Number.isSafeInteger(config.explorerTimeoutMs) || config.explorerTimeoutMs <= 0) {
     throw new Error('desktop-bridge: explorerTimeoutMs must be a positive safe integer')
+  }
+  for (const [name, value] of Object.entries({
+    searchMaxMatches: config.searchMaxMatches,
+    searchMaxBytes: config.searchMaxBytes,
+    searchMaxRawBytes: config.searchMaxRawBytes,
+    searchMaxFileBytes: config.searchMaxFileBytes,
+    searchGraceMs: config.searchGraceMs,
+    searchTimeoutMs: config.searchTimeoutMs,
+  })) {
+    if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`desktop-bridge: ${name} must be a positive safe integer`)
   }
 }
 
@@ -80,6 +110,12 @@ function effectiveConfig(ctx: Context, config: Config): Config {
     explorerMaxEntries: config.explorerMaxEntries,
     explorerMaxBytes: config.explorerMaxBytes,
     explorerTimeoutMs: config.explorerTimeoutMs,
+    searchMaxMatches: config.searchMaxMatches,
+    searchMaxBytes: config.searchMaxBytes,
+    searchMaxRawBytes: config.searchMaxRawBytes,
+    searchMaxFileBytes: config.searchMaxFileBytes,
+    searchGraceMs: config.searchGraceMs,
+    searchTimeoutMs: config.searchTimeoutMs,
   }
 }
 
@@ -154,6 +190,15 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
       return
     }
     await handleExplorerRequest(req, res, ctx, config)
+    return
+  }
+  if (pathname === '/dsh-bridge/worktree/search') {
+    if (req.method !== 'GET') {
+      res.statusCode = 405
+      res.end()
+      return
+    }
+    await handleSearchRequest(req, res, ctx, config)
     return
   }
   json(res, 404, { error: 'not found' })

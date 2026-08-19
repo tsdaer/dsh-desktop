@@ -14,6 +14,8 @@
       "@deepseek-ai/dsh-credentials": ["../../../packages/credentials/credentials/lib/types/index.d.ts"],
       "@deepseek-ai/dsh-settings": ["../../../packages/settings/settings/lib/types/index.d.ts"],
       "@deepseek-ai/dsh-fs": ["../../../packages/fs/fs/lib/types/index.d.ts"]
+      ,"@deepseek-ai/dsh-subprocess": ["../../../packages/subprocess/subprocess/lib/types/index.d.ts"]
+      ,"@deepseek-ai/dsh-tool-fs-search": ["../../../packages/fs/tool-fs-search/lib/types/index.d.ts"]
     }
   },
   "include": [

@@ -1,13 +1,21 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import css from './DesktopWorkspaceWorkbench.module.css'
-import { DesktopWorkspaceExplorer } from './DesktopWorkspaceExplorer.tsx'
+import { DesktopWorkspaceSearch } from './DesktopWorkspaceSearch.tsx'
 
 interface WorkspaceSource {
   list: {
-    getSnapshot(): { items: readonly { workspaceId: string; title: string; sessionIds: readonly string[] }[]; recentWorkspaceId?: string }
+    getSnapshot(): { items: readonly WorkspaceSummary[]; recentWorkspaceId?: string }
     subscribe(listener: () => void): () => void
   }
+  openPath?(path: string): Promise<void>
+}
+
+interface WorkspaceSummary {
+  workspaceId: string
+  path: string
+  title: string
+  sessionIds: readonly string[]
 }
 
 interface SessionSource {
@@ -89,7 +97,7 @@ export function DesktopWorkspaceWorkbench({ wide, t, workspaces, sessions }: Des
       </div>
       {showWorktree && (
         <div id="desktop-workbench-worktree" className={css.worktreePanel} role="tabpanel">
-          <DesktopWorkspaceExplorer workspaces={workspaces} sessions={sessions} t={t} />
+          <DesktopWorkspaceSearch workspaces={workspaces} sessions={sessions} t={t} />
         </div>
       )}
     </div>

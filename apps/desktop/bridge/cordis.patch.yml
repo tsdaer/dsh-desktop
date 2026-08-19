@@ -18,3 +18,9 @@
     explorerMaxEntries: 256
     explorerMaxBytes: 131072
     explorerTimeoutMs: 5000
+    searchMaxMatches: 50
+    searchMaxBytes: 131072
+    searchMaxRawBytes: 2097152
+    searchMaxFileBytes: 2097152
+    searchGraceMs: 1000
+    searchTimeoutMs: 5000

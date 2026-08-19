@@ -47,6 +47,7 @@ interface WorkspacesLike {
   }
   create(input: { path: string }): Promise<{ workspaceId: string }>
   startSession(workspaceId?: string): void
+  openPath(path: string): Promise<void>
 }
 
 /** Minimal view of the slots service this plugin consumes. */
