@@ -105,6 +105,7 @@ OS 文件拖放由壳子经 Tauri 的拖放处理器接管(`onDragDropEvent`,默
 - `GET /config` —— 生效的桌面设置(关闭到托盘、调试模式),按请求读取,设置页保存后立即生效。
 - `POST /policy` —— 通过运行时的设置接缝($DSH_HOME/settings.yaml)持久化桌面设置。dsh 配置边界拒绝浏览器写入未列出的命名空间,因此设置行经此路由保存,而不是走 client 的 settingsScope。
 - `GET /balance` —— 标题栏余额药丸:经凭据服务解析 DeepSeek key 并代理官方 /user/balance 接口(见“自定义标题栏”)。
+- `GET /worktree/explorer` —— 为已注册 Workspace 列出一层有界目录；请求只接受 Workspace id 和 Workspace-relative path，响应明确标记截断以及解析后越出 Workspace 的路径。
 
 桥接 client 半边在页面上负责壳侧行为:上面的拖放处理、关闭按钮行为镜像、调试守卫,以及资源管理器路径路由。
 

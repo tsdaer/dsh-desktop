@@ -16,12 +16,15 @@ import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import z from '@deepseek-ai/schemastery'
 import type { SettingsNamespace } from '@deepseek-ai/dsh-settings'
 import type {} from '@deepseek-ai/dsh-host-webserver'
+import type {} from '@deepseek-ai/dsh-fs'
+import type {} from '@deepseek-ai/dsh-workspace'
+import { handleExplorerRequest } from './explorer.ts'
 
 /** Stable Cordis plugin name. */
 export const name = 'desktop-bridge'
 
-/** Services required before the route can serve. */
-export const inject = ['webServer']
+/** Services required before the bridge routes can serve. */
+export const inject = ['webServer', 'fs', 'workspaceRegistry']
 
 /** Durable settings namespace for the desktop settings ($DSH_HOME/settings.yaml, same seam as every other setting). */
 export const BRIDGE_SETTINGS_NS = 'desktop-bridge' as SettingsNamespace
@@ -32,12 +35,33 @@ export interface Config {
   closeToTray: boolean
   /** Debug mode: when off, the page suppresses right-click and devtools shortcuts; when on they stay available. */
   debugMode: boolean
+  /** Maximum Explorer children projected for one directory request. */
+  explorerMaxEntries: number
+  /** Maximum UTF-8 JSON bytes projected for one Explorer response. */
+  explorerMaxBytes: number
+  /** Maximum elapsed time for one Explorer request. */
+  explorerTimeoutMs: number
 }
 
 export const Config: z<Config> = z.object({
   closeToTray: z.boolean().default(false),
   debugMode: z.boolean().default(false),
+  explorerMaxEntries: z.number().default(256),
+  explorerMaxBytes: z.number().default(128 * 1024),
+  explorerTimeoutMs: z.number().default(5_000),
 })
+
+function validateExplorerConfig(config: Config): void {
+  if (!Number.isSafeInteger(config.explorerMaxEntries) || config.explorerMaxEntries <= 0) {
+    throw new Error('desktop-bridge: explorerMaxEntries must be a positive safe integer')
+  }
+  if (!Number.isSafeInteger(config.explorerMaxBytes) || config.explorerMaxBytes <= 0) {
+    throw new Error('desktop-bridge: explorerMaxBytes must be a positive safe integer')
+  }
+  if (!Number.isSafeInteger(config.explorerTimeoutMs) || config.explorerTimeoutMs <= 0) {
+    throw new Error('desktop-bridge: explorerTimeoutMs must be a positive safe integer')
+  }
+}
 
 /** Cap on the JSON request body (small; settings only). */
 const MAX_BODY_BYTES = 64 * 1024
@@ -53,10 +77,14 @@ function effectiveConfig(ctx: Context, config: Config): Config {
   return {
     closeToTray: section?.closeToTray ?? config.closeToTray,
     debugMode: section?.debugMode ?? config.debugMode,
+    explorerMaxEntries: config.explorerMaxEntries,
+    explorerMaxBytes: config.explorerMaxBytes,
+    explorerTimeoutMs: config.explorerTimeoutMs,
   }
 }
 
 export function apply(ctx: Context, config: Config): void {
+  validateExplorerConfig(config)
   ctx.inject(['settings'], (settingsCtx) => {
     settingsCtx.settings.register(BRIDGE_SETTINGS_NS, Config)
   })
@@ -117,6 +145,15 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
       return
     }
     await handleBalance(res, ctx)
+    return
+  }
+  if (pathname === '/dsh-bridge/worktree/explorer') {
+    if (req.method !== 'GET') {
+      res.statusCode = 405
+      res.end()
+      return
+    }
+    await handleExplorerRequest(req, res, ctx, config)
     return
   }
   json(res, 404, { error: 'not found' })

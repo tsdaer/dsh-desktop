@@ -105,6 +105,7 @@ Bridge host routes (under /dsh-bridge):
 - `GET /config` — the effective desktop settings (close-to-tray, debug mode), read per request so settings-page saves take effect immediately.
 - `POST /policy` — persist desktop settings through the runtime's settings seam ($DSH_HOME/settings.yaml). The dsh configuration boundary refuses browser writes to non-listed namespaces, so the settings rows save through this route instead of the client settingsScope.
 - `GET /balance` — the title bar's balance pill: resolves the DeepSeek key through the credentials service and proxies the official /user/balance endpoint (see "Custom title bar").
+- `GET /worktree/explorer` — lists one bounded directory level for a registered Workspace; the request accepts only a Workspace id and a Workspace-relative path, and the response marks truncation and paths resolved outside the Workspace.
 
 The bridge client half owns the shell-side behaviors on the page: the drag-drop handling above, the close-button mirror, the debug guard, and Explorer path routing.
 

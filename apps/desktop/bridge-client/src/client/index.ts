@@ -2,7 +2,7 @@ import { BridgeCloseRow } from './BridgeCloseRow.tsx'
 import { BridgeDebugRow } from './BridgeDebugRow.tsx'
 import css from './BridgeRow.module.css'
 import { BridgeSection } from './BridgeSection.tsx'
-import { DesktopWorkspaceWorkbench } from './DesktopWorkspaceWorkbench.tsx'
+import { createDesktopWorkspaceWorkbench } from './DesktopWorkspaceWorkbench.tsx'
 import { en, zh } from './locales.ts'
 
 // @deepseek-ai/dsh-desktop-bridge-client — browser half of the shell bridge.
@@ -31,6 +31,7 @@ export const inject = ['sessions', 'workspaces', 'slots', 'locale']
 interface SessionsLike {
   list: {
     getSnapshot(): { current: string | undefined; ids: readonly string[]; byId: Record<string, { updatedAt?: number } | undefined> }
+    subscribe(listener: () => void): () => void
   }
   open(id: string): void
 }
@@ -40,7 +41,7 @@ interface WorkspacesLike {
   list: {
     getSnapshot(): {
       baselinesReady: boolean
-      items: readonly { workspaceId: string; path: string; sessionIds: readonly string[] }[]
+      items: readonly { workspaceId: string; path: string; title: string; sessionIds: readonly string[] }[]
     }
     subscribe(listener: () => void): () => void
   }
@@ -406,7 +407,7 @@ export function apply(ctx: BridgeClientContext): () => void {
     id: 'desktop-workspace-workbench',
     order: -100,
     locale: NS,
-  }, DesktopWorkspaceWorkbench))
+  }, createDesktopWorkspaceWorkbench(ctx.workspaces, ctx.sessions)))
   // Shell wiring at bind: read the stored desktop settings and mirror them
   // into the shell (close-to-tray interception, WebView2 devtools).
   void fetch('/dsh-bridge/config').then(r => r.json()).then((c) => {

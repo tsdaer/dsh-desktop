@@ -1,0 +1,15 @@
+.viewport {
+  min-height: 0;
+  overflow: auto;
+}
+
+.canvas {
+  position: relative;
+  min-width: 100%;
+}
+
+.rows {
+  position: absolute;
+  inset: 0 0 auto;
+  min-width: 100%;
+}
