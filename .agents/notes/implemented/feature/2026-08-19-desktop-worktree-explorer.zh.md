@@ -12,7 +12,7 @@ Status: implemented
 
 桌面 bridge 暴露 `GET /dsh-bridge/worktree/explorer`，请求只有两个字段：已注册的 `workspaceId` 和 Workspace-relative `path`。Host 从 `ctx.workspaceRegistry` 解析 Workspace 路径，通过 `ctx.fs` 解析请求目录，并拒绝缺失目录、非目录、权限错误以及解析后越出规范化 Workspace 根目录的目标。响应只包含相对条目路径；解析后越出根目录的子项会显示为不可展开的阻止条目，不会暴露其目标路径。
 
-Host 先排列目录再排列文件，并施加可配置的条目数、UTF-8 JSON 字节数和耗时上限，同时明确报告投影截断。HTTP 请求中止会取消文件系统操作。bridge 配置拥有正的安全整数上限，默认值为 256 个条目、131072 字节响应和 5000 毫秒。
+Host 在读取 Workspace 外部元数据前拒绝绝对路径、盘符相对路径、反斜杠分隔路径和越界路径。它先排列目录再排列文件，并施加可配置的条目数、UTF-8 JSON 字节数和耗时上限，同时明确报告投影截断。HTTP 请求中止会取消文件系统操作。bridge 配置拥有正的安全整数上限，默认值为 256 个条目、131072 字节响应和 5000 毫秒。
 
 桌面 client 通过 desktop footer slot 贡献 Workbench，并把它 portal 到现有的 `sidebar.workspaces` 区域；只有选中 Worktree 标签时才隐藏共享 Workspace 浏览器，Workspace 标签下保持其不变。client 从当前 Session 推导要查看的 Workspace；没有选中 Session 时使用最近的 Workspace，最后回退到第一个 Workspace。进入 Worktree 时加载根目录，只有展开目录时才加载子目录。每个目录都有独立的加载、错误、重试、空目录和截断状态；展开的相对路径按 Workspace id 保存到浏览器存储。client 在渲染前校验响应，不调用 shell 命令或不受限制的文件系统 API。
 
@@ -34,4 +34,4 @@ Explorer 保持只读，不暴露文件内容。Git 状态以文件和目录装�
 
 ## 测试
 
-桌面 Explorer 测试固定相对路径校验、越界拒绝、目录优先排序、条目截断和根目录外投影。虚拟列表测试固定空集合、预渲染范围和末尾滚动位置截断。standalone desktop bridge 构建会编译 Host 与 Client 包，并打包 Explorer 路由与 UI。focused client tests 会验证相对路径拖放载荷、绝对路径拒绝和装饰汇总。
+桌面 Explorer 测试固定相对路径校验、盘符相对路径及越界路径在读取外部元数据前被拒绝、目录优先排序、条目截断和根目录外投影。渲染 client 测试覆盖空快照后出现首个 Workspace，以及同级目录同时加载。虚拟列表测试固定空集合、预渲染范围和末尾滚动位置截断。standalone desktop bridge 构建会编译 Host 与 Client 包，并打包 Explorer 路由与 UI。focused client tests 会验证相对路径拖放载荷、绝对路径拒绝和装饰汇总。

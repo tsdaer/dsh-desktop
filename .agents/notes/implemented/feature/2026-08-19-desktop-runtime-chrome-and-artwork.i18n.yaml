@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-19-desktop-runtime-chrome-and-artwork.md
-2026-08-19-desktop-runtime-chrome-and-artwork.md: 83d5a87972ce1e8e95b6de5f0dc68262215ef792
-2026-08-19-desktop-runtime-chrome-and-artwork.zh.md: 421df8e228cb76a3f6de2e10cee317c2c8d77b55
+2026-08-19-desktop-runtime-chrome-and-artwork.md: 8518f12d198344be2da7b5450845da8eb00badd3
+2026-08-19-desktop-runtime-chrome-and-artwork.zh.md: 66381e6c0ce2d051a490cffb02114cb2385cd737

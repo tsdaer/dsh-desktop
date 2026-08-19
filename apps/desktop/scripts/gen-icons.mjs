@@ -40,6 +40,7 @@ function wrapIco(images) {
 }
 
 async function main() {
+  const check = process.argv.includes('--check');
   const sharpEntry = findSharp();
   if (sharpEntry === null) throw new Error('sharp is required to generate desktop icons');
   const sharp = (await import('file:///' + sharpEntry.replace(/\\/g, '/'))).default;
@@ -58,12 +59,25 @@ async function main() {
   if (images.length !== sizes.length || images.some(({ png }) => png.length === 0)) {
     throw new Error('desktop icon generation did not produce every requested size');
   }
-  mkdirSync(iconsDir, { recursive: true });
   const png256 = images.find(({ size }) => size === 256).png;
   const png512 = images.find(({ size }) => size === 512).png;
-  writeFileSync(join(iconsDir, 'icon.png'), png256);
-  writeFileSync(join(iconsDir, 'icon-512.png'), png512);
-  writeFileSync(join(iconsDir, 'icon.ico'), wrapIco(images.filter(({ size }) => size !== 512)));
+  const outputs = new Map([
+    ['icon.png', png256],
+    ['icon-512.png', png512],
+    ['icon.ico', wrapIco(images.filter(({ size }) => size !== 512))],
+  ]);
+  if (check) {
+    for (const [name, expected] of outputs) {
+      const target = join(iconsDir, name);
+      if (!existsSync(target) || !readFileSync(target).equals(expected)) {
+        throw new Error(`${name} is stale; run pnpm --filter @deepseek-ai/dsh-desktop exec node scripts/gen-icons.mjs`);
+      }
+    }
+    console.log('verified icon.ico, icon.png, icon-512.png against src/icon.svg');
+    return;
+  }
+  mkdirSync(iconsDir, { recursive: true });
+  for (const [name, contents] of outputs) writeFileSync(join(iconsDir, name), contents);
   console.log('wrote icon.ico, icon.png, icon-512.png from src/icon.svg');
 }
 

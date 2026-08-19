@@ -17,7 +17,7 @@ function fakeHost(entries: readonly { name: string; type: 'directory' | 'file'; 
       return target
     }),
     stat: vi.fn(async () => ({ type: 'directory', version: 'v' as never })),
-    contains: vi.fn((root: { targetKey: string }, child: { targetKey: string }) => !child.targetKey.includes('outside')),
+    contains: vi.fn((_root: { targetKey: string }, child: { targetKey: string }) => !child.targetKey.includes('outside')),
     listDir: vi.fn(async () => entries.map(entry => ({
       name: entry.name,
       type: entry.type,
@@ -26,7 +26,7 @@ function fakeHost(entries: readonly { name: string; type: 'directory' | 'file'; 
     }))),
   }
   return {
-    fs: fs as never,
+    fs,
     workspaceRegistry: { get: vi.fn(() => ({ path: '/workspace' })) } as never,
     targets,
   }
@@ -38,7 +38,16 @@ describe('desktop Explorer request vocabulary', () => {
     expect(() => { parseExplorerRelativePath('/etc') }).toThrow(ExplorerRequestError)
     expect(() => { parseExplorerRelativePath('../outside') }).toThrow(/escapes/)
     expect(() => { parseExplorerRelativePath('src\\outside') }).toThrow(/relative/)
+    expect(() => { parseExplorerRelativePath('C:outside') }).toThrow(/relative/)
     expect(() => { parseExplorerWorkspaceId(null) }).toThrow(/workspaceId/)
+  })
+
+  it('rejects an outside directory before reading its metadata', async () => {
+    const host = fakeHost([])
+    await expect(listExplorerDirectory(host as never, workspaceId, 'outside', new AbortController().signal, 3, 4096))
+      .rejects.toThrow(/escapes/)
+    expect(host.fs.stat).toHaveBeenCalledTimes(1)
+    expect(host.fs.listDir).not.toHaveBeenCalled()
   })
 
   it('sorts directories first, bounds entries, and marks outside targets', async () => {
@@ -47,7 +56,7 @@ describe('desktop Explorer request vocabulary', () => {
       { name: 'src', type: 'directory' },
       { name: 'linked', type: 'directory', outside: true },
     ])
-    const listing = await listExplorerDirectory(host, workspaceId, '', new AbortController().signal, 3, 4096)
+    const listing = await listExplorerDirectory(host as never, workspaceId, '', new AbortController().signal, 3, 4096)
     expect(listing.entries.map(entry => [entry.name, entry.type, entry.expandable])).toEqual([
       ['linked', 'other', false],
       ['src', 'directory', true],
@@ -55,7 +64,7 @@ describe('desktop Explorer request vocabulary', () => {
     ])
     expect(listing.entries[0]).toMatchObject({ outsideRoot: true, path: 'linked' })
 
-    const bounded = await listExplorerDirectory(host, workspaceId, '', new AbortController().signal, 1, 4096)
+    const bounded = await listExplorerDirectory(host as never, workspaceId, '', new AbortController().signal, 1, 4096)
     expect(bounded.entries).toHaveLength(1)
     expect(bounded.truncated).toBe(true)
   })

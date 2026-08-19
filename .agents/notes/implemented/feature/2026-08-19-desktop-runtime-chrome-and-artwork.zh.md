@@ -20,7 +20,7 @@ Rust 壳拥有持久的 `sysinfo` 采样器。它测量桌面进程及其管理�
 
 ## 测试
 
-Rust 单元测试固定等级阈值、非对称迟滞和最短停留时间。桥接/client 构建、图标生成和聚焦桌面 Vitest 覆盖通过。`cargo check` 已解析并编译 `sysinfo`，但 Tauri build script 在写入生成权限目录时被 Windows 权限错误阻断；使用仓库内全新的 target 目录时，同一份源码可以编译且 Rust 测试通过。
+Rust 单元测试固定等级阈值、非对称迟滞和最短停留时间。bridge/client 构建、确定性图标校验、聚焦桌面 Vitest 覆盖和默认 Tauri target 构建均通过。
 
 ## 备选方案
 

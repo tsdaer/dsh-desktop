@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "incremental": false,
+    "jsx": "react-jsx",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "noEmit": true,
+    "paths": {
+      "@deepseek-ai/dsh-fs": ["../../packages/fs/fs/lib/types/index.d.ts"],
+      "@deepseek-ai/dsh-subprocess": ["../../packages/subprocess/subprocess/lib/types/index.d.ts"],
+      "@deepseek-ai/dsh-tool-fs-search": ["../../packages/fs/tool-fs-search/lib/types/index.d.ts"],
+      "@deepseek-ai/dsh-workspace": ["../../packages/workspace/workspace/lib/types/index.d.ts"]
+    },
+    "types": ["node", "vitest/globals"]
+  },
+  "include": ["bridge-client/src", "tests"]
+}

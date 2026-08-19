@@ -1,9 +1,11 @@
 import { PassThrough } from 'node:stream'
 import { describe, expect, it } from 'vitest'
+import type { SearchMatch } from '../bridge/src/search.ts'
 import {
   buildSearchCommand,
   buildSearchFilesCommand,
   collectSearchStream,
+  compareSearchPositions,
   matchesSearchPath,
   parseSearchCursor,
   parseSearchInclude,
@@ -11,6 +13,7 @@ import {
   parseSearchMatches,
   parseSearchQuery,
   parseSearchToggle,
+  searchWorkspace,
 } from '../bridge/src/search.ts'
 
 describe('desktop Worktree Search request vocabulary', () => {
@@ -64,6 +67,15 @@ describe('desktop Worktree Search request vocabulary', () => {
     expect(parseSearchMatches(stdout)).toEqual([{ path: 'src/index.ts', line: 3, text: 'needle' }])
   })
 
+  it('uses one deterministic order for Search pages', () => {
+    const matches = [
+      { path: 'a.ts', line: 1, text: 'a' },
+      { path: 'B.ts', line: 1, text: 'B' },
+    ].sort(compareSearchPositions)
+    expect(matches.map(match => match.path)).toEqual(['B.ts', 'a.ts'])
+    expect(compareSearchPositions(matches[1] as SearchMatch, matches[0] as SearchMatch)).toBeGreaterThan(0)
+  })
+
   it('retains complete match records from a bounded output tail', () => {
     const stdout = [
       'truncated record suffix}',
@@ -97,5 +109,46 @@ describe('desktop Worktree Search request vocabulary', () => {
     collector.finish()
     expect(collector.outputLimited).toBe(true)
     expect(terminated).toBe(true)
+  })
+
+  it('terminates an established Search process when its companion cannot start', async () => {
+    const stdout = new PassThrough()
+    let spawnCalls = 0
+    let terminated = false
+    let waited = false
+    const handle = {
+      stdout,
+      terminate() { terminated = true },
+      async waitForExit() { waited = true; return true },
+    }
+    const host = {
+      fs: {
+        resolve: async () => ({ targetKey: 'root', displayPath: 'root' }),
+        stat: async () => ({ type: 'directory', version: 'v' }),
+        processPath: () => 'J:/workspace',
+      },
+      workspaceRegistry: { get: () => ({ path: 'J:/workspace' }) },
+      subprocess: {
+        spawn: () => {
+          spawnCalls++
+          if (spawnCalls === 1) return handle
+          throw new Error('spawn failed')
+        },
+      },
+    }
+
+    await expect(searchWorkspace(
+      host as unknown as Parameters<typeof searchWorkspace>[0],
+      'workspace-1' as never,
+      'needle',
+      undefined,
+      false,
+      false,
+      undefined,
+      new AbortController().signal,
+      { maxMatches: 10, maxBytes: 4096, maxRawBytes: 4096, maxFileBytes: 4096, graceMs: 100 },
+    )).rejects.toThrow(/could not start/)
+    expect(terminated).toBe(true)
+    expect(waited).toBe(true)
   })
 })

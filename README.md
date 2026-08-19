@@ -18,6 +18,8 @@ See the [desktop documentation and roadmap](apps/desktop/README.md) for supporte
 
 **Desktop development stays under `apps/desktop` and uses the plugin architecture.** Desktop-only features must not modify upstream-owned files; shared upstream code changes require an independent shared-harness need and must remain separable from desktop composition.
 
+This fork omits the inherited upstream CI and issue-management workflows; only the desktop release workflow is maintained here. Inherited decision records link to the upstream workflow sources when they describe that automation.
+
 ## Run
 
 ### Run from `npm`

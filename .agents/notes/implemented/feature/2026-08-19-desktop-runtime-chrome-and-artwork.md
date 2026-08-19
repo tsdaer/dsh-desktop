@@ -20,7 +20,7 @@ The canonical artwork is `apps/desktop/src/icon.svg`, a transparent black fish a
 
 ## Testing
 
-Rust unit tests pin tier thresholds, asymmetric hysteresis, and minimum dwell. Bridge/client builds, icon generation, and focused desktop Vitest coverage pass. `cargo check` resolves and compiles `sysinfo` but the Tauri build script is currently blocked by a Windows permission error while writing its generated permission directory; the same source compiles and its Rust tests pass when Cargo uses a clean repository-local target directory.
+Rust unit tests pin tier thresholds, asymmetric hysteresis, and minimum dwell. Bridge/client builds, deterministic icon verification, focused desktop Vitest coverage, and the default Tauri target build pass.
 
 ## Alternatives considered
 

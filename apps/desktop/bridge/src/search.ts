@@ -209,7 +209,9 @@ export async function searchWorkspace(
   const workspace = host.workspaceRegistry.get(workspaceId)
   if (workspace === undefined) throw new SearchRequestError(404, 'workspace-not-found', 'Workspace was not found')
   const root = await resolveWorkspaceRoot(host.fs, workspace.path, signal)
-  let handle: SubprocessHandle
+  let handle: SubprocessHandle | undefined
+  let fileHandle: SubprocessHandle | undefined
+  let content: ReturnType<typeof collectSearchStream> | undefined
   try {
     const rgPath = await resolveRgPath()
     handle = host.subprocess.spawn({
@@ -219,7 +221,7 @@ export async function searchWorkspace(
       graceMs: limits.graceMs,
       signal,
     })
-    const fileHandle = host.subprocess.spawn({
+    fileHandle = host.subprocess.spawn({
       argv: [rgPath, '--no-config', ...buildSearchFilesCommand(include)],
       cwd: host.fs.processPath(root),
       stdio: { stdin: 'ignore', stdout: { maxBytes: limits.maxRawBytes }, stderr: { maxBytes: 8 * 1024 } },
@@ -229,7 +231,7 @@ export async function searchWorkspace(
     if (handle.stdout === undefined) throw new SearchRequestError(500, 'search-failed', 'Search returned no output stream')
     let progressiveMatches = 0
     let progressiveBytes = 0
-    const content = collectSearchStream(handle.stdout, limits.maxRawBytes, handle, (match) => {
+    content = collectSearchStream(handle.stdout, limits.maxRawBytes, handle, (match) => {
       if (!afterCursor(match, cursor) || progressiveMatches >= limits.maxMatches) return
       const bytes = Buffer.byteLength(JSON.stringify(match), 'utf8')
       if (progressiveBytes + bytes > limits.maxBytes) return
@@ -279,6 +281,10 @@ export async function searchWorkspace(
       ...(truncated && matches.length > 0 ? { nextCursor: encodeSearchCursor(matches[matches.length - 1] as SearchMatch) } : {}),
     }
   } catch (error: unknown) {
+    content?.finish()
+    const active = [handle, fileHandle].filter((candidate): candidate is SubprocessHandle => candidate !== undefined)
+    for (const candidate of active) candidate.terminate()
+    await Promise.allSettled(active.map(candidate => candidate.waitForExit()))
     if (error instanceof SearchRequestError) throw error
     throw new SearchRequestError(500, 'search-failed', 'Search could not start')
   }
@@ -372,11 +378,20 @@ async function resolveWorkspaceRoot(fs: FileSystem, path: string, signal: AbortS
 }
 
 function afterCursor(match: SearchMatch, cursor: { path: string; line: number } | undefined): boolean {
-  return cursor === undefined || match.path > cursor.path || (match.path === cursor.path && match.line > cursor.line)
+  return cursor === undefined || compareSearchPositions(match, cursor) > 0
 }
 
 function compareSearchMatches(left: SearchMatch, right: SearchMatch): number {
-  return left.path.localeCompare(right.path) || left.line - right.line
+  return compareSearchPositions(left, right)
+}
+
+/** Compare two Search positions with the same deterministic order used by pagination. */
+export function compareSearchPositions(
+  left: Pick<SearchMatch, 'path' | 'line'>,
+  right: Pick<SearchMatch, 'path' | 'line'>,
+): number {
+  const pathOrder = left.path < right.path ? -1 : left.path > right.path ? 1 : 0
+  return pathOrder || left.line - right.line
 }
 
 function isWordCharacter(value: string | undefined): boolean {

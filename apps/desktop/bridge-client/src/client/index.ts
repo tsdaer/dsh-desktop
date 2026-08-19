@@ -546,6 +546,7 @@ export function apply(ctx: BridgeClientContext): () => void {
   document.addEventListener('pointerup', onWorktreePointerUp, true)
   document.addEventListener('pointercancel', onWorktreePointerUp, true)
   return () => {
+    bound = false
     disposed = true
     if (retryDragDrop !== undefined) clearTimeout(retryDragDrop)
     if (retryOpenPath !== undefined) clearTimeout(retryOpenPath)

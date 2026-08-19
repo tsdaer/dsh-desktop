@@ -108,7 +108,7 @@ export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions
   const [expandedByWorkspace, setExpandedByWorkspace] = useState<Record<string, readonly string[]>>(() => readExpanded())
   const [sourceControl, setSourceControl] = useState<SourceControlState>({ status: 'loading' })
   const [sourceControlRefresh, setSourceControlRefresh] = useState(0)
-  const request = useRef<AbortController | null>(null)
+  const requests = useRef(new Map<string, AbortController>())
 
   useEffect(() => {
     try { localStorage.setItem('dsh.desktop.explorer.expanded', JSON.stringify(expandedByWorkspace)) } catch { /* browser storage is optional */ }
@@ -116,9 +116,9 @@ export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions
 
   const load = useCallback(async (path: string): Promise<void> => {
     if (workspaceId === undefined) return
-    request.current?.abort()
+    requests.current.get(path)?.abort()
     const controller = new AbortController()
-    request.current = controller
+    requests.current.set(path, controller)
     setNodes(previous => ({ ...previous, [path]: { status: 'loading' } }))
     try {
       const query = new URLSearchParams({ workspaceId, ...(path === '' ? {} : { path }) })
@@ -130,14 +130,20 @@ export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions
     } catch (error: unknown) {
       if (controller.signal.aborted) return
       setNodes(previous => ({ ...previous, [path]: { status: 'error', message: error instanceof Error ? error.message : t('worktree.explorerFailed') } }))
+    } finally {
+      if (requests.current.get(path) === controller) requests.current.delete(path)
     }
   }, [t, workspaceId])
 
   useEffect(() => {
-    request.current?.abort()
+    for (const controller of requests.current.values()) controller.abort()
+    requests.current.clear()
     setNodes({})
     if (workspaceId !== undefined) void load('')
-    return () => { request.current?.abort() }
+    return () => {
+      for (const controller of requests.current.values()) controller.abort()
+      requests.current.clear()
+    }
   }, [load, workspaceId])
 
   useEffect(() => {
@@ -159,6 +165,11 @@ export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions
     () => new Set(workspaceId === undefined ? [] : expandedByWorkspace[workspaceId] ?? []),
     [expandedByWorkspace, workspaceId],
   )
+  const rows = useMemo(() => buildVisibleRows('', 0, nodes, expanded), [expanded, nodes])
+  const gitDecorations = useMemo(
+    () => sourceControl.status === 'ready' ? buildGitDecorations(sourceControl.listing) : new Map<string, GitDecoration>(),
+    [sourceControl],
+  )
   const toggle = (path: string): void => {
     if (workspaceId === undefined) return
     setExpandedByWorkspace((previous) => {
@@ -173,12 +184,6 @@ export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions
   if (workspace === undefined || workspaceId === undefined) {
     return <div className={css.empty}>{t('worktree.noWorkspace')}</div>
   }
-
-  const rows = useMemo(() => buildVisibleRows('', 0, nodes, expanded), [expanded, nodes])
-  const gitDecorations = useMemo(
-    () => sourceControl.status === 'ready' ? buildGitDecorations(sourceControl.listing) : new Map<string, GitDecoration>(),
-    [sourceControl],
-  )
 
   const renderRow = (row: VisibleRow): React.ReactNode => {
     if (row.kind === 'state') {

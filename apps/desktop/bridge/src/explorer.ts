@@ -58,7 +58,10 @@ export function parseExplorerWorkspaceId(raw: string | null): WorkspaceId {
 /** Normalize and validate the Workspace-relative Explorer path. */
 export function parseExplorerRelativePath(raw: string | null): string {
   const value = raw ?? ''
-  if (Buffer.byteLength(value, 'utf8') > MAX_RELATIVE_PATH_BYTES || value.includes('\0') || value.includes('\\')) {
+  if (Buffer.byteLength(value, 'utf8') > MAX_RELATIVE_PATH_BYTES
+    || value.includes('\0')
+    || value.includes('\\')
+    || /^[A-Za-z]:/u.test(value)) {
     throw new ExplorerRequestError(400, 'invalid-relative-path', 'path must be a bounded Workspace-relative path')
   }
   if (value === '') return ''
@@ -99,10 +102,11 @@ export async function listExplorerDirectory(
   if (workspace === undefined) throw new ExplorerRequestError(404, 'workspace-not-found', 'Workspace was not found')
 
   const root = await resolveDirectory(host.fs, workspace.path, undefined, signal, 'workspace-root')
-  const directory = await resolveDirectory(host.fs, workspace.path, path, signal, 'directory')
+  const directory = await resolveTarget(host.fs, workspace.path, path, signal, 'directory')
   if (!host.fs.contains(root, directory)) {
     throw new ExplorerRequestError(403, 'path-escapes-workspace', 'path escapes the Workspace')
   }
+  await requireDirectory(host.fs, directory, signal, 'directory')
 
   let entries: FsDirEntry[]
   try {
@@ -195,12 +199,30 @@ async function resolveDirectory(
   signal: AbortSignal,
   subject: string,
 ): Promise<FsTarget> {
+  const target = await resolveTarget(fs, workspacePath, relativePath, signal, subject)
+  await requireDirectory(fs, target, signal, subject)
+  return target
+}
+
+async function resolveTarget(
+  fs: FileSystem,
+  workspacePath: string,
+  relativePath: string | undefined,
+  signal: AbortSignal,
+  subject: string,
+): Promise<FsTarget> {
   const absolutePath = relativePath === undefined ? workspacePath : resolve(workspacePath, ...relativePath.split('/'))
   try {
-    const target = await fs.resolve(absolutePath, { signal })
+    return await fs.resolve(absolutePath, { signal })
+  } catch (error: unknown) {
+    throw mapFilesystemError(error, `${subject}-unavailable`)
+  }
+}
+
+async function requireDirectory(fs: FileSystem, target: FsTarget, signal: AbortSignal, subject: string): Promise<void> {
+  try {
     const info = await fs.stat(target, signal)
     if (info?.type !== 'directory') throw new ExplorerRequestError(404, `${subject}-not-directory`, `${subject} is unavailable`)
-    return target
   } catch (error: unknown) {
     if (error instanceof ExplorerRequestError) throw error
     throw mapFilesystemError(error, `${subject}-unavailable`)
