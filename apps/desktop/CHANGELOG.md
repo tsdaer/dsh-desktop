@@ -4,6 +4,11 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+### Fixed
+
+- Uninstalling removes the Explorer 以 dsh-desktop 打开 context-menu entries. Because the application registers them itself, they previously survived uninstall and pointed at a deleted executable.
+- Selecting Worktree while the sidebar is collapsed no longer leaves the sidebar region blank: the shared Workspace browser stays visible until the wide Worktree panel actually replaces it.
+
 ## [0.3.3] - 2026-08-20
 
 ### Fixed
@@ -11,6 +16,14 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 - Launching the app no longer hands the served URL to the system default browser: the shell passes `--no-open` to its spawned `dsh web` runtime because the shell owns the window that shows the page.
 
 ## [0.3.2] - 2026-08-20
+
+### Added
+
+- An opt-in new-session Logo hover animation in the desktop settings; enabling it overrides the system reduced-motion preference for that one cue.
+
+### Fixed
+
+- A packaged boot leaves `DSH_BARE_MODULE_BASE` unset so profile-installed bundles stay resolvable, while the profile fallback links built-in packages back to the runtime.
 
 ## [0.3.1] - 2026-08-19
 

@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-17-desktop-drops-tray-open-with.md
-2026-08-17-desktop-drops-tray-open-with.md: 45e066dcd808058f1aff6e2f91ca855b8926c356
-2026-08-17-desktop-drops-tray-open-with.zh.md: 141263c6ad607cbe7152e838993e83228ccd8b4d
+2026-08-17-desktop-drops-tray-open-with.md: 96cd9b10c5c11934862eb884abec3d05a225d9f5
+2026-08-17-desktop-drops-tray-open-with.zh.md: 7cbb4c7a96a37a6333571bdeddd9a9e919f48548

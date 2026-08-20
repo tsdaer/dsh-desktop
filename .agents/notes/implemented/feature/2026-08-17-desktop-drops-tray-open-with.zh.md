@@ -20,7 +20,7 @@ WebView2 对拖入的文件不暴露 `File.path`,桌面壳因此无法把真实�
 
 **托盘与关闭行为。** tauri 依赖新增 `tray-icon` feature;`setup_tray` 用捆绑的窗口图标构建托盘与两项菜单(显示主窗口 / 退出)。左键点击图标显示并聚焦主窗口;退出先显式停掉运行时子进程再 `app.exit(0)`。桌面设置明确提供直接退出与保留在托盘两个选项,以 `closeToTray` 持久化在桥接设置命名空间(`$DSH_HOME/settings.yaml`,经 `POST /dsh-bridge/policy`);桥接 client 在启动时与每次变更时,把持久化的值经 `set_close_to_tray` 命令镜像进 Rust;选择保留在托盘时,主窗口的 `CloseRequested` 处理器阻止关闭并隐藏窗口。默认直接退出;托盘始终存在,与选项无关。
 
-**资源管理器"以 dsh-desktop 打开"。** 每次启动时,壳子经 `reg.exe` 在 HKCU 下(重新)注册按用户的右键菜单项(无需提权、幂等、始终指向当前 exe):`Software\\Classes\\Directory\\shell\\dsh-desktop`(文件夹行)与 `Software\\Classes\\Directory\\Background\\shell\\dsh-desktop`(文件夹空白背景),标签 以 dsh-desktop 打开,命令 `"<exe>" "%V"`。`tauri-plugin-single-instance` 让首个进程保持权威;后续调用把规范化目录排入该进程的队列,聚焦现有窗口,发出唤醒事件,然后退出。桥接 client 在监听器安装后排空队列,选择规范路径是该目录最长祖先的工作区,再打开其最近会话,没有会话则新建一个。目录未匹配时,页面先询问用户,确认后调用 `workspaces.create({ path })` 并打开结果。注册失败只记日志,绝不致命;NSIS 安装器目前卸载时不移除这些键。
+**资源管理器"以 dsh-desktop 打开"。** 每次启动时,壳子经 `reg.exe` 在 HKCU 下(重新)注册按用户的右键菜单项(无需提权、幂等、始终指向当前 exe):`Software\\Classes\\Directory\\shell\\dsh-desktop`(文件夹行)与 `Software\\Classes\\Directory\\Background\\shell\\dsh-desktop`(文件夹空白背景),标签 以 dsh-desktop 打开,命令 `"<exe>" "%V"`。`tauri-plugin-single-instance` 让首个进程保持权威;后续调用把规范化目录排入该进程的队列,聚焦现有窗口,发出唤醒事件,然后退出。桥接 client 在监听器安装后排空队列,选择规范路径是该目录最长祖先的工作区,再打开其最近会话,没有会话则新建一个。目录未匹配时,页面先询问用户,确认后调用 `workspaces.create({ path })` 并打开结果。注册失败只记日志,绝不致命;卸载程序通过 `apps/desktop/src-tauri/installer-hooks.nsh` 中的 `NSIS_HOOK_POSTUNINSTALL` 宏移除这两个键。
 
 **dev 桥接保鲜。** `ensure_bridge` 现在在每次 dev 启动时从仓库检出把桥接包拷进 profile(打包路径本来就在每次启动时对齐 profile 副本),因此重建的桥接总能到达既有 profile。原有的 npm 安装路径已移除:npm 的 peer 自动安装会解析已发布的 @deepseek-ai 清单,其 workspace: 协议会以 EUNSUPPORTEDPROTOCOL 失败 —— npm 安装在那里永远无法成功。
 
@@ -34,7 +34,7 @@ WebView2 对拖入的文件不暴露 `File.path`,桌面壳因此无法把真实�
 
 **默认开启关闭到托盘** —— 否决:关闭窗口即终止运行时是已文档化、已发布的行为;该设置显式加入。
 
-**从 NSIS 注册右键菜单** —— 测试版否决:首启注册让命令在 dev 运行与重装之间始终指向当前 exe;卸载清理留作后续。
+**从 NSIS 注册右键菜单** —— 否决:首启注册让命令在 dev 运行与重装之间始终指向当前 exe。只有移除归安装器所有,经卸载钩子完成,因为应用无法在自身被卸载的过程中删除自己的键。
 
 **用 winreg crate 写注册表** —— 否决:`reg.exe` 随每个受支持的 Windows 提供,不引入依赖或锁文件变动。
 
@@ -42,7 +42,7 @@ WebView2 对拖入的文件不暴露 `File.path`,桌面壳因此无法把真实�
 
 ## 后果
 
-拖放现在把工作区沙箱之外的主机路径交给模型 —— 文件系统策略决定 agent 能读什么,旧的"复制进 `drops/`"保证随之消失。图片保持完整输入框接收。设置页的拖放策略行(复制开关、大小上限)已移除;调试模式保留。托盘始终存在;关闭选项决定标题栏按钮退出还是隐藏。资源管理器启动汇入单一应用进程,并可能在确认后创建工作区。按用户的注册表键在实现卸载清理之前会残留。dev 启动用目录拷贝刷新 profile 桥接(不经过 npm);dev 流程还要求仓库的 workspace lib 已构建(`pnpm run build:lib`),因为 dev profile 的模块回退目录指向本仓库。
+拖放现在把工作区沙箱之外的主机路径交给模型 —— 文件系统策略决定 agent 能读什么,旧的"复制进 `drops/`"保证随之消失。图片保持完整输入框接收。设置页的拖放策略行(复制开关、大小上限)已移除;调试模式保留。托盘始终存在;关闭选项决定标题栏按钮退出还是隐藏。资源管理器启动汇入单一应用进程,并可能在确认后创建工作区。卸载会移除按用户的注册表键;升级重装同样会移除,下次启动重新注册。dev 启动用目录拷贝刷新 profile 桥接(不经过 npm);dev 流程还要求仓库的 workspace lib 已构建(`pnpm run build:lib`),因为 dev profile 的模块回退目录指向本仓库。
 
 ## 验证
 

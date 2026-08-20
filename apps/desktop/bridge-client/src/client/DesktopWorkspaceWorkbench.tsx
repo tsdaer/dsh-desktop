@@ -27,7 +27,6 @@ interface SessionSource {
 
 interface DesktopWorkspaceWorkbenchProps {
   wide: boolean
-  expandSidebar?: () => void
   t: (key: string) => string
   workspaces: WorkspaceSource
   sessions: SessionSource
@@ -57,6 +56,8 @@ export function DesktopWorkspaceWorkbench({ wide, t, workspaces, sessions }: Des
   const anchor = useRef<HTMLSpanElement>(null)
   const [region, setRegion] = useState<HTMLElement | null>(null)
   const [mode, setMode] = useState<Mode>('workspace')
+  // The Worktree panel needs the wide column, so the collapsed rail keeps the
+  // shared browser: hiding the browser is tied to the panel actually rendering.
   const showWorktree = wide && mode === 'worktree'
 
   useLayoutEffect(() => {
@@ -69,9 +70,9 @@ export function DesktopWorkspaceWorkbench({ wide, t, workspaces, sessions }: Des
     const browser = [...region.children].find(child => !child.hasAttribute('data-dsh-desktop-workbench'))
     if (!(browser instanceof HTMLElement)) return
     const previousDisplay = browser.style.display
-    browser.style.display = mode === 'workspace' ? previousDisplay : 'none'
+    browser.style.display = showWorktree ? 'none' : previousDisplay
     return () => { browser.style.display = previousDisplay }
-  }, [mode, region])
+  }, [showWorktree, region])
 
   const workbench = (
     <div

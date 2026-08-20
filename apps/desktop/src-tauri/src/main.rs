@@ -477,6 +477,8 @@ fn wire_main_window_events(app: &tauri::AppHandle) {
 /// start so the command always targets the current executable. The menu runs
 /// `<exe> <folder>`; the single-instance plugin queues the canonical folder
 /// for the bridge client. Registration failures are logged, never fatal.
+/// Because the entries are written here rather than by the installer, the
+/// uninstaller removes them through `installer-hooks.nsh`.
 #[cfg(windows)]
 fn ensure_explorer_context_menu() {
     let Ok(exe) = std::env::current_exe() else {

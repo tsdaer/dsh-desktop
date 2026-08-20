@@ -1,8 +1,12 @@
+import { realpathSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import { defineConfig } from 'vitest/config'
 
-const testingLibrary = resolve(import.meta.dirname, '../../../node_modules/@testing-library/react')
+// pnpm installs @testing-library/react's peer React beside the package's real
+// path under .pnpm, not beside the root symlink, so resolution has to start
+// from the realpath to find one React copy for the aliases below.
+const testingLibrary = realpathSync(resolve(import.meta.dirname, '../../../node_modules/@testing-library/react'))
 const testingLibraryRequire = createRequire(resolve(testingLibrary, 'package.json'))
 
 export default defineConfig({

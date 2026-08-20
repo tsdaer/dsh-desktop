@@ -146,7 +146,7 @@ On every start the shell (re)registers a per-user Explorer context-menu entry un
 
 The menu runs `<exe> <folder>`. The application is single-instance: when it is already running, the second process forwards the canonical folder to the existing window, brings that window forward, and exits. The bridge client selects the Workspace with the longest ancestor path, so a right-click in a nested Workspace resolves to the most specific owner. It opens that Workspace's most recent session, or starts one when none exists. When no Workspace owns the directory, the page asks before registering that directory as a new Workspace and opening it.
 
-Registration is best-effort and logged on failure; the NSIS installer does not yet remove the keys on uninstall.
+Registration is best-effort and logged on failure. Because the application writes these keys rather than the installer, the uninstaller removes them through the `NSIS_HOOK_POSTUNINSTALL` macro in `src-tauri/installer-hooks.nsh` (wired by `bundle.windows.nsis.installerHooks`); NSIS `installMode` stays at its `currentUser` default, so the unelevated uninstaller sees the installing user's HKCU. An update reinstall runs the same hook, and the next launch re-registers the entries.
 
 ## Test-version scope
 
