@@ -11,6 +11,7 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 - Uninstalling removes the Explorer 以 dsh-desktop 打开 context-menu entries. Because the application registers them itself, they previously survived uninstall and pointed at a deleted executable.
 - Selecting Worktree while the sidebar is collapsed no longer leaves the sidebar region blank: the shared Workspace browser stays visible until the wide Worktree panel actually replaces it.
 - The release version check covers Cargo.lock, which v0.3.3 shipped still recording 0.3.2, and one script now propagates the package.json version into tauri.conf.json, Cargo.toml, and Cargo.lock.
+- The runtime bake resolves a relative `--dir` against the repository, so baking from another working directory can no longer plant a deploy tree beside it.
 
 ## [0.3.3] - 2026-08-20
 
