@@ -2,7 +2,7 @@
 
 DeepSeek Harness is plugin-based on vendored Cordis: **everything is a plugin**. Read [docs/architecture.md](docs/architecture.md) before changing `packages/`; follow [docs/AGENTS.md](docs/AGENTS.md) for documentation.
 
-Desktop work stays under `apps/desktop` as plugins; shared changes need harness value. This fork carries only `.github/workflows/desktop-release.yml`; never restore upstream automation.
+Desktop work stays under `apps/desktop` as plugins; changing an upstream-owned path needs harness value and a reasoned row in [docs/fork-divergence.md](docs/fork-divergence.md). This fork carries only `.github/workflows/desktop-release.yml`; never restore upstream automation.
 
 ## Pre-release stance: foundation over blast radius
 
@@ -146,7 +146,7 @@ Docs accompany every code change: update affected README and JSDoc contracts tog
 
 ## Editing these instructions
 
-`CLAUDE.md` symlinks `AGENTS.md` at root, `packages/`, and `examples/`; edit the real file. Keep each rule self-contained while linking high-level docs. Condense when clarity survives; raise a `verify-doc-budgets` ceiling when the required content genuinely needs more space.
+`CLAUDE.md` symlinks `AGENTS.md` at root, `packages/`, and `examples/`; edit the real file. Keep each rule self-contained while linking high-level docs. Condense when clarity survives.
 
 ## Vendoring policy
 
