@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-07-26-ci-failover-runbook.md
-2026-07-26-ci-failover-runbook.md: 111649062872dd279e83932429a58b8cb43cbfee
-2026-07-26-ci-failover-runbook.zh.md: 32b62cd604c1c89a9abab8a287737ec4db686ab5
+2026-07-26-ci-failover-runbook.md: 7c8bb2ab4ccf9d3c5f6abd7fbcc8076894800ec3
+2026-07-26-ci-failover-runbook.zh.md: ef9076dad93e63a8d325afda7e3a16d5b7cbf33b

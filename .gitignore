@@ -36,6 +36,7 @@ apps/desktop/src-tauri/target/
 apps/desktop/src-tauri/gen/
 apps/desktop/.bridge-pack/
 .artifacts/
+.dsh-build/
 .playwright-mcp/
 .orig
 .worktrees/
