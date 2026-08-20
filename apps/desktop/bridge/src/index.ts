@@ -2,7 +2,7 @@
 //
 // Routes under /dsh-bridge:
 // - GET /dsh-bridge/config — the effective desktop settings (close-to-tray
-//   behavior + debug mode), read per request so settings-page saves take
+//   behavior, debug mode, and Logo hover motion), read per request so settings-page saves take
 //   effect immediately.
 // - POST /dsh-bridge/policy — persist desktop settings through the runtime's
 //   settings seam (the dsh configuration boundary refuses browser writes to
@@ -38,6 +38,8 @@ export interface Config {
   closeToTray: boolean
   /** Debug mode: when off, the page suppresses right-click and devtools shortcuts; when on they stay available. */
   debugMode: boolean
+  /** Explicitly allow the new-session Logo hover animation when the system requests reduced motion. */
+  logoMotion: boolean
   /** Maximum Explorer children projected for one directory request. */
   explorerMaxEntries: number
   /** Maximum UTF-8 JSON bytes projected for one Explorer response. */
@@ -69,6 +71,7 @@ export interface Config {
 export const Config: z<Config> = z.object({
   closeToTray: z.boolean().default(false),
   debugMode: z.boolean().default(false),
+  logoMotion: z.boolean().default(false),
   explorerMaxEntries: z.number().default(256),
   explorerMaxBytes: z.number().default(128 * 1024),
   explorerTimeoutMs: z.number().default(5_000),
@@ -124,6 +127,7 @@ function effectiveConfig(ctx: Context, config: Config): Config {
   return {
     closeToTray: section?.closeToTray ?? config.closeToTray,
     debugMode: section?.debugMode ?? config.debugMode,
+    logoMotion: section?.logoMotion ?? config.logoMotion,
     explorerMaxEntries: config.explorerMaxEntries,
     explorerMaxBytes: config.explorerMaxBytes,
     explorerTimeoutMs: config.explorerTimeoutMs,
@@ -162,7 +166,7 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
       return
     }
     try {
-      const body = JSON.parse(await readBody(req)) as { closeToTray?: unknown; debugMode?: unknown }
+      const body = JSON.parse(await readBody(req)) as { closeToTray?: unknown; debugMode?: unknown; logoMotion?: unknown }
       const settings = ctx.get('settings')
       if (settings === undefined) {
         json(res, 500, { error: 'settings service unavailable' })
@@ -174,6 +178,9 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
       }
       if (typeof body.debugMode === 'boolean') {
         ops.push({ op: 'set', path: ['debugMode'], value: body.debugMode })
+      }
+      if (typeof body.logoMotion === 'boolean') {
+        ops.push({ op: 'set', path: ['logoMotion'], value: body.logoMotion })
       }
       if (ops.length === 0) {
         json(res, 400, { error: 'no valid fields to save' })
@@ -192,7 +199,7 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
       res.end()
       return
     }
-    json(res, 200, { closeToTray: effective.closeToTray, debugMode: effective.debugMode })
+    json(res, 200, { closeToTray: effective.closeToTray, debugMode: effective.debugMode, logoMotion: effective.logoMotion })
     return
   }
   if (pathname === '/dsh-bridge/balance') {

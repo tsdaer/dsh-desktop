@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-20-desktop-logo-motion-opt-in.md
+2026-08-20-desktop-logo-motion-opt-in.md: 840ed5f8a44d9535f68989822097bbcaf9c0c752
+2026-08-20-desktop-logo-motion-opt-in.zh.md: 6d64e255bc9eed08e5633ee4666eb1ae274bf48e

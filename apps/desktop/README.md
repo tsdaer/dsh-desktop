@@ -74,13 +74,13 @@ Env wiring in main.rs: DSH_CLI/DSH_NODE/DSH_BARE_MODULE_BASE/DSH_BRIDGE_TARBALL 
 
 ## Custom title bar
 
-The window is frameless; the title bar is a single injected element whose source is apps/desktop/src/titlebar.js — loaded by the loading page via a script tag and re-injected into the dsh web page after navigation (main.rs embeds the file with include_str!, idempotent retries).
+The window is frameless; the title bar is a single injected element whose source is apps/desktop/src/titlebar.js — loaded by the loading page via a script tag and re-injected into the main webview on every completed page load (main.rs embeds the file with include_str!, and the script is idempotent). Its API, workload, and balance labels follow the live `<html lang>` value, so an asynchronous locale preference cannot leave the chrome in a stale language.
 
 Theme following: the bar consumes the dsh theme tokens that ui-theme writes on <body> — background rides the sidebar-fill token (--dsw-specific-sidebar-fill, documented by ui-theme as the title-row background) and the rest ride the --dsw-alias-* set; switching the theme in the dsh settings (or the system dark mode) repaints the bar automatically with no shell-side state. Window controls run through the remote capability (capabilities/remote.json, URLPattern `http://127.0.0.1:*`); drag uses startDragging(); double-clicking the drag strip toggles maximize like the button (a fullscreen guard restores before dragging if fullscreen was entered another way).
 
 Left of the title, the bar shows a version badge next to the app title: main.rs prepends a `window.__DSH_DESKTOP_VERSION__` global before eval'ing the script (the value comes from tauri.conf.json's version, synced from package.json), so the badge always shows the packaged app version; the loading page has no global and renders the bare title.
 
-Right of the title (before the window controls), the bar shows API state, local application workload, and the DeepSeek account balance. API state is `checking`, `connected`, `unavailable`, or `unconfigured`; the bridge host derives it from the same credential-safe `/dsh-bridge/balance` request and never sends the API key to the browser. The balance control refreshes on click, deduplicates in-flight requests, exposes `aria-busy`, polls every 5 minutes, refreshes when the window becomes visible, stays hidden until the first successful read, and keeps the last good amount while a refresh fails. The native `runtime_status` command samples the desktop process and managed runtime descendants at a low frequency and returns only `unknown`, `calm`, `active`, `busy`, or `saturated`; asymmetric thresholds and a four-second minimum dwell prevent rapid changes. The emoji has a localized text label and renders a neutral state when sampling is unavailable.
+Right of the title (before the window controls), the bar shows API state, local application workload, and the DeepSeek account balance. API state is `checking`, `connected`, `unavailable`, or `unconfigured`; the bridge host derives it from the same credential-safe `/dsh-bridge/balance` request and never sends the API key to the browser. The balance control refreshes on click, deduplicates in-flight requests, exposes `aria-busy`, polls every 5 minutes, refreshes when the window becomes visible, stays hidden until the first successful read, and keeps the last good amount while a refresh fails. The native `runtime_status` command samples the desktop process and managed runtime descendants at a low frequency and returns only `unknown`, `calm`, `active`, `busy`, or `saturated`; asymmetric thresholds and a four-second minimum dwell prevent rapid changes. The emoji has a localized text label and renders a neutral state when sampling is unavailable. The updater control is rebuilt on `locale/change`, so its status and confirmation copy follow the same preference.
 
 The splash screen and packaged icon family use the same black transparent source at `apps/desktop/src/icon.svg`. `scripts/gen-icons.mjs` emits 16, 32, 48, 256, and 512 pixel PNG-backed assets; the splash uses the SVG on a light neutral backing shape for contrast.
 
@@ -110,7 +110,7 @@ The shell installs the dsh-desktop-bridge packages into the web profile as plain
 
 Bridge host routes (under /dsh-bridge):
 
-- `GET /config` — the effective desktop settings (close-to-tray, debug mode), read per request so settings-page saves take effect immediately.
+- `GET /config` — the effective desktop settings (close-to-tray, debug mode, and Logo hover motion), read per request so settings-page saves take effect immediately.
 - `POST /policy` — persist desktop settings through the runtime's settings seam ($DSH_HOME/settings.yaml). The dsh configuration boundary refuses browser writes to non-listed namespaces, so the settings rows save through this route instead of the client settingsScope.
 - `GET /balance` — the title bar's balance pill: resolves the DeepSeek key through the credentials service and proxies the official /user/balance endpoint (see "Custom title bar").
 - `GET /worktree/explorer` — lists one bounded directory level for a registered Workspace; the request accepts only a Workspace id and a Workspace-relative path, and the response marks truncation and paths resolved outside the Workspace.
@@ -119,10 +119,11 @@ The bridge client half owns the shell-side behaviors on the page: the drag-drop 
 
 ## Desktop settings, tray, and close behavior
 
-The dsh settings page's 桌面设置 (Desktop) section (registered by the bridge client) hosts two rows, both persisted through the bridge host route:
+The dsh settings page's 桌面设置 (Desktop) section (registered by the bridge client) hosts three rows, all persisted through the bridge host route:
 
 - 关闭按钮行为 (Close button behavior): an explicit choice between closing and exiting the application or hiding the window while retaining it in the system tray. The retained runtime keeps serving and sessions keep running; the tray menu's 退出 stops the runtime child and terminates the app.
-- 调试模式 (Debug mode): unchanged — while off, right-click and devtools shortcuts are suppressed, and the shell flips WebView2's AreDevToolsEnabled.
+- 调试模式 (Debug mode): while off, right-click and devtools shortcuts are suppressed, and the shell flips WebView2's AreDevToolsEnabled.
+- 新会话 Logo 动效 (New-session Logo animation): an explicit opt-in for the centered fish Logo hover animation; enabling it overrides the system reduced-motion preference for this cue only.
 
 Both settings are stored in the bridge settings namespace ($DSH_HOME/settings.yaml, same seam as every other setting), with static fallbacks in the bridge row config:
 
@@ -130,6 +131,7 @@ Both settings are stored in the bridge settings namespace ($DSH_HOME/settings.ya
       config:
         closeToTray: false
         debugMode: false
+        logoMotion: false
 
 The close-to-tray value lives in the runtime, but the close interception happens in the shell: the bridge client mirrors the durable value into Rust via the `set_close_to_tray` command on boot and on every settings change, and the main window's `CloseRequested` handler hides instead of closing while it is set.
 

@@ -96,6 +96,15 @@
   }
 }
 
+/* Desktop exposes an explicit opt-in for this small, nonessential cue. It is
+   scoped to the shell-owned root attribute, so browser users keep the system
+   reduced-motion behavior unless the desktop setting is enabled. */
+@media (hover: hover) {
+  :global(html[data-dsh-logo-motion]) .fishHitbox:hover .fish {
+    animation: hero-fish-swim var(--ds-transition-duration-slow) var(--ds-ease-in-out);
+  }
+}
+
 /* Workspace row sits 12px above the input card (figma y80 → y112). The blue
    glow lives with the owner (ConversationRoot .heroGlow) so it can center on
    the input card. */

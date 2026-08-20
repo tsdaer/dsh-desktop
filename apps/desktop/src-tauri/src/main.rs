@@ -24,6 +24,7 @@ use base64::Engine as _;
 use sysinfo::{Pid, System};
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use tauri::webview::PageLoadEvent;
 use tauri::{DragDropEvent, Emitter, Manager, Url, WebviewWindow, WindowEvent};
 use tauri_plugin_opener::OpenerExt;
 
@@ -517,7 +518,18 @@ fn reg_add(base: &str, args: &[&str]) -> std::io::Result<()> {
 }
 
 fn main() {
+    let titlebar_version = env!("CARGO_PKG_VERSION").to_owned();
     tauri::Builder::default()
+        .on_page_load(move |webview, payload| {
+            if webview.label() != "main" || payload.event() != PageLoadEvent::Finished {
+                return;
+            }
+            let script = titlebar_script(&titlebar_version);
+            match webview.eval(&script) {
+                Ok(()) => println!("[dsh-desktop] title bar injected after page load"),
+                Err(err) => eprintln!("[dsh-desktop] title bar injection failed: {err}"),
+            }
+        })
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
             if enqueue_open_path(app, &args) {
                 show_main_window(app);
@@ -1084,13 +1096,6 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
                                     fail(&handle, "window is gone; cannot navigate");
                                     return;
                                 }
-                                // Inject the custom title bar once the dsh page
-                                // settles; the script is idempotent, so retries
-                                // are safe. The app version rides along as a
-                                // window global (titlebar.js renders the badge).
-                                let version = handle.package_info().version.to_string();
-                                let inject = window.clone();
-                                std::thread::spawn(move || inject_titlebar(&inject, &version));
                                 return;
                             }
                             Err(err) => {
@@ -1122,32 +1127,16 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
     }
 }
 
-/// Inject the shared title bar script (apps/desktop/src/titlebar.js) into the
-/// loaded page. The script is idempotent and self-guarded, so it can be
-/// evaluated repeatedly while the webview finishes navigation. The version
-/// global is prepended rather than baked into the file so the loading page
-/// (a plain <script src="titlebar.js">, no global) keeps rendering the bare
-/// title.
-fn inject_titlebar(window: &WebviewWindow, version: &str) {
-    let script = format!(
+/// Build the shared title bar script (apps/desktop/src/titlebar.js) for a
+/// completed main-window page load. The version global is prepended rather
+/// than baked into the file so the loading page (a plain `<script
+/// src="titlebar.js">`, no global) keeps rendering the bare title.
+fn titlebar_script(version: &str) -> String {
+    format!(
         "window.__DSH_DESKTOP_VERSION__ = {};{}",
         js_string(version),
         include_str!("../../src/titlebar.js"),
-    );
-    let started = Instant::now();
-    let mut last_ok = false;
-    while started.elapsed() < Duration::from_secs(20) {
-        match window.eval(&script) {
-            Ok(()) => {
-                if !last_ok {
-                    println!("[dsh-desktop] title bar injected");
-                }
-                last_ok = true;
-            }
-            Err(_) => last_ok = false,
-        }
-        std::thread::sleep(Duration::from_millis(250));
-    }
+    )
 }
 
 /// Report a boot failure: emit it to the splash checklist and, for failures

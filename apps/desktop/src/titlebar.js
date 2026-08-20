@@ -158,11 +158,15 @@
   };
   var loadEmojiByTier = { unknown: '▫️', calm: '🌿', active: '⚡', busy: '🔥', saturated: '🟥' };
   var isZh = (document.documentElement.lang || '').toLowerCase().indexOf('zh') === 0;
+  var activeApiState = 'checking';
+  var activeWorkloadTier = 'unknown';
+  var balanceLabels = ['刷新余额', 'Refresh balance'];
 
   function localized(pair) { return isZh ? pair[0] : pair[1]; }
 
   function applyApiState(state) {
     if (!apiLabels[state]) state = 'unavailable';
+    activeApiState = state;
     apiStatus.className = 'bar-api-status ' + state;
     apiLabel.textContent = localized(apiLabels[state]);
     apiStatus.setAttribute('aria-label', localized(apiLabels[state]));
@@ -170,10 +174,30 @@
 
   function applyWorkload(data) {
     var tier = data && typeof data.tier === 'string' && loadLabels[data.tier] ? data.tier : 'unknown';
+    activeWorkloadTier = tier;
     loadEmoji.textContent = loadEmojiByTier[tier];
     loadLabel.textContent = localized(loadLabels[tier]);
     load.setAttribute('aria-label', localized(loadLabels[tier]));
   }
+
+  // The locale plugin resolves a stored preference asynchronously and updates
+  // <html lang> after this shell script can already have run. Keep the
+  // title-bar copy in step with that authoritative document attribute.
+  function syncLocale() {
+    isZh = (document.documentElement.lang || '').toLowerCase().indexOf('zh') === 0;
+    applyApiState(activeApiState);
+    applyWorkload({ tier: activeWorkloadTier });
+    balance.title = localized(balanceLabels);
+    balance.setAttribute('aria-label', localized(balanceLabels));
+  }
+
+  if (typeof MutationObserver === 'function') {
+    new MutationObserver(syncLocale).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['lang']
+    });
+  }
+  syncLocale();
 
   function formatBalance(currency, total) {
     var symbol = CURRENCY_SYMBOLS[currency] || (currency + ' ');

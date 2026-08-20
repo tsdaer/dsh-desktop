@@ -74,13 +74,13 @@ main.rs 的环境变量接线:DSH_CLI/DSH_NODE/DSH_BARE_MODULE_BASE/DSH_BRIDGE_T
 
 ## 自定义标题栏
 
-窗口是无边框的;标题栏是一个注入的元素,其源码是 apps/desktop/src/titlebar.js —— 加载页通过 script 标签加载,导航后在 dsh web 页里再注入(main.rs 用 include_str! 内嵌该文件,幂等重试)。
+窗口是无边框的;标题栏是一个注入的元素,其源码是 apps/desktop/src/titlebar.js —— 加载页通过 script 标签加载,主 webview 每次页面完成加载后都会重新注入(main.rs 用 include_str! 内嵌该文件,脚本本身幂等)。API、负载和余额文案跟随实时的 `<html lang>` 值,因此异步解析语言偏好不会让桌面 chrome 停留在旧语言。
 
 主题跟随:标题栏消费 ui-theme 写在 <body> 上的 dsh 主题 token —— 背景取 sidebar-fill token(--dsw-specific-sidebar-fill,ui-theme 文档化为标题行背景),其余取 --dsw-alias-* 集合;在 dsh 设置里切换主题(或系统深色模式)会自动重绘标题栏,壳子侧无状态。窗口控制走 remote 能力(capabilities/remote.json,URLPattern `http://127.0.0.1:*`);拖动用 startDragging();双击拖拽条像按钮一样切换最大化(若以其它方式进入全屏,拖动前会先恢复)。
 
 标题左侧、应用标题旁边显示版本徽标:main.rs 在 eval 脚本前先写入 `window.__DSH_DESKTOP_VERSION__` 全局变量(取值来自 tauri.conf.json 的版本号,由 package.json 同步而来),因此徽标始终显示打包应用版本;加载页没有该全局变量,只渲染标题本身。
 
-标题右侧(窗口控制按钮之前)显示 API 状态、本地应用负载和 DeepSeek 账户余额。API 状态为 `checking`、`connected`、`unavailable` 或 `unconfigured`;桥接 host 从同一条凭据安全的 `/dsh-bridge/balance` 请求派生状态,API key 永不进入浏览器。余额控件支持点击刷新,会去重进行中的请求,向辅助技术暴露 `aria-busy`,每 5 分钟轮询一次并在窗口可见时刷新;首次成功读取前保持隐藏,刷新失败时保留上次金额。原生 `runtime_status` 命令以低频率采样桌面进程及其管理的运行时子进程,只返回 `unknown`、`calm`、`active`、`busy` 或 `saturated`;非对称阈值与四秒最短停留时间避免快速变化。emoji 带本地化文本标签,采样不可用时显示中性状态。
+标题右侧(窗口控制按钮之前)显示 API 状态、本地应用负载和 DeepSeek 账户余额。API 状态为 `checking`、`connected`、`unavailable` 或 `unconfigured`;桥接 host 从同一条凭据安全的 `/dsh-bridge/balance` 请求派生状态,API key 永不进入浏览器。余额控件支持点击刷新,会去重进行中的请求,向辅助技术暴露 `aria-busy`,每 5 分钟轮询一次并在窗口可见时刷新;首次成功读取前保持隐藏,刷新失败时保留上次金额。原生 `runtime_status` 命令以低频率采样桌面进程及其管理的运行时子进程,只返回 `unknown`、`calm`、`active`、`busy` 或 `saturated`;非对称阈值与四秒最短停留时间避免快速变化。emoji 带本地化文本标签,采样不可用时显示中性状态。更新器会在 `locale/change` 后重建,因此状态和确认文案也跟随同一语言偏好。
 
 启动界面与打包图标系列共用 `apps/desktop/src/icon.svg` 中的黑色透明源资产。`scripts/gen-icons.mjs` 生成 16、32、48、256 和 512 像素的 PNG 资产,启动界面在浅色中性承托形状上显示该 SVG 以保持对比度。
 
@@ -110,7 +110,7 @@ OS 文件拖放由壳子经 Tauri 的拖放处理器接管(`onDragDropEvent`,默
 
 桥接 host 路由(/dsh-bridge 之下):
 
-- `GET /config` —— 生效的桌面设置(关闭到托盘、调试模式),按请求读取,设置页保存后立即生效。
+- `GET /config` —— 生效的桌面设置(关闭到托盘、调试模式、新会话 Logo 动效),按请求读取,设置页保存后立即生效。
 - `POST /policy` —— 通过运行时的设置接缝($DSH_HOME/settings.yaml)持久化桌面设置。dsh 配置边界拒绝浏览器写入未列出的命名空间,因此设置行经此路由保存,而不是走 client 的 settingsScope。
 - `GET /balance` —— 标题栏余额药丸:经凭据服务解析 DeepSeek key 并代理官方 /user/balance 接口(见“自定义标题栏”)。
 - `GET /worktree/explorer` —— 为已注册 Workspace 列出一层有界目录；请求只接受 Workspace id 和 Workspace-relative path，响应明确标记截断以及解析后越出 Workspace 的路径。
@@ -119,10 +119,11 @@ OS 文件拖放由壳子经 Tauri 的拖放处理器接管(`onDragDropEvent`,默
 
 ## 桌面设置、托盘与关闭行为
 
-dsh 设置页的 桌面设置 分区(由桥接 client 注册)有两行,都经桥接 host 路由持久化:
+dsh 设置页的 桌面设置 分区(由桥接 client 注册)有三行,都经桥接 host 路由持久化:
 
 - 关闭按钮行为:明确选择直接关闭并退出程序,或隐藏窗口并保留在系统托盘。保留的运行时继续服务,会话继续运行;托盘菜单的 退出 会停掉运行时子进程并结束应用。
-- 调试模式:行为不变 —— 关闭时禁用右键菜单与 F12 等调试快捷键,壳子同时翻转 WebView2 的 AreDevToolsEnabled。
+- 调试模式:关闭时禁用右键菜单与 F12 等调试快捷键,壳子同时翻转 WebView2 的 AreDevToolsEnabled。
+- 新会话 Logo 动效:显式开启新会话页面中间鱼形 Logo 的悬停动效;只对这一个动效覆盖系统的减少动态效果偏好。
 
 两个设置都存在桥接设置命名空间($DSH_HOME/settings.yaml,与其它设置同一接缝),静态回退在桥接行配置里:
 
@@ -130,6 +131,7 @@ dsh 设置页的 桌面设置 分区(由桥接 client 注册)有两行,都经桥
       config:
         closeToTray: false
         debugMode: false
+        logoMotion: false
 
 关闭到托盘的值存放在运行时,但关闭拦截发生在壳子:桥接 client 在启动时与每次设置变更时,把持久化的值经 `set_close_to_tray` 命令镜像进 Rust;主窗口的 `CloseRequested` 处理器在该值开启时隐藏而非关闭。
 

@@ -1,5 +1,6 @@
 import { BridgeCloseRow } from './BridgeCloseRow.tsx'
 import { BridgeDebugRow } from './BridgeDebugRow.tsx'
+import { BridgeLogoMotionRow } from './BridgeLogoMotionRow.tsx'
 import css from './BridgeRow.module.css'
 import { BridgeSection } from './BridgeSection.tsx'
 import { createDesktopWorkspaceWorkbench } from './DesktopWorkspaceWorkbench.tsx'
@@ -70,6 +71,7 @@ interface BridgeClientContext {
   workspaces: WorkspacesLike
   slots: SlotsLike
   locale: LocaleLike
+  on(event: 'locale/change', listener: (snapshot: unknown) => void): () => void
 }
 
 /** Minimal view of the injected Tauri APIs (withGlobalTauri). */
@@ -126,6 +128,9 @@ let bound = false
 // set_debug_mode command.
 let debugMode = false
 
+/** Root attribute consumed by the shared hero CSS for the explicit desktop override. */
+const LOGO_MOTION_ATTRIBUTE = 'data-dsh-logo-motion'
+
 /** Devtools-relevant shortcut keys (F12, Ctrl+Shift+I/J/C, Ctrl+U, Ctrl+S). */
 const DEVTOOLS_KEYS = new Set(['f12', 'i', 'j', 'c', 'u', 's'])
 
@@ -166,6 +171,11 @@ function applyCloseToTray(enabled: boolean): void {
       /* shell command unavailable (plain browser dev): no close interception */
     })
   }
+}
+
+/** Apply the explicit desktop Logo-motion preference to the shared page. */
+function applyLogoMotion(enabled: boolean): void {
+  document.documentElement.toggleAttribute(LOGO_MOTION_ATTRIBUTE, enabled)
 }
 
 /**
@@ -424,19 +434,24 @@ export function apply(ctx: BridgeClientContext): () => void {
   bound = true
   const offLocale = ctx.locale.register(NS, { zh, en })
   const t = ctx.locale.bind(NS)
-  const disposeUpdater = mountDesktopUpdater({
+  const updaterLabels = () => ({
     checking: t('updater.checking'),
     upToDate: t('updater.upToDate'),
-    available: version => t('updater.available').replace('{version}', version),
-    downloading: percent => t('updater.downloading').replace('{percent}', percent === undefined ? '…' : ` ${percent}%`),
-    ready: version => t('updater.ready').replace('{version}', version),
+    available: (version: string) => t('updater.available').replace('{version}', version),
+    downloading: (percent: number | undefined) => t('updater.downloading').replace('{percent}', percent === undefined ? '…' : ` ${percent}%`),
+    ready: (version: string) => t('updater.ready').replace('{version}', version),
     networkFailure: t('updater.networkFailure'),
     manifestFailure: t('updater.manifestFailure'),
     verificationFailure: t('updater.verificationFailure'),
     installFailure: t('updater.installFailure'),
     unknownFailure: t('updater.unknownFailure'),
-    confirmDownload: version => t('updater.confirmDownload').replace('{version}', version),
-    confirmInstall: version => t('updater.confirmInstall').replace('{version}', version),
+    confirmDownload: (version: string) => t('updater.confirmDownload').replace('{version}', version),
+    confirmInstall: (version: string) => t('updater.confirmInstall').replace('{version}', version),
+  })
+  let disposeUpdater = mountDesktopUpdater(updaterLabels())
+  const offLocaleChange = ctx.on('locale/change', () => {
+    disposeUpdater()
+    disposeUpdater = mountDesktopUpdater(updaterLabels())
   })
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
@@ -444,7 +459,11 @@ export function apply(ctx: BridgeClientContext): () => void {
     order: 100,
     label: () => t('section.nav'),
     locale: NS,
-    children: { 'settings.bridge.item': { kind: 'list', scope: 'root' }, 'settings.bridge.item2': { kind: 'list', scope: 'root' } },
+    children: {
+      'settings.bridge.item': { kind: 'list', scope: 'root' },
+      'settings.bridge.item2': { kind: 'list', scope: 'root' },
+      'settings.bridge.item3': { kind: 'list', scope: 'root' },
+    },
   }, BridgeSection))
   ctx.slots.inject('settings.bridge.item', () => ctx.slots.register({
     name: 'settings.bridge.item',
@@ -465,6 +484,13 @@ export function apply(ctx: BridgeClientContext): () => void {
     // inject must be a factory: the renderer calls it per entry.
     inject: () => ({ onDebugMode: applyDebugMode }),
   }, BridgeDebugRow))
+  ctx.slots.inject('settings.bridge.item3', () => ctx.slots.register({
+    name: 'settings.bridge.item3',
+    id: 'bridge-logo-motion',
+    order: 0,
+    locale: NS,
+    inject: () => ({ onLogoMotion: applyLogoMotion }),
+  }, BridgeLogoMotionRow))
   ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
     name: 'sidebar.footer.action',
     id: 'desktop-workspace-workbench',
@@ -472,10 +498,12 @@ export function apply(ctx: BridgeClientContext): () => void {
     locale: NS,
   }, createDesktopWorkspaceWorkbench(ctx.workspaces, ctx.sessions)))
   // Shell wiring at bind: read the stored desktop settings and mirror them
-  // into the shell (close-to-tray interception, WebView2 devtools).
+  // into the shell (close-to-tray interception, WebView2 devtools, and Logo motion).
+  applyLogoMotion(false)
   void fetch('/dsh-bridge/config').then(r => r.json()).then((c) => {
     if (typeof c.closeToTray === 'boolean') applyCloseToTray(c.closeToTray)
     if (typeof c.debugMode === 'boolean') applyDebugMode(c.debugMode)
+    applyLogoMotion(c.logoMotion === true)
   }).catch(() => { /* keep the defaults (real exit, debug off) */ })
   // OS drops: the shell intercepts them (real paths) and hands them here.
   let disposed = false
@@ -552,6 +580,7 @@ export function apply(ctx: BridgeClientContext): () => void {
     if (retryOpenPath !== undefined) clearTimeout(retryOpenPath)
     offDragDrop?.()
     offOpenPath?.()
+    offLocaleChange()
     offLocale()
     disposeUpdater()
     hideDropOverlay()

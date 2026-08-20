@@ -4,7 +4,7 @@
 // cross-package build deps.
 
 interface BridgeSectionProps {
-  renderSlot(name: 'settings.bridge.item' | 'settings.bridge.item2', params: Record<string, unknown>): React.ReactNode
+  renderSlot(name: 'settings.bridge.item' | 'settings.bridge.item2' | 'settings.bridge.item3', params: Record<string, unknown>): React.ReactNode
 }
 
 /**
@@ -17,7 +17,8 @@ export function BridgeSection({ renderSlot }: BridgeSectionProps) {
     <div>
       {renderSlot('settings.bridge.item', {})}
       {renderSlot('settings.bridge.item2', {})}
-      <style>{'div[data-slot=\'settings.bridge.item\'] > :last-child, div[data-slot=\'settings.bridge.item2\'] > :last-child { border-bottom: none; }'}</style>
+      {renderSlot('settings.bridge.item3', {})}
+      <style>{'div[data-slot=\'settings.bridge.item\'] > :last-child, div[data-slot=\'settings.bridge.item2\'] > :last-child, div[data-slot=\'settings.bridge.item3\'] > :last-child { border-bottom: none; }'}</style>
     </div>
   )
 }

@@ -15,6 +15,7 @@
   config:
     closeToTray: false
     debugMode: false
+    logoMotion: false
     explorerMaxEntries: 256
     explorerMaxBytes: 131072
     explorerTimeoutMs: 5000
