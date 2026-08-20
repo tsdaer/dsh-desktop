@@ -85,7 +85,7 @@ describe('coverage partition coordinator', () => {
     const coordinator = new CoveragePartitionCoordinator({
       root,
       partitions: 3,
-      pnpmEntrypoint: '/pnpm.cjs',
+      packageManager: { command: process.execPath, args: ['/pnpm.cjs'] },
       vitestArgs: ['--testTimeout=30000'],
       runCommand,
     })
@@ -135,7 +135,7 @@ describe('coverage partition coordinator', () => {
     const coordinator = new CoveragePartitionCoordinator({
       root,
       partitions: 2,
-      pnpmEntrypoint: '/pnpm.cjs',
+      packageManager: { command: process.execPath, args: ['/pnpm.cjs'] },
       runCommand,
     })
 
@@ -156,7 +156,7 @@ describe('coverage partition coordinator', () => {
     const coordinator = new CoveragePartitionCoordinator({
       root,
       partitions: 2,
-      pnpmEntrypoint: '/pnpm.cjs',
+      packageManager: { command: process.execPath, args: ['/pnpm.cjs'] },
       runCommand,
     })
 
@@ -176,7 +176,7 @@ describe('coverage partition coordinator', () => {
     const coordinator = new CoveragePartitionCoordinator({
       root,
       partitions: 2,
-      pnpmEntrypoint: '/pnpm.cjs',
+      packageManager: { command: process.execPath, args: ['/pnpm.cjs'] },
       runCommand,
     })
 
@@ -199,7 +199,7 @@ describe('coverage partition coordinator', () => {
     const coordinator = new CoveragePartitionCoordinator({
       root,
       partitions: 2,
-      pnpmEntrypoint: '/pnpm.cjs',
+      packageManager: { command: process.execPath, args: ['/pnpm.cjs'] },
       runCommand,
     })
 
@@ -222,7 +222,7 @@ describe('coverage partition coordinator', () => {
     const coordinator = new CoveragePartitionCoordinator({
       root,
       partitions: 2,
-      pnpmEntrypoint: '/pnpm.cjs',
+      packageManager: { command: process.execPath, args: ['/pnpm.cjs'] },
       runCommand,
     })
 

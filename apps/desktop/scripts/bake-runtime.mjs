@@ -41,7 +41,11 @@ const webDist = resolve(repoRoot, 'apps/web/dist/index.html');
 const TARGET_TRIPLE = 'win32-x64';
 
 const args = process.argv.slice(2);
-const deployDir = flag(args, '--dir') ?? defaultDeployDir;
+// Resolve once against the repository, never against the ambient cwd: a
+// relative --dir would otherwise plant a deploy tree wherever the command
+// happened to run from, and `pnpm deploy` creates every missing parent.
+const deployDirArg = flag(args, '--dir');
+const deployDir = deployDirArg === undefined ? defaultDeployDir : resolve(repoRoot, deployDirArg);
 const skipDeploy = args.includes('--no-deploy');
 const maxBakeRounds = 10;
 

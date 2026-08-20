@@ -2,6 +2,7 @@
 import { spawn } from 'node:child_process'
 import { lstat, mkdir, readdir, rm, unlink } from 'node:fs/promises'
 import { join, relative, sep } from 'node:path'
+import type { PackageManagerInvocation } from './package-manager.ts'
 
 /** Environment variable selecting the number of instrumented coverage processes. */
 export const COVERAGE_PARTITIONS_ENV = 'DSH_COVERAGE_PARTITIONS'
@@ -16,7 +17,9 @@ export const COVERAGE_TEST_TIMEOUT_ENV = 'DSH_COVERAGE_TEST_TIMEOUT_MS'
 export interface CoverageCommand {
   /** Diagnostic identity. */
   label: string
-  /** Node arguments; the first argument is pnpm's JavaScript entrypoint. */
+  /** Executable to spawn. */
+  command: string
+  /** Complete argument list for {@link CoverageCommand.command}. */
   args: string[]
   /** Environment additions for the child. */
   env: Record<string, string | undefined>
@@ -47,8 +50,8 @@ export interface CoveragePartitionCoordinatorOptions {
   root: string
   /** Number of concurrent single-worker Vitest processes. */
   partitions: number
-  /** pnpm JavaScript entrypoint from `npm_execpath`. */
-  pnpmEntrypoint: string
+  /** Package-manager invocation each partition re-enters. */
+  packageManager: PackageManagerInvocation
   /** Additional arguments shared by every partition. */
   vitestArgs?: string[]
   /** Child executor, injectable for scheduler tests. */
@@ -84,7 +87,7 @@ export function forwardedCoverageArgs(args: readonly string[]): string[] {
 export class CoveragePartitionCoordinator {
   private readonly root: string
   private readonly partitions: number
-  private readonly pnpmEntrypoint: string
+  private readonly packageManager: PackageManagerInvocation
   private readonly vitestArgs: string[]
   private readonly runCommand: CoverageCommandRunner
   private readonly temporaryRoot: string
@@ -97,7 +100,7 @@ export class CoveragePartitionCoordinator {
     }
     this.root = options.root
     this.partitions = options.partitions
-    this.pnpmEntrypoint = options.pnpmEntrypoint
+    this.packageManager = options.packageManager
     this.vitestArgs = options.vitestArgs ?? []
     this.runCommand = options.runCommand ?? runCoverageCommand
     this.temporaryRoot = join(this.root, 'coverage', '.partitioned')
@@ -144,8 +147,9 @@ export class CoveragePartitionCoordinator {
     const reportsDirectory = join(this.temporaryRoot, `coverage-${index}`)
     return {
       label: `partition ${index}/${this.partitions}`,
+      command: this.packageManager.command,
       args: [
-        this.pnpmEntrypoint,
+        ...this.packageManager.args,
         'exec',
         'vitest',
         'run',
@@ -171,8 +175,9 @@ export class CoveragePartitionCoordinator {
   private mergeCommand(): CoverageCommand {
     return {
       label: 'merged coverage report',
+      command: this.packageManager.command,
       args: [
-        this.pnpmEntrypoint,
+        ...this.packageManager.args,
         'exec',
         'vitest',
         `--merge-reports=${this.relativePath(this.blobsRoot)}`,
@@ -213,7 +218,7 @@ function runCoverageCommand(command: CoverageCommand): Promise<CoverageCommandRe
       if (value === undefined) Reflect.deleteProperty(env, name)
       else env[name] = value
     }
-    const child = spawn(process.execPath, command.args, {
+    const child = spawn(command.command, command.args, {
       cwd: command.cwd,
       env,
       stdio: ['ignore', 'pipe', 'pipe'],
