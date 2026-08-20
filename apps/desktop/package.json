@@ -13,6 +13,7 @@
     "size-check": "node scripts/size-report.mjs --check",
     "icons:check": "node scripts/gen-icons.mjs --check",
     "sync-version": "node scripts/sync-version.mjs",
+    "version-check": "node scripts/sync-version.mjs --check",
     "bundle": "node scripts/sync-version.mjs && node scripts/gen-icons.mjs --check && node scripts/build-bridge.mjs && pnpm exec tsc -p tsconfig.json && pnpm exec tsc -p bridge-client/tsconfig.tests.json && pnpm exec vitest --config bridge-client/vitest.config.ts run && node scripts/bake-runtime.mjs && node scripts/fetch-node-sidecar.mjs && tauri build --ci"
   },
   "devDependencies": {

@@ -1,8 +1,8 @@
 # Build the dsh-desktop NSIS installer only for an explicit release tag. A
 # manual run must select the same tag, so rebuilt assets cannot drift from the
 # source named by the Release. The validated version comes from package.json
-# and must match Cargo.toml, tauri.conf.json, the vX.Y.Z tag, and the Chinese
-# Changelog section before the Windows build starts.
+# and must match tauri.conf.json, Cargo.toml, Cargo.lock, the vX.Y.Z tag, and
+# the Chinese Changelog section before the Windows build starts.
 name: Draft desktop release
 
 on:
@@ -29,11 +29,10 @@ jobs:
         shell: pwsh
         run: |
           $PackageVersion = node -p 'require("./apps/desktop/package.json").version'
-          $TauriVersion = node -p 'require("./apps/desktop/src-tauri/tauri.conf.json").version'
-          $CargoVersion = node -p 'require("node:fs").readFileSync("apps/desktop/src-tauri/Cargo.toml", "utf8").match(/^version = "([^"]+)"/m)[1]'
           $ExpectedTag = "v${PackageVersion}"
-          if ($PackageVersion -ne $TauriVersion -or $PackageVersion -ne $CargoVersion) {
-            throw "desktop versions disagree: package=${PackageVersion}, tauri=${TauriVersion}, cargo=${CargoVersion}"
+          node apps/desktop/scripts/sync-version.mjs --check
+          if ($LASTEXITCODE -ne 0) {
+            throw 'desktop version sources disagree with package.json; see the sync-version output above'
           }
           if ($env:GITHUB_REF_TYPE -ne 'tag' -or $env:GITHUB_REF_NAME -ne $ExpectedTag) {
             throw "desktop release must run from tag ${ExpectedTag}; selected ref is $($env:GITHUB_REF)"
