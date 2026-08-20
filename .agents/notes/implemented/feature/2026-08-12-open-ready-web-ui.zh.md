@@ -10,7 +10,7 @@ Status: implemented
 
 ## Decision
 
-Web 应用的命令提供方为普通调用解析出 `openBrowser: true`，为 `--no-open` 解析出 `false`。组合包把该值传给自己的 `web-runtime` 行；部署仍可显式替换该行的完整配置。运行时在激活期间对继承的 `SSH_CONNECTION` 与 `SSH_TTY` 采样一次，只要其中一项非空就会跳过浏览器交接，因为此时进程提供的是远端宿主机 loopback，而用户的本地转发地址由 SSH 客户端或编辑器持有。
+Web 应用的命令提供方为普通调用解析出 `openBrowser: true`，为 `--no-open` 解析出 `false`。组合包把该值传给自己的 `web-runtime` 行；部署仍可显式替换该行的完整配置。dsh-desktop 壳子会向它 spawn 的运行时传入 `--no-open`，因为显示页面的窗口由壳子自己持有。运行时在激活期间对继承的 `SSH_CONNECTION` 与 `SSH_TTY` 采样一次，只要其中一项非空就会跳过浏览器交接，因为此时进程提供的是远端宿主机 loopback，而用户的本地转发地址由 SSH 客户端或编辑器持有。
 
 Web 运行时把 URL 打印与浏览器打开作为同一就绪点上的两个独立动作。它等待完整 Loader 配置树结算，并确认 `webServer` 仍在线，然后打印已配置的 URL 行；非 SSH 环境下还会在把规范 loopback URL 交给操作系统默认浏览器之前立即打印英文提示 `dsh web: opening the default browser; pass --no-open to disable`。SSH 启动会保留宿主机 URL 行，以便操作者识别远端端口，但进程无法推导或打开转发持有方的本地地址。部署显式绑定所有网络接口时，本机仍打开 loopback，打印出的 LAN URL 只用于告知；CLI 会拒绝 `--host 0.0.0.0`。`openBrowser` 与 `printUrl` 可以分别关闭。
 

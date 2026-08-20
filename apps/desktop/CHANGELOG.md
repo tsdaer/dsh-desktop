@@ -4,6 +4,10 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+### Fixed
+
+- Launching the app no longer hands the served URL to the system default browser: the shell passes `--no-open` to its spawned `dsh web` runtime because the shell owns the window that shows the page.
+
 ## [0.3.2] - 2026-08-20
 
 ## [0.3.1] - 2026-08-19

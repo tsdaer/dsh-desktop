@@ -43,7 +43,7 @@
     # or, after a workspace install:
     pnpm --filter @deepseek-ai/dsh-desktop dev
 
-dev 启动器把 DSH_CLI 设为构建出的 apps/cli/lib/bin.js;DSH_NODE 默认取 PATH 上的 'node'。壳子 spawn 'dsh web --port 0'(OS 分配的空闲端口)并从运行时 stdout 解析就绪行。
+dev 启动器把 DSH_CLI 设为构建出的 apps/cli/lib/bin.js;DSH_NODE 默认取 PATH 上的 'node'。壳子 spawn 'dsh web --port 0 --no-open'(OS 分配的空闲端口)并从运行时 stdout 解析就绪行;`--no-open` 阻止 web profile 把 URL 交给系统默认浏览器,因为壳子会导航自己的窗口到该 URL。
 
 ## 打包(本地安装器)
 

@@ -1,9 +1,11 @@
 //! dsh-desktop — a minimal Tauri 2 shell that hosts the 'dsh web' profile.
 //!
-//! The shell spawns a Node process running the dsh CLI ('<cli> web --port 0'),
-//! waits for the readiness URL line the web profile prints once its Loader
-//! tree settles, and navigates the window to that URL. The runtime is resolved
-//! from the environment:
+//! The shell spawns a Node process running the dsh CLI ('<cli> web --port 0
+//! --no-open'), waits for the readiness URL line the web profile prints once
+//! its Loader tree settles, and navigates the window to that URL. The
+//! `--no-open` flag suppresses the web profile's default-browser handoff: the
+//! shell owns the window that shows the page, so a system browser tab would
+//! duplicate it. The runtime is resolved from the environment:
 //!
 //! - 'DSH_NODE' — the Node executable (default: 'node' from PATH)
 //! - 'DSH_CLI' — the dsh CLI entry, e.g. 'apps/cli/lib/bin.js' (required)
@@ -979,6 +981,22 @@ fn splash_open_webview2_download(app: tauri::AppHandle) {
     }
 }
 
+/// The web-profile arguments the shell hands the spawned CLI: boot the web
+/// profile, apply the bridge patches, bind an OS-assigned port, and suppress
+/// the default-browser handoff — the shell navigates its own window to the
+/// served page.
+fn web_profile_args(patches: &[String]) -> Vec<String> {
+    let mut args = vec!["web".to_owned()];
+    for patch in patches {
+        args.push("--patch".to_owned());
+        args.push(patch.clone());
+    }
+    args.push("--port".to_owned());
+    args.push("0".to_owned());
+    args.push("--no-open".to_owned());
+    args
+}
+
 /// Spawn the dsh runtime, wait for readiness, and navigate the window.
 fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
     if paths.cli.is_empty() {
@@ -994,16 +1012,16 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
     push_status(&handle, "bridge", "ok", "桥接包就绪", None);
 
     push_status(&handle, "boot", "running", "启动 dsh 服务", None);
+    let args = web_profile_args(&patches);
     splash_log(&format!(
-        "boot: spawning `{} {} web --port 0` module_base={:?}",
-        paths.node, paths.cli, paths.module_base
+        "boot: spawning `{} {} {}` module_base={:?}",
+        paths.node,
+        paths.cli,
+        args.join(" "),
+        paths.module_base
     ));
     let mut cmd = Command::new(&paths.node);
-    cmd.arg(&paths.cli).arg("web");
-    for patch in &patches {
-        cmd.arg("--patch").arg(patch);
-    }
-    cmd.arg("--port").arg("0");
+    cmd.arg(&paths.cli).args(&args);
     if let Some(module_base) = &paths.module_base {
         cmd.env("DSH_BARE_MODULE_BASE", module_base);
     }
@@ -1025,8 +1043,10 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
             fail(
                 &handle,
                 &format!(
-                    "failed to spawn `{} {} web --port 0`: {err}",
-                    paths.node, paths.cli
+                    "failed to spawn `{} {} {}`: {err}",
+                    paths.node,
+                    paths.cli,
+                    args.join(" ")
                 ),
             );
             return;
@@ -1181,6 +1201,24 @@ mod tests {
         assert_eq!(tier_for_pressure(30.0), WorkloadTier::Active);
         assert_eq!(tier_for_pressure(60.0), WorkloadTier::Busy);
         assert_eq!(tier_for_pressure(85.0), WorkloadTier::Saturated);
+    }
+
+    #[test]
+    fn web_profile_args_suppress_the_default_browser_handoff() {
+        let args = web_profile_args(&["one.yml".to_owned(), "two.yml".to_owned()]);
+        assert_eq!(
+            args,
+            [
+                "web",
+                "--patch",
+                "one.yml",
+                "--patch",
+                "two.yml",
+                "--port",
+                "0",
+                "--no-open",
+            ],
+        );
     }
 
     #[test]

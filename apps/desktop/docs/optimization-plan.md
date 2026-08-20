@@ -136,7 +136,7 @@ Rust 启动后按序执行，逐项通过 `emit("splash://status", { step, statu
 | 7 | `DEEPSEEK_API_KEY` / 凭证存在 | warn | “可稍后在设置里配置”，不阻塞 |
 | 8 | 桥接包可复制进 profile | error | 复用现有 `ensure_bridge` 结果 |
 
-通过后进入“运行时引导”阶段：复用 `boot()` 的 `spawn node <cli> web --port 0` + 等待 `dsh web:` 就绪行，把进度映射成进度条。就绪 → `main_window.show()` + `splashscreen.close()`；失败 → splash 显示错误 + 可操作建议 + “重试/仍然继续”。
+通过后进入“运行时引导”阶段：复用 `boot()` 的 `spawn node <cli> web --port 0 --no-open` + 等待 `dsh web:` 就绪行，把进度映射成进度条。就绪 → `main_window.show()` + `splashscreen.close()`；失败 → splash 显示错误 + 可操作建议 + “重试/仍然继续”。
 
 ### B4 Rust 结构（`src-tauri/src/`）
 

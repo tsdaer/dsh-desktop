@@ -43,7 +43,7 @@ Start:
     # or, after a workspace install:
     pnpm --filter @deepseek-ai/dsh-desktop dev
 
-The dev launcher sets DSH_CLI to the built apps/cli/lib/bin.js; DSH_NODE defaults to 'node' from PATH. The shell spawns 'dsh web --port 0' (OS-assigned free port) and parses the readiness line from the runtime's stdout.
+The dev launcher sets DSH_CLI to the built apps/cli/lib/bin.js; DSH_NODE defaults to 'node' from PATH. The shell spawns 'dsh web --port 0 --no-open' (OS-assigned free port) and parses the readiness line from the runtime's stdout; `--no-open` keeps the web profile from handing the URL to the system default browser because the shell navigates its own window to it.
 
 ## Bundle (local installer)
 
