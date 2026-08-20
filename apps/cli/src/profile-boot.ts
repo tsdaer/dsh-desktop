@@ -245,9 +245,8 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
   ])
   // Cloned for the same insert-aliasing reason as composeLive: the boot
   // application must not mutate the objects later reloads recompose from.
-  // A closed packaged runtime (dsh-desktop with a bundled CLI) anchors bare
-  // plugin names to its own install via DSH_BARE_MODULE_BASE, so the profile
-  // project does not need to own the plugin set.
+  // A packaged runtime keeps built-in packages in its profile fallback while
+  // leaving profile-owned bundles resolvable from the profile's node_modules.
   const ctx = await boot(NAME, rootConfig, structuredClone(allPatches(composed)), (hostCtx) => {
     app.current = hostCtx
     // Before any config-tree entry mounts, so plugins resolve all launch-time

@@ -18,7 +18,7 @@ dsh-desktop 窗口是无边框的,自绘标题栏(apps/desktop/src/titlebar.js,�
 2. 桌面桥接 host(apps/desktop/bridge)提供该路由:`resolveBalanceKey` 通过运行时的凭据接缝解析 `credentialRef('DEEPSEEK_API_KEY')`(与 llm-deepseek 使用的引用和顺序一致),接缝缺失时回退到 `process.env.DEEPSEEK_API_KEY`;`handleBalance` 再用 Bearer key 代理官方 `{base}/user/balance` 接口(`DEEPSEEK_BASE_URL` 或 `https://api.deepseek.com`,10 秒超时)。
 3. 成功时路由返回归一化的 `{ ok, currency, totalBalance }`(取自第一个 `balance_infos` 条目);失败保持 200 并带机器可读的 `reason`(`unconfigured` / `auth` / `api` / `network`),药丸据此渲染隐藏或过期状态,而不是记录 fetch 错误。余额是纯展示 —— 没有会话事件,没有模型可见输入。
 
-桥接 host 把 `@deepseek-ai/dsh-credentials` 声明为 peer + dev 依赖(llm-deepseek 的模式);值导入在 tsdown 产物中保持 external,运行时从 profiles 模块回退(dev)或烤出的运行时(打包版,经 `DSH_BARE_MODULE_BASE`)解析。
+桥接 host 把 `@deepseek-ai/dsh-credentials` 声明为 peer + dev 依赖(llm-deepseek 的模式);值导入在 tsdown 产物中保持 external,通过 profiles 模块回退目录解析,打包版的链接指向烤出的运行时。
 
 ## 考虑的备选方案
 

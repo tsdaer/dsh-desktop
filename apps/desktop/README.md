@@ -51,16 +51,16 @@ The dev launcher sets DSH_CLI to the built apps/cli/lib/bin.js; DSH_NODE default
 
 runs five stages: sync the version into tauri.conf.json from package.json (`scripts/sync-version.mjs`), build the bridge packages from source (`scripts/build-bridge.mjs`), bake the runtime (`scripts/bake-runtime.mjs`), fetch the bundled Node sidecar (`scripts/fetch-node-sidecar.mjs`), then 'tauri build' (release profile with lto/strip; NSIS installer to src-tauri/target/release/bundle/nsis/). The version lives only in package.json, so a bump is one edit there. Proxy note: the first bundle downloads the NSIS toolchain and the Node sidecar from GitHub/nodejs.org; set HTTPS_PROXY/HTTP_PROXY if the machine needs a proxy to reach them.
 
-The installer is self-contained: it ships the shell exe, node.exe (Tauri externalBin sidecar), and the baked runtime under resources/runtime/. On first launch the shell copies the bridge packages into the profile (no npm exists at runtime), spawns the runtime with DSH_BARE_MODULE_BASE anchoring bare plugin names to the packaged tree, and navigates to the served UI.
+The installer is self-contained: it ships the shell exe, node.exe (Tauri externalBin sidecar), and the baked runtime under resources/runtime/. On first launch the shell copies the bridge packages into the profile (no npm exists at runtime), heals the profile fallback for built-in packages, and navigates to the served UI. Profile-installed bundles remain resolvable from the profile's own node_modules.
 
 ## Packaged runtime
 
 `scripts/bake-runtime.mjs` produces a self-contained, bootable runtime from the built workspace:
 
-1. `pnpm deploy --legacy --prod --config.nodeLinker=hoisted` the dsh CLI closure. Production-only deploy drops the workspace's dev/build/lint/docs toolchain (TypeScript, oxlint, eslint, mermaid, ...); the spine packages stay reachable through dsh-base's dependencies. Hoisted linking is required — the isolated layout only exposes direct deps at the top level, and the loader resolves config-referenced plugins from the runtime's own bin.
+1. `pnpm deploy --legacy --prod --config.nodeLinker=hoisted` the dsh CLI closure. Production-only deploy drops the workspace's dev/build/lint/docs toolchain (TypeScript, oxlint, eslint, mermaid, ...); the spine packages stay reachable through dsh-base's dependencies. Hoisted linking is required — the isolated layout only exposes direct deps at the top level, while the profile fallback exposes the deployed closure to built-in package resolution.
 2. Bakes the auto-installed peers pnpm deploy drops (autoInstallPeers is not reproduced by deploy) plus the desktop bridge packages, copying each workspace package's shipped files (never its node_modules).
 3. Prunes single-platform native prebuilds: node-pty ships every platform plus Windows debug symbols (.pdb) and build-time sources; `pruneRuntime` keeps only the win32-x64 prebuild.
-4. Verifies the result by booting the deployed CLI against a throwaway DSH_HOME with DSH_BARE_MODULE_BASE set, requiring the 'dsh web:' readiness line.
+4. Verifies the result by booting the deployed CLI against a throwaway DSH_HOME, requiring the 'dsh web:' readiness line while preserving profile-owned bundle resolution.
 
 Payload size gate: `pnpm --filter @deepseek-ai/dsh-desktop size-check` (or `node scripts/size-report.mjs --check`) asserts the runtime stays under its budget and that no dev toolchain leaked back in.
 
@@ -70,7 +70,7 @@ The app opens a frameless splashscreen window first and reveals the main window 
 
 WebView2 acquisition is an install-time concern: `bundle.windows.webviewInstallMode` is `embedBootstrapper`, so the NSIS installer embeds the bootstrapper and downloads/installs the runtime with native progress. The splash cannot install a missing WebView2 itself (it is a WebView2 page); it only detects and guides.
 
-Env wiring in main.rs: DSH_CLI/DSH_NODE/DSH_BARE_MODULE_BASE/DSH_BRIDGE_TARBALL win (dev launcher); a release build without DSH_CLI falls back to resources/runtime/lib/bin.js, the sidecar node.exe, and offline bridge copying. DSH_BARE_MODULE_BASE is a product wiring in apps/cli (profile-boot.ts passes it to boot's bareModuleBaseUrl, the documented closed-runtime resolution anchor).
+Env wiring in main.rs: DSH_CLI/DSH_NODE/DSH_BARE_MODULE_BASE/DSH_BRIDGE_TARBALL win (dev launcher); a release build without DSH_CLI falls back to resources/runtime/lib/bin.js, the sidecar node.exe, and offline bridge copying. A packaged launch leaves DSH_BARE_MODULE_BASE unset by default so the profile can resolve user bundles; an explicit value remains available for hosts that own the complete plugin set.
 
 ## Custom title bar
 

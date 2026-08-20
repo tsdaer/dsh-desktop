@@ -18,7 +18,7 @@ The dsh-desktop window is frameless and draws its own title bar (apps/desktop/sr
 2. The desktop bridge host (apps/desktop/bridge) serves the route: `resolveBalanceKey` resolves `credentialRef('DEEPSEEK_API_KEY')` through the runtime's credentials seam (the same reference and ordering llm-deepseek uses), falling back to `process.env.DEEPSEEK_API_KEY` when the seam is absent; `handleBalance` then proxies the official `{base}/user/balance` endpoint (`DEEPSEEK_BASE_URL` or `https://api.deepseek.com`, 10 s timeout) with the Bearer key.
 3. The route returns a normalized `{ ok, currency, totalBalance }` (from the first `balance_infos` entry) on success; failures stay a 200 with a machine-readable `reason` (`unconfigured` / `auth` / `api` / `network`) so the pill renders a hidden or stale state instead of logging fetch errors. The amount is pure presentation — no session event, no model-visible input.
 
-The bridge host declares `@deepseek-ai/dsh-credentials` as peer + dev dependency (the llm-deepseek pattern); the value import stays external in the tsdown bundle and resolves at runtime from the profiles module fallback (dev) or the baked runtime (packaged, via `DSH_BARE_MODULE_BASE`).
+The bridge host declares `@deepseek-ai/dsh-credentials` as peer + dev dependency (the llm-deepseek pattern); the value import stays external in the tsdown bundle and resolves through the profiles module fallback, whose packaged links point into the baked runtime.
 
 ## Alternatives considered
 

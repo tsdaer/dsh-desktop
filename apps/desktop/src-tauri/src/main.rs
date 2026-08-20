@@ -167,8 +167,9 @@ const DROPPED_READ_MAX_BYTES: usize = 20 * 1024 * 1024;
 struct RuntimePaths {
     node: String,
     cli: String,
-    /// 'DSH_BARE_MODULE_BASE' for the spawned runtime: anchors bare plugin
-    /// names to the runtime's own install when it is closed.
+    /// Optional explicit module-resolution base for the spawned runtime. The
+    /// packaged default is unset so profile-installed bundles remain visible;
+    /// the profile fallback links built-in packages back to the runtime.
     module_base: Option<String>,
     /// Runtime 'node_modules/@deepseek-ai' package dirs to copy into the
     /// profile (packaged, offline); empty in dev where the repository
@@ -212,11 +213,7 @@ impl RuntimePaths {
                 .map(|path| path.to_string_lossy().into_owned())
                 .unwrap_or_else(|| "node".to_string())
         });
-        let module_base = std::env::var("DSH_BARE_MODULE_BASE").ok().or_else(|| {
-            Url::from_file_path(&resource_cli)
-                .ok()
-                .map(|url| url.to_string())
-        });
+        let module_base = std::env::var("DSH_BARE_MODULE_BASE").ok();
         let runtime_root = resource_cli
             .parent()
             .and_then(Path::parent)

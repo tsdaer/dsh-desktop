@@ -27,7 +27,6 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -235,18 +234,17 @@ function workspaceSources() {
 }
 
 /// Boot the deployed CLI against a throwaway profile and require the readiness
-/// line. Config-referenced plugin names are resolved by the loader from the
-/// runtime's own bin (bareModuleBaseUrl), so plugins the static scan cannot see
-/// surface here: each failed attempt names the missing packages in stderr, and
-/// the loop bakes them until the tree settles.
+/// line. Built-in packages resolve through the profile fallback that points at
+/// the deployed tree, while a real profile may still resolve its own bundles.
+/// Each failed attempt names missing runtime packages in stderr, and the loop
+/// bakes them until the tree settles.
 async function verifyBoot(root) {
   const home = mkdtempSync(join(process.env.TEMP ?? '/tmp', 'dsh-bake-'));
   const sources = workspaceSources();
   try {
-    // The runtime is a closed install: bare plugin names resolve from the
-    // runtime's own tree, not the throwaway profile project.
-    const moduleBase = pathToFileURL(join(root, 'lib/bin.js')).href;
-    const bootEnv = { ...process.env, DSH_HOME: home, DSH_BARE_MODULE_BASE: moduleBase };
+    // The profile fallback links built-in packages into the deployed tree;
+    // leaving the module base unset also preserves profile-owned bundles.
+    const bootEnv = { ...process.env, DSH_HOME: home };
     // First boot: initialize the web profile template (same trick main.rs uses).
     const init = spawnSync('node', [join(root, 'lib/bin.js'), '--profile', 'web', '--dump-default-config'], {
       env: bootEnv,
