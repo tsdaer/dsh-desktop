@@ -45,6 +45,12 @@ Start:
 
 The dev launcher sets DSH_CLI to the built apps/cli/lib/bin.js; DSH_NODE defaults to 'node' from PATH. The shell spawns 'dsh web --port 0 --no-open' (OS-assigned free port) and parses the readiness line from the runtime's stdout; `--no-open` keeps the web profile from handing the URL to the system default browser because the shell navigates its own window to it.
 
+For repeatable browser evidence, run:
+
+    pnpm --filter @deepseek-ai/dsh-desktop evidence
+
+The evidence command builds the standalone bridge packages, creates a throwaway `DSH_HOME`, initializes the web profile and its module fallback, installs the bridge packages without replacing the fallback's `@deepseek-ai/schemastery` symlink, merges the bridge patch, registers the repository as a Workspace, and serves port 4173. It prints the ready URL and the `/dsh-bridge/config` probe URL; open the ready URL in a browser and select Worktree. Use `-- --port <port> --workspace <directory>` to change the port or Workspace, and press Ctrl+C to remove the scratch home and stop the server.
+
 ## Bundle (local installer)
 
     pnpm --filter @deepseek-ai/dsh-desktop bundle

@@ -4,7 +4,16 @@
 
 ## 事实
 
-- 当前的 DSH 运行环境（web GUI、harness 等）就构建在本仓库工作目录 `J:\Projects\deepseek-harness` 之上，而不是某个独立副本。
+- 桌面证据可能来自源码启动或已安装的打包应用。源码启动通常由仓库构建的 `apps/cli/lib/bin.js` 提供 Node 子进程，打包启动则由安装目录中的 `node.exe` 执行资源目录中的 `runtime/lib/bin.js`；不要根据工作目录推断当前拓扑。
+- 先测量活跃进程，再决定仓库构建产物是否可能被占用：
+
+  ```powershell
+  Get-CimInstance Win32_Process |
+    Where-Object { $_.Name -in @('dsh-desktop.exe', 'node.exe') } |
+    Select-Object ProcessId, ParentProcessId, ExecutablePath, CommandLine
+  ```
+
+  找到桌面进程后，检查其 `ParentProcessId` 对应的 Node 进程；`ExecutablePath` 区分 Node 来源，`CommandLine` 区分仓库中的 `apps/cli/lib/bin.js` 与安装目录资源中的 `runtime/lib/bin.js`。两者都可能服务当前页面，只有实测结果决定是否会锁住构建输出。
 - 因此，工作目录里的文件可能正被运行中的进程占用：`node_modules`、构建产物、`.runtime/deploy`、`apps/web/dist`、会话/缓存文件等。
 - 在 Windows 上，被占用的文件无法被删除、覆盖或移动，会表现为文件锁错误（`EBUSY`、`EPERM`、`Access is denied`、`process cannot access the file` 等）。
 

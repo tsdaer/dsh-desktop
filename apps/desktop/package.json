@@ -9,6 +9,8 @@
     "build": "node scripts/build-bridge.mjs && node scripts/dev.mjs --release",
     "bake": "node scripts/build-bridge.mjs && node scripts/bake-runtime.mjs",
     "fetch-node": "node scripts/fetch-node-sidecar.mjs",
+    "evidence": "node scripts/build-bridge.mjs && node scripts/evidence-server.mjs",
+    "test:evidence": "node --test scripts/evidence-server.spec.mjs",
     "size-report": "node scripts/size-report.mjs",
     "size-check": "node scripts/size-report.mjs --check",
     "icons:check": "node scripts/gen-icons.mjs --check",
