@@ -62,6 +62,8 @@ Three frameless-window gaps are known and user-visible: no Windows 11 snap-layou
 
 Separately, the runtime serves loopback with no authentication, which any local process can reach. The desktop shell is the only client that knows the port, so it can hold a per-boot token. This changes `dsh web`, which is upstream-owned: it needs an independent harness need, a row in [the divergence register](../../../../docs/fork-divergence.md), and a design that leaves the browser-only posture unchanged when no token is configured.
 
+The chrome pass is complete: the main window re-adds `WS_THICKFRAME` (without `WS_CAPTION`) so the OS provides resize borders and the Windows 11 snap-layout flyout, and the native host pushes `dsh://maximize-change` on every size event so the title-bar icon follows window state ([implemented note](../../implemented/feature/2026-08-22-desktop-native-window-chrome.md)). The loopback token remains: it needs its own design (webserver auth, CLI plumbing, shell token injection, and token-carrying browser requests) plus the divergence row, and stays open here.
+
 ### Phase 6: a second platform
 
 Linux before macOS, because macOS adds signing and notarization. Four blockers are concrete: the Node sidecar fetch is Windows-only, `node-pty` lacks Linux prebuilds in this dependency tree, the bundle targets are NSIS-only, and the release workflow runs only on `windows-latest`. Treat this phase as gated: it starts when the harness's own Linux support is complete enough that the desktop shell is the only remaining gap, not before.

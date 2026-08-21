@@ -62,6 +62,8 @@ Explorer 与搜索能定位文件，却无法展示它。为根内文件新增�
 
 另有一项：运行时以 loopback 无认证方式服务，任何本地进程都可访问。桌面壳子是唯一知道端口的客户端，因此可以持有一个按启动生成的 token。这会改动上游所有的 `dsh web`：需要独立的 harness 需求、[分歧登记表](../../../../docs/fork-divergence.md)中的一行，以及在未配置 token 时完全保持纯浏览器姿态不变的设计。
 
+装饰整改已完成：主窗口重新加回 `WS_THICKFRAME`(不加 `WS_CAPTION`),由操作系统提供缩放边框与 Windows 11 贴靠布局浮出,原生宿主在每次尺寸事件时推送 `dsh://maximize-change`,标题栏图标跟随窗口状态([已实现记录](../../implemented/feature/2026-08-22-desktop-native-window-chrome.md))。loopback token 仍然待办:它需要独立设计(webserver 认证、CLI 管道、壳子 token 注入、携带 token 的浏览器请求)以及分歧登记表行,此处保持开放。
+
 ### 阶段 6：第二个平台
 
 先 Linux 后 macOS，因为 macOS 还要加签名与公证。四个阻塞点是具体的：Node sidecar 拉取仅限 Windows、本依赖树中 `node-pty` 缺少 Linux 预构建、bundle target 仅 NSIS、发布工作流只跑 `windows-latest`。把该阶段视为受控启动：等 harness 自身的 Linux 支持完整到只剩桌面壳子这一处缺口时再开始，不要更早。
