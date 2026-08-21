@@ -72,6 +72,8 @@ Linux before macOS, because macOS adds signing and notarization. Four blockers a
 
 The baked runtime carries roughly 60 MB of intentionally mounted, default-disabled capability. Decide whether the desktop payload ships it, and record the decision with its reason either way; the [size analysis](../../../../apps/desktop/docs/size-analysis.md) holds the measurements. This is a product decision, so an agent does not settle it alone.
 
+Decision (2026-08-22, product): **keep**. The dormant bytes are the legitimate product surface of optional multi-provider and opt-in telemetry capability, default-inactive; cutting them would ship a DeepSeek-only desktop edition with a new bundle profile and maintenance cost. Recorded in the size analysis.
+
 ### Environment facts an agent should not rediscover
 
 - A packaged desktop installation runs its own baked runtime from its install directory. When it is the live GUI, repository build outputs are not locked by it, and `pnpm run build` is safe. Measure before assuming either way.

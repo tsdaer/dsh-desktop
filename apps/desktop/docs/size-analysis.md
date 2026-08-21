@@ -91,6 +91,8 @@ corepack pnpm deploy --filter @deepseek-ai/dsh --legacy --config.nodeLinker=hois
 - `@mistralai` + `@anthropic-ai` + `@google` + `@aws-sdk` 全部由 `@earendil-works/pi-ai` 引入，后者是 `dsh-llm-pi-ai` 的依赖；`dsh-llm-pi-ai` 在 dsh-base 的 `cordis.patch.yml` 里以「dormant」挂载（零路由，直到用户在 web Models 页配置 `llm-pi-ai:` 才注册多 provider 路由）。这是有意的多 provider 能力。
 - `@opentelemetry` 由 `dsh-session-telemetry-otel` 引入，同样默认挂载但 `DSH_TELEMETRY_MODE` 默认 DISABLED（显式选择才上报）。
 
-因此这 ~60 MB 是「为可选的多 provider + 遥测能力预留、默认不激活的合法产品面」，不是可无脑删除的死重；裁掉需要产品决策（例如发布一个 DeepSeek-only 的桌面版）。本轮不裁。
+因此这 ~60 MB 是「为可选的多 provider + 遥测能力预留、默认不激活的合法产品面」，不是可无脑删除的死重；裁掉需要产品决策（例如发布一个 DeepSeek-only 的桌面版）。
+
+**产品决策（2026-08-22）：保留。** 该载荷是可选多 provider 与显式遥测能力的合法产品面，默认不激活；裁剪将交付 DeepSeek-only 桌面版并带来新的 bundle profile 与维护成本。
 
 > 备注：体积门禁 `size-check` 依赖 `.runtime/deploy` 这个 bake 产物，只应在桌面 bundle 流程（bake 之后）调用，不宜挂进 clean-tree 的 CI 全量 gate。
