@@ -52,6 +52,8 @@ Whole-file operations only. Hunk and line staging need a diff model the Host doe
 
 Explorer and Search can locate a file but not show it. Add a read-only viewer for an in-root file: bounded bytes with an explicit truncation state, binary and non-UTF-8 detection that refuses rather than renders, and highlighting through the client's existing highlighter. Opening a Search result scrolls to the matched line.
 
+Complete: the bridge's `GET /worktree/file` route serves strict UTF-8 with truncation and binary refusal, `DesktopWorkspaceFileViewer` renders Explorer and Search opens with matched-line scrolling, and the shipped behavior is recorded in [the implemented file viewer note](../../implemented/feature/2026-08-22-desktop-file-viewer.md).
+
 Editing is a separate phase. It requires save-conflict detection, encoding and line-ending policy, and an undo model, none of which a viewer needs.
 
 ### Phase 5: native chrome and loopback posture

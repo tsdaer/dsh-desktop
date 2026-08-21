@@ -10,6 +10,7 @@ import {
 } from './DesktopSourceControlActions.tsx'
 import { DesktopVirtualList } from './DesktopVirtualList.tsx'
 import { dispatchWorktreePathPointerDown } from './DesktopWorkspacePathDrop.ts'
+import { DesktopWorkspaceFileViewer } from './DesktopWorkspaceFileViewer.tsx'
 
 type WorkspaceId = string
 
@@ -103,7 +104,9 @@ export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions
   const [expandedByWorkspace, setExpandedByWorkspace] = useState<Record<string, readonly string[]>>(() => readExpanded())
   const [sourceControl, setSourceControl] = useState<SourceControlState>({ status: 'loading' })
   const [sourceControlRefresh, setSourceControlRefresh] = useState(0)
+  const [viewer, setViewer] = useState<{ path: string; line?: number } | null>(null)
   const requests = useRef(new Map<string, AbortController>())
+  const openInViewer = useCallback((path: string, line?: number): void => { setViewer(line === undefined ? { path } : { path, line }) }, [])
 
   useEffect(() => {
     try { localStorage.setItem('dsh.desktop.explorer.expanded', JSON.stringify(expandedByWorkspace)) } catch { /* browser storage is optional */ }
@@ -134,6 +137,7 @@ export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions
     for (const controller of requests.current.values()) controller.abort()
     requests.current.clear()
     setNodes({})
+    setViewer(null)
     if (workspaceId !== undefined) void load('')
     return () => {
       for (const controller of requests.current.values()) controller.abort()
@@ -222,9 +226,11 @@ export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions
         {entry.type === 'file' && entry.outsideRoot !== true ? <FileActionButtons entryPath={entry.path} actions={actions} t={t} /> : null}
       </>
     )
+    const openableFile = entry.type === 'file' && entry.outsideRoot !== true
+    const openFile = (): void => { if (openableFile) openInViewer(entry.path) }
     return directory
       ? <button key={row.key} type="button" className={`${className}${draggable ? ` ${css.explorerDraggable}` : ''}`} style={{ paddingLeft: `${8 + row.depth * 14}px` }} aria-expanded={row.expanded} aria-label={`${row.expanded ? t('worktree.collapse') : t('worktree.expand')}: ${entry.name}`} onPointerDown={(event) => { if (draggable && event.button === 0) dispatchWorktreePathPointerDown(event.currentTarget, event, entry.path) }} onClick={() => { toggle(entry.path) }}>{content}</button>
-      : <div key={row.key} className={`${className}${draggable ? ` ${css.explorerDraggable}` : ''}`} style={{ paddingLeft: `${8 + row.depth * 14}px` }} onPointerDown={(event) => { if (draggable && event.button === 0) dispatchWorktreePathPointerDown(event.currentTarget, event, entry.path) }}>{content}</div>
+      : <div key={row.key} className={`${className}${draggable ? ` ${css.explorerDraggable}` : ''}`} style={{ paddingLeft: `${8 + row.depth * 14}px` }} role={openableFile ? 'button' : undefined} tabIndex={openableFile ? 0 : undefined} aria-label={openableFile ? `${t('worktree.openFile')}: ${entry.name}` : undefined} onKeyDown={openableFile ? (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openFile() } } : undefined} onPointerDown={(event) => { if (draggable && event.button === 0) dispatchWorktreePathPointerDown(event.currentTarget, event, entry.path) }} onClick={openableFile ? openFile : undefined}>{content}</div>
   }
 
   return (
@@ -242,6 +248,15 @@ export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions
         />
       ) : null}
       {actions.diff === null ? null : <SourceControlDiffPanel diff={actions.diff} t={t} onClose={actions.closeDiff} />}
+      {viewer === null ? null : (
+        <DesktopWorkspaceFileViewer
+          workspaceId={workspaceId}
+          path={viewer.path}
+          scrollToLine={viewer.line}
+          onClose={() => { setViewer(null) }}
+          t={t}
+        />
+      )}
       <DesktopVirtualList items={rows} rowHeight={26} overscan={6} className={css.explorerTree} renderItem={renderRow} />
     </div>
   )

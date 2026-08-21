@@ -52,6 +52,8 @@ Status: proposed
 
 Explorer 与搜索能定位文件，却无法展示它。为根内文件新增只读查看器：有界字节并带显式截断状态、对二进制与非 UTF-8 内容做检测并拒绝渲染、通过 client 既有高亮器高亮。打开搜索结果时滚动到命中行。
 
+已完成：桥的 `GET /worktree/file` 路由提供严格 UTF-8 内容并带截断与二进制拒绝，`DesktopWorkspaceFileViewer` 渲染 Explorer 与 Search 打开并滚动到匹配行，已交付行为记录在[已实现的文件查看器记录](../../implemented/feature/2026-08-22-desktop-file-viewer.md)中。
+
 编辑属于独立阶段。它需要保存冲突检测、编码与行尾策略，以及撤销模型，而查看器都不需要。
 
 ### 阶段 5：原生窗口装饰与 loopback 姿态

@@ -20,6 +20,7 @@ import type {} from '@deepseek-ai/dsh-fs'
 import type {} from '@deepseek-ai/dsh-workspace'
 import type {} from '@deepseek-ai/dsh-subprocess'
 import { handleExplorerRequest } from './explorer.ts'
+import { handleFileViewRequest } from './file.ts'
 import { handleSearchRequest } from './search.ts'
 import { handleSourceControlActionRequest, handleSourceControlDiffRequest } from './source-control-actions.ts'
 import { handleSourceControlRequest } from './source-control.ts'
@@ -47,6 +48,10 @@ export interface Config {
   explorerMaxBytes: number
   /** Maximum elapsed time for one Explorer request. */
   explorerTimeoutMs: number
+  /** Maximum UTF-8 bytes served for one file view; larger files return a truncated prefix. */
+  fileMaxBytes: number
+  /** Maximum elapsed time for one file view request. */
+  fileTimeoutMs: number
   /** Maximum matches returned by one Search page. */
   searchMaxMatches: number
   /** Maximum UTF-8 JSON bytes returned by one Search page. */
@@ -78,6 +83,8 @@ export const Config: z<Config> = z.object({
   explorerMaxEntries: z.number().default(256),
   explorerMaxBytes: z.number().default(128 * 1024),
   explorerTimeoutMs: z.number().default(5_000),
+  fileMaxBytes: z.number().default(256 * 1024),
+  fileTimeoutMs: z.number().default(5_000),
   searchMaxMatches: z.number().default(50),
   searchMaxBytes: z.number().default(128 * 1024),
   searchMaxRawBytes: z.number().default(2 * 1024 * 1024),
@@ -100,6 +107,12 @@ function validateExplorerConfig(config: Config): void {
   }
   if (!Number.isSafeInteger(config.explorerTimeoutMs) || config.explorerTimeoutMs <= 0) {
     throw new Error('desktop-bridge: explorerTimeoutMs must be a positive safe integer')
+  }
+  if (!Number.isSafeInteger(config.fileMaxBytes) || config.fileMaxBytes <= 0) {
+    throw new Error('desktop-bridge: fileMaxBytes must be a positive safe integer')
+  }
+  if (!Number.isSafeInteger(config.fileTimeoutMs) || config.fileTimeoutMs <= 0) {
+    throw new Error('desktop-bridge: fileTimeoutMs must be a positive safe integer')
   }
   for (const [name, value] of Object.entries({
     searchMaxMatches: config.searchMaxMatches,
@@ -136,6 +149,8 @@ function effectiveConfig(ctx: Context, config: Config): Config {
     explorerMaxEntries: config.explorerMaxEntries,
     explorerMaxBytes: config.explorerMaxBytes,
     explorerTimeoutMs: config.explorerTimeoutMs,
+    fileMaxBytes: config.fileMaxBytes,
+    fileTimeoutMs: config.fileTimeoutMs,
     searchMaxMatches: config.searchMaxMatches,
     searchMaxBytes: config.searchMaxBytes,
     searchMaxRawBytes: config.searchMaxRawBytes,
@@ -224,6 +239,15 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
       return
     }
     await handleExplorerRequest(req, res, ctx, config)
+    return
+  }
+  if (pathname === '/dsh-bridge/worktree/file') {
+    if (req.method !== 'GET') {
+      res.statusCode = 405
+      res.end()
+      return
+    }
+    await handleFileViewRequest(req, res, ctx, config)
     return
   }
   if (pathname === '/dsh-bridge/worktree/search') {

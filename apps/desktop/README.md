@@ -20,6 +20,7 @@ Planned for 0.3.0:
 - [x] A desktop-only Workspace/Worktree sidebar switch that preserves the shared Workspace browser
 - [x] Explorer, Search, read-only Git decorations, and Worktree path drops into the composer
 - [x] Whole-file Source Control writes: stage, unstage, discard (with a file-naming confirmation), commit with a message confined to the selected Workspace, and diff viewing through the shared diff presentation
+- [x] An in-app read-only file viewer for Explorer rows and Search results, with truncation and binary refusal states and matched-line scrolling
 - [x] A visually consistent copy action beside every ordinary user and assistant message
 - [x] API connection status beside the balance, with click-to-refresh balance updates
 - [x] Automatic update checks against this repository's GitHub Releases, with installation of available updates
@@ -121,6 +122,7 @@ Bridge host routes (under /dsh-bridge):
 - `POST /policy` — persist desktop settings through the runtime's settings seam ($DSH_HOME/settings.yaml). The dsh configuration boundary refuses browser writes to non-listed namespaces, so the settings rows save through this route instead of the client settingsScope.
 - `GET /balance` — the title bar's balance pill: resolves the DeepSeek key through the credentials service and proxies the official /user/balance endpoint (see "Custom title bar").
 - `GET /worktree/explorer` — lists one bounded directory level for a registered Workspace; the request accepts only a Workspace id and a Workspace-relative path, and the response marks truncation and paths resolved outside the Workspace.
+- `GET /worktree/file` — reads one bounded file for a registered Workspace; the response is strict UTF-8 with an explicit truncation flag, and binary or non-UTF-8 content is refused with a stable error. Explorer rows and Search results open it in the in-app viewer, which highlights through the client's shiki highlighter and scrolls a Search result to its matched line.
 
 The bridge client half owns the shell-side behaviors on the page: the drag-drop handling above, the close-button mirror, the debug guard, and Explorer path routing.
 

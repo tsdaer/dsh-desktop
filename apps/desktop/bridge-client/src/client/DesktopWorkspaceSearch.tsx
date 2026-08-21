@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import css from './DesktopWorkspaceWorkbench.module.css'
 import { DesktopWorkspaceExplorer } from './DesktopWorkspaceExplorer.tsx'
+import { DesktopWorkspaceFileViewer } from './DesktopWorkspaceFileViewer.tsx'
 
 interface WorkspaceView {
   workspaceId: string
@@ -55,6 +56,7 @@ export function DesktopWorkspaceSearch({ workspaces: workspaceSource, sessions: 
   const [listing, setListing] = useState<SearchListing | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [viewer, setViewer] = useState<{ path: string; line?: number } | null>(null)
   const request = useRef<AbortController | null>(null)
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -155,7 +157,16 @@ export function DesktopWorkspaceSearch({ workspaces: workspaceSource, sessions: 
       {busy ? <div className={css.explorerState}>{t('worktree.searching')}</div> : listing === null ? <DesktopWorkspaceExplorer workspaces={workspaceSource} sessions={sessionSource} t={t} /> : null}
       {error === null ? null : <div className={css.searchError} role="alert">{error}</div>}
       {listing !== null && listing.matches.length === 0 && !busy ? <div className={css.explorerState}>{t('worktree.noMatches')}</div> : null}
-      {listing !== null && listing.matches.length > 0 ? (
+      {viewer !== null && workspace !== undefined ? (
+        <DesktopWorkspaceFileViewer
+          workspaceId={workspace.workspaceId}
+          path={viewer.path}
+          scrollToLine={viewer.line}
+          onClose={() => { setViewer(null) }}
+          t={t}
+        />
+      ) : null}
+      {viewer !== null ? null : listing !== null && listing.matches.length > 0 ? (
         <div className={css.searchResults}>
           {listing.matches.map(match => (
             <button
@@ -163,11 +174,7 @@ export function DesktopWorkspaceSearch({ workspaces: workspaceSource, sessions: 
               type="button"
               className={css.searchResult}
               title={match.path}
-              onClick={() => {
-                void openResult(workspaceSource, workspace.path, match.path).catch((reason) => {
-                  setError(reason instanceof Error ? reason.message : t('worktree.searchFailed'))
-                })
-              }}
+              onClick={() => { setViewer({ path: match.path, line: match.line }) }}
             >
               <span className={css.searchResultLocation}>{match.path}{match.line > 0 ? `:${String(match.line)}` : ''}</span>
               {match.line > 0 ? <span className={css.searchResultText}>{match.text}</span> : null}
@@ -187,10 +194,6 @@ function useSourceSnapshot<T extends { getSnapshot(): unknown; subscribe(listene
   return snapshot as ReturnType<T['getSnapshot']>
 }
 
-async function openResult(workspaces: WorkspaceSource, root: string, path: string): Promise<void> {
-  if (workspaces.openPath === undefined) return
-  await workspaces.openPath(`${root.replace(/[\\/]+$/, '')}/${path}`)
-}
 
 function parseSearchListing(value: unknown): SearchListing {
   if (typeof value !== 'object' || value === null) throw new Error('Search returned an invalid response')
