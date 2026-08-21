@@ -19,6 +19,8 @@
 | [`apps/cli/src/profile-boot.ts`](../apps/cli/src/profile-boot.ts) | 把 `DSH_BARE_MODULE_BASE` 透传给 `boot()`，使打包运行时解析内置包的同时，profile 自有 bundle 仍可解析（[note](../.agents/notes/implemented/bug-fix/2026-08-20-desktop-profile-bundle-resolution.md)） |
 | [`packages/client/tsdown.client.ts`](../packages/client/tsdown.client.ts) | 同时从 `apps/*/*/package.json` 解析工作区清单，因为桌面桥接 client 是 `packages/` 之外的工作区包 |
 | [`packages/client/ui-conversation/src/client/skeleton/HeroShell.module.css`](../packages/client/ui-conversation/src/client/skeleton/HeroShell.module.css) | 新增由桌面端可选开关驱动的 `html[data-dsh-logo-motion]` 悬停规则，浏览器用户仍遵循系统减少动效偏好（[note](../.agents/notes/implemented/feature/2026-08-20-desktop-logo-motion-opt-in.md)） |
+| [`packages/host/webserver/src/index.ts`](../packages/host/webserver/src/index.ts) | 可选 `token` 配置：已注册路由与 upgrade 需要 `Authorization: Bearer`（WebSocket 用 `dsh_token` 查询参数），静态 dist fallback 保持开放；缺省时纯 loopback 姿态不变（[note](../.agents/notes/implemented/feature/2026-08-22-desktop-loopback-token.md)） |
+| [`packages/client/connection/src/client/web-api-client.ts`](../packages/client/connection/src/client/web-api-client.ts) | 从页面 URL 读取一次 `?dsh_token`，附加到每个 `/api` fetch（header）与 WebSocket（query）；无该查询参数的普通浏览器保持不变（[note](../.agents/notes/implemented/feature/2026-08-22-desktop-loopback-token.md)） |
 
 ## 仓库脚本
 

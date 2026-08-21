@@ -9,10 +9,31 @@ import { HOST_EVENTS_PATH, MUX_EVENTS_PATH } from '../api-path.ts'
 type SocketItem<F> = { kind: 'frame'; envelope: RpcRequest<F> } | { kind: 'end' }
 type Parser<F> = { parse(value: unknown): F }
 
+/**
+ * Loopback bearer token picked up from the page URL once (`?dsh_token=...`),
+ * then attached to every /api fetch and WebSocket. The desktop shell appends
+ * the query when it navigates the window; a plain browser without the query
+ * leaves the token unset and the plain posture unchanged.
+ */
+let loopbackToken: string | undefined
+
+function pickLoopbackToken(): string | undefined {
+  if (loopbackToken !== undefined) return loopbackToken
+  const query = (globalThis as { location?: { search?: string } }).location?.search
+  if (query === undefined) return undefined
+  const value = new URLSearchParams(query).get('dsh_token')
+  loopbackToken = value === null ? undefined : value
+  return loopbackToken
+}
+
 /** Browser platform subclass: unary/respond use fetch; mux/host use downlink-only WebSockets. */
 export class WebApiClient extends AbstractApiClient {
   protected doFetch(input: URL, init?: RequestInit): Promise<Response> {
-    return globalThis.fetch(input, init)
+    const token = pickLoopbackToken()
+    if (token === undefined) return globalThis.fetch(input, init)
+    const headers = new Headers(init?.headers)
+    headers.set('authorization', `Bearer ${token}`)
+    return globalThis.fetch(input, { ...init, headers })
   }
 
   protected override openMux(
@@ -39,6 +60,8 @@ export class WebApiClient extends AbstractApiClient {
   ): AsyncGenerator<RpcRequest<F>> {
     const url = new URL(path, this.resolveBase())
     url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+    const token = pickLoopbackToken()
+    if (token !== undefined) url.searchParams.set('dsh_token', token)
     const socket = new WebSocket(url)
     const inbox: SocketItem<F>[] = []
     let wake: (() => void) | undefined

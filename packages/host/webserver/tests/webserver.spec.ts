@@ -28,7 +28,7 @@ afterEach(async () => {
 })
 
 /** Write a cordis.yml with one webserver row, then boot it through the real Loader. */
-async function loadComposition(port = 0): Promise<Context> {
+async function loadComposition(port = 0, token?: string): Promise<Context> {
   root = await mkdtemp(join(tmpdir(), 'dsh-webserver-loader-'))
   const configPath = join(root, 'cordis.yml')
   await writeFile(configPath, [
@@ -36,6 +36,7 @@ async function loadComposition(port = 0): Promise<Context> {
     '  config:',
     "    host: '127.0.0.1'",
     `    port: ${String(port)}`,
+    ...(token === undefined ? [] : [`    token: ${JSON.stringify(token)}`]),
     '',
   ].join('\n'))
 
@@ -222,5 +223,67 @@ describe('real Loader composition', () => {
       if (root !== undefined) await rm(root, { recursive: true, force: true })
       root = firstRoot
     }
+  })
+
+  it('requires the bearer token on registered routes and upgrades when configured', { timeout: 60_000 }, async () => {
+    const loaded = await loadComposition(0, 'secret-token')
+    const server = loaded.webServer
+    const port = server.port
+    server.register({ kind: 'exact', path: '/probe', handler: (_req, res) => { res.writeHead(200); res.end('OK') } })
+    server.registerUpgrade({
+      path: '/events',
+      handler: (_req, socket) => {
+        socket.write('HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: dsh-test\r\n\r\n')
+      },
+    })
+
+    // Bootstrap bundles under /plugins are public like the dist (the page must
+    // load them before any script can read the token).
+    server.register({ kind: 'prefix', path: '/plugins', handler: (_req, res) => { res.writeHead(200); res.end('BUNDLE') } })
+    expect((await request(port, '/plugins/@deepseek-ai/x/client.js')).status).toBe(200)
+
+    // Registered routes refuse without the token and answer with it.
+    expect((await request(port, '/probe')).status).toBe(401)
+    expect((await request(port, '/probe', { headers: { authorization: 'Bearer wrong' } })).status).toBe(401)
+    expect((await request(port, '/probe', { headers: { authorization: 'Bearer secret-token' } }))).toMatchObject({ status: 200, body: 'OK' })
+
+    // Upgrades refuse without the token: the socket is destroyed, not upgraded.
+    const refused = connect(port, '127.0.0.1')
+    refused.on('error', () => { /* server-side destroy is the expected outcome */ })
+    await once(refused, 'connect')
+    const refusedClosed = once(refused, 'close')
+    refused.write([
+      'GET /events HTTP/1.1',
+      `Host: 127.0.0.1:${String(port)}`,
+      'Connection: Upgrade',
+      'Upgrade: dsh-test',
+      '',
+      '',
+    ].join('\r\n'))
+    await refusedClosed
+    refused.destroy()
+
+    // Upgrades accept the token as a query parameter (WebSocket cannot set headers).
+    const upgraded = connect(port, '127.0.0.1')
+    upgraded.on('error', () => { /* handled below */ })
+    await once(upgraded, 'connect')
+    const upgradedResponse = once(upgraded, 'data')
+    upgraded.write([
+      'GET /events?dsh_token=secret-token HTTP/1.1',
+      `Host: 127.0.0.1:${String(port)}`,
+      'Connection: Upgrade',
+      'Upgrade: dsh-test',
+      '',
+      '',
+    ].join('\r\n'))
+    const [upgradedData] = await upgradedResponse as [Buffer]
+    expect(String(upgradedData)).toContain('101 Switching Protocols')
+    upgraded.destroy()
+
+    // The fallback seat stays open so the page can load before the client
+    // learns the token.
+    const releaseFallback = server.registerFallback((_req, res) => { res.writeHead(200, { 'content-type': 'text/html' }); res.end('shell') })
+    expect(await request(port, '/no/such/route')).toMatchObject({ status: 200, body: 'shell' })
+    releaseFallback()
   })
 })

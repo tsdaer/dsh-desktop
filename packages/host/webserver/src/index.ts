@@ -47,6 +47,13 @@ export interface Config {
   host: '127.0.0.1' | '0.0.0.0'
   /** Listen port; zero requests an OS-assigned port. */
   port: number
+  /**
+   * Optional bearer token. When set, every registered (non-fallback) route and
+   * every upgrade requires `Authorization: Bearer <token>`; the static dist
+   * fallback stays open so a browser can load the page before the client
+   * learns the token. Omission preserves the plain loopback posture.
+   */
+  token?: string
 }
 
 /**
@@ -60,6 +67,7 @@ export class WebServer extends Service {
   static Config: z<Config> = z.object({
     host: z.union([z.const('127.0.0.1'), z.const('0.0.0.0')]).required(),
     port: z.natural().max(65535).required(),
+    token: z.string().max(512).required(false),
   })
 
   private readonly exact = new Map<string, WebRoute>()
@@ -152,6 +160,13 @@ export class WebServer extends Service {
       const rawPath = new URL(req.url ?? '/', 'http://x').pathname
       const route = this.match(rawPath)
       if (route !== undefined) {
+        // Browser bootstrap bundles (/plugins/*) are public like the dist: the
+        // page must load them before any script can read the token.
+        if (!rawPath.startsWith('/plugins/') && !this.authorized(req)) {
+          res.writeHead(401)
+          res.end()
+          return
+        }
         await route.handler(req, res)
         return
       }
@@ -197,7 +212,7 @@ export class WebServer extends Service {
         socket.destroy()
         return
       }
-      if (route === undefined) {
+      if (route === undefined || !this.authorized(req)) {
         socket.destroy()
         return
       }
@@ -236,6 +251,39 @@ export class WebServer extends Service {
       }))
       await Promise.all([serverClosed, ...upgradedClosed])
     }, 'webServer.listen')
+  }
+
+  /**
+   * Whether a request carries the configured bearer token. The token may arrive
+   * as an `Authorization: Bearer` header or, for transports that cannot set
+   * headers (WebSocket), as the `dsh_token` query parameter. Comparison is
+   * constant-time-ish (length plus a full scan) so a mismatch does not leak its
+   * prefix; without a configured token every request passes.
+   * @param req - the incoming request.
+   * @returns true when the request is authorized.
+   */
+  private authorized(req: IncomingMessage): boolean {
+    const expected = this.config.token
+    if (expected === undefined) return true
+    let actual: string | undefined
+    const header = req.headers.authorization
+    if (header !== undefined && header.startsWith('Bearer ')) {
+      actual = header.slice('Bearer '.length)
+    } else {
+      const raw = req.url
+      if (raw === undefined) return false
+      try {
+        actual = new URL(raw, 'http://x').searchParams.get('dsh_token') ?? undefined
+      } catch {
+        return false
+      }
+    }
+    if (actual === undefined || actual.length !== expected.length) return false
+    let diff = 0
+    for (let index = 0; index < actual.length; index += 1) {
+      diff |= actual.charCodeAt(index) ^ expected.charCodeAt(index)
+    }
+    return diff === 0
   }
 
   /** Longest-prefix-wins over the prefix table after an exact-table miss. */

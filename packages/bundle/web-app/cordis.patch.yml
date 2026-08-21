@@ -124,6 +124,11 @@
       config:
         host: !!js ctx.webStartup.host ?? '127.0.0.1'
         port: !!js ctx.webStartup.port ?? 3080
+        # Loopback bearer token: when DSH_WEB_TOKEN is set (the desktop shell
+        # generates one per boot), every registered route and upgrade requires
+        # it; the static dist stays open so the page can load. Unset keeps the
+        # plain loopback posture for browser-only use.
+        token: !!js process.env.DSH_WEB_TOKEN
 
     # Web glue owned by this bundle: resolves the built frontend dist (an
     # assembly fact of dsh-web-app, never user config), mounts the
