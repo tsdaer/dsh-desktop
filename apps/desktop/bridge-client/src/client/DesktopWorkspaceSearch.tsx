@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { bridgeFetch } from './bridge-fetch.ts'
 import css from './DesktopWorkspaceWorkbench.module.css'
 import { DesktopWorkspaceExplorer } from './DesktopWorkspaceExplorer.tsx'
 import { DesktopWorkspaceFileViewer } from './DesktopWorkspaceFileViewer.tsx'
@@ -81,7 +82,7 @@ export function DesktopWorkspaceSearch({ workspaces: workspaceSource, sessions: 
       if (caseSensitive) params.set('caseSensitive', '1')
       if (wholeWord) params.set('wholeWord', '1')
       if (cursor !== undefined) params.set('cursor', cursor)
-      const response = await fetch(`/dsh-bridge/worktree/search?${params.toString()}`, { signal: controller.signal })
+      const response = await bridgeFetch(`/dsh-bridge/worktree/search?${params.toString()}`, { signal: controller.signal })
       const next = await consumeSearchResponse(response, t, (match) => {
         setListing(previous => ({
           matches: previous === null ? [match] : [...previous.matches, match],

@@ -32,6 +32,17 @@ const maxOutputBytes = 8 * 1024 * 1024;
 const readinessTimeoutMs = 120_000;
 
 /**
+ * Authorization header for the loopback bearer token, when the runtime was
+ * started with DSH_WEB_TOKEN (the desktop shell does per boot). Without the
+ * token the headers stay empty and the plain loopback posture is unchanged.
+ * @returns header record to spread onto requests.
+ */
+function authHeaders() {
+  const token = process.env.DSH_WEB_TOKEN;
+  return token === undefined || token.length === 0 ? {} : { authorization: `Bearer ${token}` };
+}
+
+/**
  * Parse the evidence server's command-line options.
  * @param {readonly string[]} args - Arguments after the script name.
  * @returns {{ port: number, workspace: string, keepHome: boolean }} options.
@@ -197,7 +208,7 @@ async function main() {
     const baseUrl = new URL(server.url);
     const workspace = await createWorkspace(baseUrl, options.workspace);
     const configUrl = new URL('/dsh-bridge/config', baseUrl);
-    const configResponse = await fetch(configUrl);
+    const configResponse = await fetch(configUrl, { headers: authHeaders() });
     if (!configResponse.ok) throw new Error(`bridge config returned HTTP ${configResponse.status}`);
     const config = await configResponse.json();
     if (typeof config !== 'object' || config === null) throw new Error('bridge config did not return a JSON object');
@@ -254,7 +265,7 @@ async function createWorkspace(baseUrl, path) {
   const rpcId = randomUUID();
   const response = await fetch(new URL('/api/workspace.create', baseUrl), {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', ...authHeaders() },
     body: JSON.stringify({
       type: 'client-request',
       rpcId,

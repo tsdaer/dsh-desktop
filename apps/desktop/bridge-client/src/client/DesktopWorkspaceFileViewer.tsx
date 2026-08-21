@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { grammarLoadCount, highlightLines, subscribeGrammarLoaded } from '@deepseek-ai/dsh-client-ui-primitives'
 import { writeClipboard } from '@deepseek-ai/dsh-client-ui-primitives'
+import { bridgeFetch } from './bridge-fetch.ts'
 import css from './DesktopWorkspaceWorkbench.module.css'
 
 /** One validated Host projection of the file view route. */
@@ -62,7 +63,7 @@ export function langFromPath(path: string): string | undefined {
  */
 export async function fetchFileView(workspaceId: string, path: string, signal: AbortSignal): Promise<FileView> {
   const query = new URLSearchParams({ workspaceId, path })
-  const response = await fetch(`/dsh-bridge/worktree/file?${query.toString()}`, { signal })
+  const response = await bridgeFetch(`/dsh-bridge/worktree/file?${query.toString()}`, { signal })
   const body = await response.json() as unknown
   if (!response.ok) {
     const record = body as { code?: unknown; message?: unknown }

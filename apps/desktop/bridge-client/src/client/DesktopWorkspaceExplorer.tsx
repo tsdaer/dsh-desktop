@@ -8,6 +8,7 @@ import {
   type SourceControlEntry,
   type SourceControlListing,
 } from './DesktopSourceControlActions.tsx'
+import { bridgeFetch } from './bridge-fetch.ts'
 import { DesktopVirtualList } from './DesktopVirtualList.tsx'
 import { dispatchWorktreePathPointerDown } from './DesktopWorkspacePathDrop.ts'
 import { DesktopWorkspaceFileViewer } from './DesktopWorkspaceFileViewer.tsx'
@@ -120,7 +121,7 @@ export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions
     setNodes(previous => ({ ...previous, [path]: { status: 'loading' } }))
     try {
       const query = new URLSearchParams({ workspaceId, ...(path === '' ? {} : { path }) })
-      const response = await fetch(`/dsh-bridge/worktree/explorer?${query.toString()}`, { signal: controller.signal })
+      const response = await bridgeFetch(`/dsh-bridge/worktree/explorer?${query.toString()}`, { signal: controller.signal })
       const body = await response.json() as unknown
       if (!response.ok) throw new Error(explorerError(body, t('worktree.explorerFailed')))
       const listing = parseListing(body)
@@ -149,7 +150,7 @@ export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions
     if (workspaceId === undefined) return
     const controller = new AbortController()
     setSourceControl({ status: 'loading' })
-    void fetch(`/dsh-bridge/worktree/source-control?${new URLSearchParams({ workspaceId })}`, { signal: controller.signal })
+    void bridgeFetch(`/dsh-bridge/worktree/source-control?${new URLSearchParams({ workspaceId })}`, { signal: controller.signal })
       .then(async (response) => {
         const body = await response.json() as unknown
         if (!response.ok) throw new Error('Git status request failed')

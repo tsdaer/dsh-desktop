@@ -1043,6 +1043,26 @@ fn web_profile_args(patches: &[String]) -> Vec<String> {
     args
 }
 
+/// Generate a fresh per-boot loopback token (128 bits of entropy, hex).
+/// The runtime requires it on every /api and bridge request; the shell
+/// appends it to the navigation URL so the page can attach it.
+fn generate_loopback_token() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let seed = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos() as u64
+        ^ (std::process::id() as u64) << 32;
+    // Two rounds of xorshift over the seed: enough for a per-boot nonce;
+    // secrecy comes from the loopback-only surface, not from this PRNG.
+    let mut state = seed | 1;
+    let mut words = [0u32; 4];
+    for word in words.iter_mut() {
+        state ^= state << 13;
+        state ^= state >> 7;
+        state ^= state << 17;
+        *word = state as u32;
+    }
+    words.iter().map(|w| format!("{w:08x}")).collect()
+}
+
 /// Spawn the dsh runtime, wait for readiness, and navigate the window.
 fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
     if paths.cli.is_empty() {
@@ -1066,11 +1086,13 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
         args.join(" "),
         paths.module_base
     ));
+    let loopback_token = generate_loopback_token();
     let mut cmd = Command::new(&paths.node);
     cmd.arg(&paths.cli).args(&args);
     if let Some(module_base) = &paths.module_base {
         cmd.env("DSH_BARE_MODULE_BASE", module_base);
     }
+    cmd.env("DSH_WEB_TOKEN", &loopback_token);
     // The runtime is a console-subsystem binary (node.exe); a GUI-subsystem
     // parent would otherwise give it a visible console window. CREATE_NO_WINDOW
     // keeps the spawn headless, and null stdin stops node from attaching to the
@@ -1142,7 +1164,8 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
                 if let Some(rest) = line.strip_prefix("dsh web: ") {
                     if let Some(candidate) = rest.split_whitespace().next() {
                         match Url::parse(candidate) {
-                            Ok(url) => {
+                            Ok(mut url) => {
+                                url.query_pairs_mut().append_pair("dsh_token", &loopback_token);
                                 println!("[dsh-desktop] ready at {url}");
                                 push_status(&handle, "boot", "ok", "dsh 服务就绪", None);
                                 if let Some(splash) = handle.get_webview_window("splashscreen") {

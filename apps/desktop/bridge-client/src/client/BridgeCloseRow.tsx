@@ -6,6 +6,7 @@
 // shell-side close interception is mirrored through the injected
 // onCloseToTray callback.
 import { useEffect, useState } from 'react'
+import { bridgeFetch } from './bridge-fetch.ts'
 import css from './BridgeRow.module.css'
 
 /** Injected callback: apply the new close-to-tray state in the shell right away. */
@@ -28,7 +29,7 @@ export function BridgeCloseRow({ onCloseToTray, t }: BridgeCloseRowProps): React
 
   useEffect(() => {
     let alive = true
-    void fetch('/dsh-bridge/config').then(r => r.json()).then((c) => {
+    void bridgeFetch('/dsh-bridge/config').then(r => r.json()).then((c) => {
       if (!alive) return
       setCloseToTray(c.closeToTray === true)
     }).catch(() => { /* keep default */ })
@@ -39,7 +40,7 @@ export function BridgeCloseRow({ onCloseToTray, t }: BridgeCloseRowProps): React
   const changeCloseToTray = (enabled: boolean): void => {
     setCloseToTray(enabled)
     setStatus(t('saving'))
-    void fetch('/dsh-bridge/policy', {
+    void bridgeFetch('/dsh-bridge/policy', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ closeToTray: enabled }),

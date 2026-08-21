@@ -4,6 +4,7 @@
 // immediately (no save button) and the guard applies right away through
 // the injected onDebugMode callback.
 import { useEffect, useState } from 'react'
+import { bridgeFetch } from './bridge-fetch.ts'
 import css from './BridgeRow.module.css'
 
 /** Injected callback: apply the new debug-mode state right away. */
@@ -26,7 +27,7 @@ export function BridgeDebugRow({ onDebugMode, t }: BridgeDebugRowProps): React.R
 
   useEffect(() => {
     let alive = true
-    void fetch('/dsh-bridge/config').then(r => r.json()).then((c) => {
+    void bridgeFetch('/dsh-bridge/config').then(r => r.json()).then((c) => {
       if (!alive) return
       setDebugMode(c.debugMode === true)
     }).catch(() => { /* keep default */ })
@@ -37,7 +38,7 @@ export function BridgeDebugRow({ onDebugMode, t }: BridgeDebugRowProps): React.R
   const changeDebugMode = (enabled: boolean): void => {
     setDebugMode(enabled)
     setStatus(t('saving'))
-    void fetch('/dsh-bridge/policy', {
+    void bridgeFetch('/dsh-bridge/policy', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ debugMode: enabled }),

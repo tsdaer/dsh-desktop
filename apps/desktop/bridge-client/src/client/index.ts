@@ -6,6 +6,7 @@ import { BridgeSection } from './BridgeSection.tsx'
 import { createDesktopWorkspaceWorkbench } from './DesktopWorkspaceWorkbench.tsx'
 import { mountDesktopUpdater } from './DesktopUpdater.ts'
 import { formatWorktreePath, normalizeWorktreePath, WORKTREE_PATH_POINTER_EVENT } from './DesktopWorkspacePathDrop.ts'
+import { bridgeFetch } from './bridge-fetch.ts'
 import { en, zh } from './locales.ts'
 
 // @deepseek-ai/dsh-desktop-bridge-client — browser half of the shell bridge.
@@ -500,7 +501,7 @@ export function apply(ctx: BridgeClientContext): () => void {
   // Shell wiring at bind: read the stored desktop settings and mirror them
   // into the shell (close-to-tray interception, WebView2 devtools, and Logo motion).
   applyLogoMotion(false)
-  void fetch('/dsh-bridge/config').then(r => r.json()).then((c) => {
+  void bridgeFetch('/dsh-bridge/config').then(r => r.json()).then((c) => {
     if (typeof c.closeToTray === 'boolean') applyCloseToTray(c.closeToTray)
     if (typeof c.debugMode === 'boolean') applyDebugMode(c.debugMode)
     applyLogoMotion(c.logoMotion === true)

@@ -62,7 +62,7 @@ Explorer 与搜索能定位文件，却无法展示它。为根内文件新增�
 
 另有一项：运行时以 loopback 无认证方式服务，任何本地进程都可访问。桌面壳子是唯一知道端口的客户端，因此可以持有一个按启动生成的 token。这会改动上游所有的 `dsh web`：需要独立的 harness 需求、[分歧登记表](../../../../docs/fork-divergence.md)中的一行，以及在未配置 token 时完全保持纯浏览器姿态不变的设计。
 
-装饰整改已完成：主窗口重新加回 `WS_THICKFRAME`(不加 `WS_CAPTION`),由操作系统提供缩放边框与 Windows 11 贴靠布局浮出,原生宿主在每次尺寸事件时推送 `dsh://maximize-change`,标题栏图标跟随窗口状态([已实现记录](../../implemented/feature/2026-08-22-desktop-native-window-chrome.md))。loopback token 仍然待办:它需要独立设计(webserver 认证、CLI 管道、壳子 token 注入、携带 token 的浏览器请求)以及分歧登记表行,此处保持开放。
+装饰整改已完成：主窗口重新加回 `WS_THICKFRAME`(不加 `WS_CAPTION`),由操作系统提供缩放边框与 Windows 11 贴靠布局浮出,原生宿主在每次尺寸事件时推送 `dsh://maximize-change`,标题栏图标跟随窗口状态([已实现记录](../../implemented/feature/2026-08-22-desktop-native-window-chrome.md))。loopback token 已完成:壳子生成按启动 token,以 `DSH_WEB_TOKEN` 与导航查询参数传递;webserver 的可选 `token` 配置在已注册路由与 upgrade 上强制校验,静态 dist 保持开放;connection 客户端与桥接客户端都附加该 token([已实现记录](../../implemented/feature/2026-08-22-desktop-loopback-token.md),[分歧登记表](../../../../docs/fork-divergence.md))。
 
 ### 阶段 6：第二个平台
 

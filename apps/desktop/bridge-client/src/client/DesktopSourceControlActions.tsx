@@ -5,6 +5,7 @@
 // Workspace-relative; the Host owns every Git argument.
 import { useCallback, useMemo, useState } from 'react'
 import { DiffBlock, type DiffHunk } from '@deepseek-ai/dsh-client-ui-primitives'
+import { bridgeFetch } from './bridge-fetch.ts'
 import css from './DesktopWorkspaceWorkbench.module.css'
 
 /** One listed change, mirroring the Host projection (client-local copy). */
@@ -99,7 +100,7 @@ export function useSourceControlActions(
     setBusyPath(path)
     setError(null)
     try {
-      const response = await fetch(`/dsh-bridge/worktree/source-control/${operation}`, {
+      const response = await bridgeFetch(`/dsh-bridge/worktree/source-control/${operation}`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ workspaceId, path }),
@@ -131,7 +132,7 @@ export function useSourceControlActions(
     setCommitError(null)
     void (async () => {
       try {
-        const response = await fetch('/dsh-bridge/worktree/source-control/commit', {
+        const response = await bridgeFetch('/dsh-bridge/worktree/source-control/commit', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ workspaceId, message }),
@@ -154,7 +155,7 @@ export function useSourceControlActions(
     void (async () => {
       try {
         const query = new URLSearchParams({ workspaceId, path })
-        const response = await fetch(`/dsh-bridge/worktree/source-control/diff?${query.toString()}`)
+        const response = await bridgeFetch(`/dsh-bridge/worktree/source-control/diff?${query.toString()}`)
         const body = await response.json() as unknown
         if (!response.ok) throw new Error(mutationError(body, t))
         setDiff({ status: 'ready', diff: parseDiff(body) })
