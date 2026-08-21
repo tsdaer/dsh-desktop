@@ -28,7 +28,7 @@ The Worktree client renders Git decorations directly in the Explorer. Changed fi
 
 ## Consequences
 
-Source Control requires Git to be available in the desktop runtime and reports unavailable state when discovery or status cannot complete. Repository status is a snapshot, so later refreshes can observe different changes and do not provide mutation or staging operations. NUL-delimited porcelain parsing preserves paths containing spaces or line breaks; unsupported or unsafe records are visible only through bounded status categories and never become filesystem authority.
+Source Control requires Git to be available in the desktop runtime and reports unavailable state when discovery or status cannot complete. Repository status is a snapshot, so later refreshes can observe different changes; write operations re-validate against a fresh listing before mutating (see [Desktop Source Control writes](2026-08-21-desktop-source-control-actions.md)). NUL-delimited porcelain parsing preserves paths containing spaces or line breaks; unsupported or unsafe records are visible only through bounded status categories and never become filesystem authority.
 
 ## Testing
 

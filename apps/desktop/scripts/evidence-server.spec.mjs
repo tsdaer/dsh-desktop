@@ -16,6 +16,12 @@ test('parseArguments accepts an explicit workspace and keep-home flag', () => {
   assert.equal(options.keepHome, true);
 });
 
+test('parseArguments accepts the pnpm-forwarded option separator', () => {
+  const options = parseArguments(['--', '--workspace', '.', '--keep-home']);
+  assert.equal(options.workspace, process.cwd());
+  assert.equal(options.keepHome, true);
+});
+
 test('mergeProfilePatch replaces the profile empty list and stays idempotent', () => {
   const patch = '- insert:\n    - id: desktop-bridge\n';
   const merged = mergeProfilePatch('# header\n[]\n', patch);

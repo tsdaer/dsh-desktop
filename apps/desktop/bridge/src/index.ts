@@ -21,6 +21,7 @@ import type {} from '@deepseek-ai/dsh-workspace'
 import type {} from '@deepseek-ai/dsh-subprocess'
 import { handleExplorerRequest } from './explorer.ts'
 import { handleSearchRequest } from './search.ts'
+import { handleSourceControlActionRequest, handleSourceControlDiffRequest } from './source-control-actions.ts'
 import { handleSourceControlRequest } from './source-control.ts'
 
 /** Stable Cordis plugin name. */
@@ -66,6 +67,8 @@ export interface Config {
   sourceControlGraceMs: number
   /** Maximum elapsed time for one Source Control request. */
   sourceControlTimeoutMs: number
+  /** Maximum one-side diff bytes read for the Source Control diff route. */
+  sourceControlMaxDiffBytes: number
 }
 
 export const Config: z<Config> = z.object({
@@ -85,6 +88,7 @@ export const Config: z<Config> = z.object({
   sourceControlMaxBytes: z.number().default(128 * 1024),
   sourceControlGraceMs: z.number().default(1_000),
   sourceControlTimeoutMs: z.number().default(5_000),
+  sourceControlMaxDiffBytes: z.number().default(256 * 1024),
 })
 
 function validateExplorerConfig(config: Config): void {
@@ -108,6 +112,7 @@ function validateExplorerConfig(config: Config): void {
     sourceControlMaxBytes: config.sourceControlMaxBytes,
     sourceControlGraceMs: config.sourceControlGraceMs,
     sourceControlTimeoutMs: config.sourceControlTimeoutMs,
+    sourceControlMaxDiffBytes: config.sourceControlMaxDiffBytes,
   })) {
     if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`desktop-bridge: ${name} must be a positive safe integer`)
   }
@@ -141,6 +146,7 @@ function effectiveConfig(ctx: Context, config: Config): Config {
     sourceControlMaxBytes: config.sourceControlMaxBytes,
     sourceControlGraceMs: config.sourceControlGraceMs,
     sourceControlTimeoutMs: config.sourceControlTimeoutMs,
+    sourceControlMaxDiffBytes: config.sourceControlMaxDiffBytes,
   }
 }
 
@@ -236,6 +242,31 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
       return
     }
     await handleSourceControlRequest(req, res, ctx, config)
+    return
+  }
+  if (pathname === '/dsh-bridge/worktree/source-control/diff') {
+    if (req.method !== 'GET') {
+      res.statusCode = 405
+      res.end()
+      return
+    }
+    await handleSourceControlDiffRequest(req, res, ctx, config)
+    return
+  }
+  const mutations: Array<[string, 'stage' | 'unstage' | 'discard' | 'commit']> = [
+    ['/dsh-bridge/worktree/source-control/stage', 'stage'],
+    ['/dsh-bridge/worktree/source-control/unstage', 'unstage'],
+    ['/dsh-bridge/worktree/source-control/discard', 'discard'],
+    ['/dsh-bridge/worktree/source-control/commit', 'commit'],
+  ]
+  for (const [path, operation] of mutations) {
+    if (pathname !== path) continue
+    if (req.method !== 'POST') {
+      res.statusCode = 405
+      res.end()
+      return
+    }
+    await handleSourceControlActionRequest(req, res, ctx, config, operation)
     return
   }
   json(res, 404, { error: 'not found' })

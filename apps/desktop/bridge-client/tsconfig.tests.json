@@ -8,5 +8,10 @@
     "noEmit": true,
     "rootDir": "."
   },
-  "include": ["src", "tests"]
+  "include": ["src", "tests"],
+  "references": [
+    {
+      "path": "../../../packages/client/ui-primitives"
+    }
+  ]
 }

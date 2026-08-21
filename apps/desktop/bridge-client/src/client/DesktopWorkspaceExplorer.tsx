@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import css from './DesktopWorkspaceWorkbench.module.css'
+import {
+  SourceControlActionButtons,
+  SourceControlCommitBar,
+  SourceControlDiffPanel,
+  useSourceControlActions,
+  type SourceControlEntry,
+  type SourceControlListing,
+} from './DesktopSourceControlActions.tsx'
 import { DesktopVirtualList } from './DesktopVirtualList.tsx'
 import { dispatchWorktreePathPointerDown } from './DesktopWorkspacePathDrop.ts'
 
@@ -48,19 +56,6 @@ interface ExplorerListing {
 }
 
 type SourceControlStatus = 'staged' | 'unstaged' | 'untracked' | 'conflicted' | 'renamed' | 'unsupported'
-
-interface SourceControlEntry {
-  path: string
-  statuses: readonly SourceControlStatus[]
-  oldPath?: string
-}
-
-interface SourceControlListing {
-  workspaceId: string
-  state: 'repository' | 'not-repository' | 'unavailable'
-  entries: readonly SourceControlEntry[]
-  truncated: boolean
-}
 
 type SourceControlState =
   | { status: 'loading' }
@@ -161,6 +156,18 @@ export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions
     return () => { controller.abort() }
   }, [sourceControlRefresh, workspaceId])
 
+  const refreshSourceControl = useCallback((): void => {
+    void load('')
+    setSourceControlRefresh(value => value + 1)
+  }, [load])
+
+  const actions = useSourceControlActions(
+    workspaceId,
+    sourceControl.status === 'ready' ? sourceControl.listing : null,
+    t,
+    refreshSourceControl,
+  )
+
   const expanded = useMemo(
     () => new Set(workspaceId === undefined ? [] : expandedByWorkspace[workspaceId] ?? []),
     [expandedByWorkspace, workspaceId],
@@ -212,6 +219,7 @@ export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions
         <span className={css.explorerName} title={entry.name}>{entry.name}</span>
         {entry.outsideRoot === true ? <span className={css.explorerMeta}>{t('worktree.outside')}</span> : null}
         {decoration === undefined ? null : <GitDecorationView decoration={decoration} t={t} />}
+        {entry.type === 'file' && entry.outsideRoot !== true ? <FileActionButtons entryPath={entry.path} actions={actions} t={t} /> : null}
       </>
     )
     return directory
@@ -224,11 +232,30 @@ export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions
       <div className={css.explorerHeader}>
         <span className={css.explorerTitle}>{workspace.title}</span>
         <GitStateIndicator state={sourceControl} t={t} />
-        <button type="button" className={css.explorerRefresh} onClick={() => { void load(''); setSourceControlRefresh(value => value + 1) }}>{t('worktree.refresh')}</button>
+        <button type="button" className={css.explorerRefresh} onClick={refreshSourceControl}>{t('worktree.refresh')}</button>
       </div>
+      {sourceControl.status === 'ready' && sourceControl.listing.state === 'repository' && sourceControl.listing.entries.length > 0 ? (
+        <SourceControlCommitBar
+          stagedCount={sourceControl.listing.entries.filter(entry => entry.statuses.includes('staged')).length}
+          actions={actions}
+          t={t}
+        />
+      ) : null}
+      {actions.diff === null ? null : <SourceControlDiffPanel diff={actions.diff} t={t} onClose={actions.closeDiff} />}
       <DesktopVirtualList items={rows} rowHeight={26} overscan={6} className={css.explorerTree} renderItem={renderRow} />
     </div>
   )
+}
+
+/** Row action buttons for one changed file, when its entry is classified. */
+function FileActionButtons({ entryPath, actions, t }: {
+  entryPath: string
+  actions: ReturnType<typeof useSourceControlActions>
+  t: (key: string) => string
+}): React.ReactElement | null {
+  const entry = actions.entryByPath.get(entryPath)
+  if (entry === undefined || entry.statuses.length === 0 || entry.statuses.every(status => status === 'unsupported')) return null
+  return <SourceControlActionButtons entry={entry} path={entryPath} actions={actions} t={t} />
 }
 
 /** Add Git status markers to changed files and all visible parent directories. */

@@ -37,6 +37,8 @@ export interface SourceControlHostContext {
       }
       graceMs: number
       signal?: AbortSignal
+      /** Explicit environment entries layered after the provider's ambient scrub. */
+      env?: Record<string, string>
     }): SubprocessHandle
   }
 }
@@ -47,8 +49,9 @@ export class SourceControlRequestError extends Error {
    * @param status - HTTP status for the fixed request failure.
    * @param code - Stable machine-readable error code.
    * @param message - Safe message without an absolute filesystem path.
+   * @param detail - Optional bounded Git stderr echoed to the browser.
    */
-  constructor(readonly status: number, readonly code: string, message: string) {
+  constructor(readonly status: number, readonly code: string, message: string, readonly detail?: string) {
     super(message)
     this.name = 'SourceControlRequestError'
   }
@@ -153,6 +156,65 @@ function isSafeRelativePath(path: string): boolean {
   return path.length > 0 && !path.startsWith('/') && !/^[A-Za-z]:[\\/]/.test(path) && !path.split('/').some(part => part === '' || part === '..')
 }
 
+/** One resolved Source Control repository for the selected Workspace. */
+export interface SourceControlRepositoryContext {
+  /** The registered Workspace record (its `path` is the user-facing root). */
+  workspace: { path: string }
+  /** Canonical Workspace root target. */
+  workspaceRoot: FsTarget
+  /** Process path of the Workspace root. */
+  workspacePath: string
+  /** Process path of the containing repository root. */
+  repoPath: string
+  /** Repository-root-relative path of the Workspace (`''` when they coincide). */
+  relativeWorkspacePath: string
+}
+
+/**
+ * Resolve the containing repository for one Workspace with fixed discovery argv
+ * and canonical containment checks. Shared by the read-only status route and
+ * the write routes so every operation agrees on the same repository.
+ * @param host - Filesystem, Workspace registry, and subprocess capabilities.
+ * @param workspaceId - Registered Workspace to resolve.
+ * @param signal - Cancels filesystem and subprocess work.
+ * @param graceMs - Process termination grace period for the discovery command.
+ * @returns The Workspace root, repository root, and repository-relative path.
+ * @throws SourceControlRequestError when the Workspace is missing, unavailable,
+ *   outside a repository, or the repository cannot be read.
+ */
+export async function resolveSourceControlRepository(
+  host: SourceControlHostContext,
+  workspaceId: WorkspaceId,
+  signal: AbortSignal,
+  graceMs: number,
+): Promise<SourceControlRepositoryContext> {
+  const workspace = host.workspaceRegistry.get(workspaceId)
+  if (workspace === undefined) throw new SourceControlRequestError(404, 'workspace-not-found', 'Workspace was not found')
+  const workspaceRoot = await resolveWorkspaceRoot(host.fs, workspace.path, signal)
+  const workspacePath = host.fs.processPath(workspaceRoot)
+  const discovery = await runGit(host, buildGitRepositoryCommand(), workspacePath, signal, graceMs, MAX_OUTPUT_BYTES)
+  if (discovery.outcome.signal !== null) throw new SourceControlRequestError(499, 'cancelled', 'Source Control request was cancelled')
+  if (discovery.outcome.exitCode === 128) throw new SourceControlRequestError(409, 'not-a-repository', 'Workspace is not inside a Git repository')
+  if (discovery.outcome.exitCode !== 0 || discovery.output.lossy) throw new SourceControlRequestError(409, 'git-unavailable', 'Git repository discovery failed')
+  const repositoryPath = discovery.output.text.trim()
+  if (repositoryPath.length === 0 || repositoryPath.includes('\0') || repositoryPath.includes('\n')) {
+    throw new SourceControlRequestError(409, 'git-unavailable', 'Git repository discovery failed')
+  }
+  let repositoryRoot: FsTarget
+  try {
+    repositoryRoot = await host.fs.resolve(repositoryPath, { signal })
+    if (!host.fs.contains(repositoryRoot, workspaceRoot)) {
+      throw new SourceControlRequestError(409, 'git-unavailable', 'Git repository discovery failed')
+    }
+  } catch (error: unknown) {
+    if (error instanceof SourceControlRequestError) throw error
+    throw new SourceControlRequestError(409, 'git-unavailable', 'Git repository discovery failed')
+  }
+  const repoPath = host.fs.processPath(repositoryRoot)
+  const relativeWorkspacePath = normalizeGitRelativePath(relative(repoPath, workspacePath), repoPath, workspacePath)
+  return { workspace, workspaceRoot, workspacePath, repoPath, relativeWorkspacePath }
+}
+
 /** Run the bounded read-only Git projection for one Workspace.
  * @param host - Filesystem, Workspace registry, and subprocess capabilities.
  * @param workspaceId - Registered Workspace to inspect.
@@ -171,29 +233,21 @@ export async function readSourceControl(
   maxBytes: number,
   graceMs: number,
 ): Promise<SourceControlListing> {
-  const workspace = host.workspaceRegistry.get(workspaceId)
-  if (workspace === undefined) throw new SourceControlRequestError(404, 'workspace-not-found', 'Workspace was not found')
-  const workspaceRoot = await resolveWorkspaceRoot(host.fs, workspace.path, signal)
-  const workspacePath = host.fs.processPath(workspaceRoot)
-  const discovery = await runGit(host, buildGitRepositoryCommand(), workspacePath, signal, graceMs, MAX_OUTPUT_BYTES)
-  if (discovery.outcome.signal !== null) throw new SourceControlRequestError(499, 'cancelled', 'Source Control request was cancelled')
-  if (discovery.outcome.exitCode === 128) return { workspaceId, state: 'not-repository', entries: [], truncated: false }
-  if (discovery.outcome.exitCode !== 0 || discovery.output.lossy) return { workspaceId, state: 'unavailable', entries: [], truncated: false }
-  const repositoryPath = discovery.output.text.trim()
-  if (repositoryPath.length === 0 || repositoryPath.includes('\0') || repositoryPath.includes('\n')) return { workspaceId, state: 'unavailable', entries: [], truncated: false }
-  let repositoryRoot: FsTarget
+  let repo: SourceControlRepositoryContext
   try {
-    repositoryRoot = await host.fs.resolve(repositoryPath, { signal })
-    if (!host.fs.contains(repositoryRoot, workspaceRoot)) return { workspaceId, state: 'unavailable', entries: [], truncated: false }
-  } catch {
+    repo = await resolveSourceControlRepository(host, workspaceId, signal, graceMs)
+  } catch (error: unknown) {
+    if (error instanceof SourceControlRequestError) {
+      if (error.code === 'not-a-repository') return { workspaceId, state: 'not-repository', entries: [], truncated: false }
+      if (error.code === 'workspace-not-found' || error.code === 'workspace-unavailable') throw error
+      return { workspaceId, state: 'unavailable', entries: [], truncated: false }
+    }
     return { workspaceId, state: 'unavailable', entries: [], truncated: false }
   }
-  const repoPath = host.fs.processPath(repositoryRoot)
-  const relativeWorkspacePath = normalizeGitRelativePath(relative(repoPath, workspacePath), repoPath, workspacePath)
-  const status = await runGit(host, buildGitStatusCommand(relativeWorkspacePath), repoPath, signal, graceMs, maxBytes)
+  const status = await runGit(host, buildGitStatusCommand(repo.relativeWorkspacePath), repo.repoPath, signal, graceMs, maxBytes)
   if (status.outcome.signal !== null) throw new SourceControlRequestError(499, 'cancelled', 'Source Control request was cancelled')
   if (status.outcome.exitCode !== 0 || status.output.lossy) return { workspaceId, state: 'unavailable', entries: [], truncated: false }
-  return parseGitStatus(status.output.text, relativeWorkspacePath, maxEntries, maxBytes, workspaceId)
+  return parseGitStatus(status.output.text, repo.relativeWorkspacePath, maxEntries, maxBytes, workspaceId)
 }
 
 function normalizeGitRelativePath(value: string, repositoryPath: string, workspacePath: string): string {
@@ -213,23 +267,35 @@ async function resolveWorkspaceRoot(fs: FileSystem, path: string, signal: AbortS
   }
 }
 
-async function runGit(
+/** Run one bounded Git command from the given working directory.
+ * @param host - Filesystem, Workspace registry, and subprocess capabilities.
+ * @param argv - Fixed Git arguments (never browser-supplied).
+ * @param cwd - Host-derived working directory.
+ * @param signal - Cancels the subprocess.
+ * @param graceMs - Process termination grace period; 0 skips the preflight wait.
+ * @param maxBytes - Maximum retained stdout bytes.
+ * @param env - Optional explicit environment layered after the ambient scrub.
+ * @returns The process outcome, bounded stdout, and bounded stderr.
+ */
+export async function runGit(
   host: SourceControlHostContext,
   argv: readonly string[],
   cwd: string,
   signal: AbortSignal,
   graceMs: number,
   maxBytes: number,
-): Promise<{ outcome: Awaited<SubprocessHandle['done']>; output: { text: string; lossy: boolean } }> {
+  env?: Record<string, string>,
+): Promise<{ outcome: Awaited<SubprocessHandle['done']>; output: { text: string; lossy: boolean }; stderr: { text: string; lossy: boolean } }> {
   let handle: SubprocessHandle
   try {
-    handle = host.subprocess.spawn({ argv, cwd, stdio: { stdin: 'ignore', stdout: { maxBytes }, stderr: { maxBytes: 8 * 1024 } }, graceMs, signal })
+    handle = host.subprocess.spawn({ argv, cwd, stdio: { stdin: 'ignore', stdout: { maxBytes }, stderr: { maxBytes: 8 * 1024 } }, graceMs, signal, ...(env === undefined ? {} : { env }) })
   } catch {
-    return { outcome: { exitCode: -1, signal: null }, output: { text: '', lossy: true } }
+    return { outcome: { exitCode: -1, signal: null }, output: { text: '', lossy: true }, stderr: { text: '', lossy: true } }
   }
   const outcome = await handle.done
   const output = handle.collected.stdout?.readFrom(0) ?? { text: '', lossy: true }
-  return { outcome, output }
+  const stderr = handle.collected.stderr?.readFrom(0) ?? { text: '', lossy: true }
+  return { outcome, output, stderr }
 }
 
 /** Serve GET /dsh-bridge/worktree/source-control with request cancellation and timeout.
@@ -264,7 +330,9 @@ export async function handleSourceControlRequest(
     )
     if (!res.writableEnded) writeJson(res, 200, listing)
   } catch (error: unknown) {
-    if (!res.writableEnded && !req.destroyed) writeSourceControlError(res, error)
+    // The request stream auto-destroys after its body ends, so writability is
+    // the only reliable signal for whether the response can still be sent.
+    if (!res.writableEnded) writeSourceControlError(res, error)
   } finally {
     clearTimeout(timer)
     req.removeListener('aborted', abort)
