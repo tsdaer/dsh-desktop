@@ -300,12 +300,30 @@
     if (maximizeBtn) maximizeBtn.innerHTML = isMaximized ? RESTORE_ICON : MAX_ICON;
   }
 
+  // Authoritative maximize state arrives from the native host (Rust pushes
+  // it on every window size change), so the icon follows snap layouts and
+  // OS shortcuts instead of only the injected button's click. The polling
+  // read stays as the fallback for hosts without the event.
+  function applyMaximized(value) {
+    var next = !!value;
+    if (next !== isMaximized) {
+      isMaximized = next;
+      renderMaximizeIcon();
+    }
+  }
+
   function refreshMaximized() {
     if (!win) return;
     try {
-      win.isMaximized().then(function (value) {
-        isMaximized = value;
-        renderMaximizeIcon();
+      win.isMaximized().then(applyMaximized).catch(function () {});
+    } catch (err) {}
+  }
+
+  var tauriApi = window.__TAURI__;
+  if (tauriApi && tauriApi.event) {
+    try {
+      tauriApi.event.listen('dsh://maximize-change', function (event) {
+        applyMaximized(event.payload);
       }).catch(function () {});
     } catch (err) {}
   }

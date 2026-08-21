@@ -98,7 +98,7 @@ After the main page boots, the title bar checks the published GitHub Release man
 
 The updater accepts only an artifact whose detached signature matches the public key embedded in `src-tauri/tauri.conf.json`. Draft Release assets are not update endpoints; publish the accepted Release before clients can discover it. The tag-gated workflow requires the matching `TAURI_SIGNING_PRIVATE_KEY` GitHub Secret, runs Tauri in CI mode, and never stores the private key in the repository or application. `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` is optional for password-protected keys and is unnecessary for a passwordless key.
 
-Known test-version gaps: no Windows 11 snap-layout flyout (frameless), resize borders come from tao's default hit-testing, maximize icon syncs on click/resize events.
+The frameless main window re-adds `WS_THICKFRAME` (without `WS_CAPTION`) at setup, so the OS provides native resize borders and the Windows 11 snap-layout flyout while the title bar stays custom. The maximize icon reads window state from the native host: Rust pushes `dsh://maximize-change` on every size event and the title bar listens for it, with the polling read kept as a fallback.
 
 ## Drag and drop
 

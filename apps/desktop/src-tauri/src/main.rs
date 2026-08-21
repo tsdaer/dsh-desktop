@@ -30,6 +30,9 @@ use tauri::webview::PageLoadEvent;
 use tauri::{DragDropEvent, Emitter, Manager, Url, WebviewWindow, WindowEvent};
 use tauri_plugin_opener::OpenerExt;
 
+#[cfg(windows)]
+use windows::Win32::UI::WindowsAndMessaging::{GetWindowLongPtrW, SetWindowLongPtrW, SetWindowPos, GWL_STYLE, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, WINDOW_STYLE, WS_MAXIMIZEBOX, WS_THICKFRAME};
+
 /// Holds the spawned runtime so it can be terminated at app exit.
 struct DshRuntime(Mutex<Option<Child>>);
 
@@ -445,6 +448,35 @@ fn quit_app(app: &tauri::AppHandle) {
     app.exit(0);
 }
 
+/// Restore the native resize borders and Windows 11 snap-layout flyout on the
+/// frameless main window. tao removes `WS_CAPTION | WS_THICKFRAME` for
+/// undecorated windows; re-adding `WS_THICKFRAME` (without `WS_CAPTION`) gives
+/// the OS resize hit-testing and the maximize-button snap overlay while the
+/// title bar stays custom. Applied after the window exists; failures leave
+/// the tao default (no resize borders) rather than panicking.
+#[cfg(windows)]
+fn apply_windows_chrome(window: &tauri::WebviewWindow) {
+    let Ok(hwnd) = window.hwnd() else {
+        return;
+    };
+    unsafe {
+        let style = WINDOW_STYLE(GetWindowLongPtrW(hwnd, GWL_STYLE) as u32);
+        let updated = style | WS_THICKFRAME | WS_MAXIMIZEBOX;
+        if updated != style {
+            let _ = SetWindowLongPtrW(hwnd, GWL_STYLE, updated.0 as isize);
+            let _ = SetWindowPos(
+                hwnd,
+                None,
+                0,
+                0,
+                0,
+                0,
+                SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE,
+            );
+        }
+    }
+}
+
 /// Main-window lifecycle wiring: close-to-tray interception and the dropped-
 /// path allowlist feeding `read_dropped_file`.
 fn wire_main_window_events(app: &tauri::AppHandle) {
@@ -453,6 +485,14 @@ fn wire_main_window_events(app: &tauri::AppHandle) {
     };
     let handle = app.clone();
     window.clone().on_window_event(move |event| match event {
+        // The title bar reads maximize state from the window (never from a
+        // click): every size change re-queries the window and pushes the
+        // authoritative value so the icon follows snap layouts and OS
+        // shortcuts, not just the injected button.
+        WindowEvent::Resized(_) => {
+            let maximized = window.is_maximized().unwrap_or(false);
+            let _ = window.emit("dsh://maximize-change", maximized);
+        }
         WindowEvent::CloseRequested { api, .. } => {
             let close_to_tray = handle.state::<CloseToTray>();
             if *close_to_tray.0.lock().unwrap() {
@@ -565,6 +605,10 @@ fn main() {
                 app.get_webview_window("main").is_some()
             ));
             setup_tray(app.handle())?;
+            #[cfg(windows)]
+            if let Some(window) = app.get_webview_window("main") {
+                apply_windows_chrome(&window);
+            }
             wire_main_window_events(app.handle());
             let args = std::env::args().collect::<Vec<_>>();
             enqueue_open_path(app.handle(), &args);
