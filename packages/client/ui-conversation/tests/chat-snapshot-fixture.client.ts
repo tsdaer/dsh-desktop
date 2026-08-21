@@ -4,6 +4,7 @@ import type {
   ConversationTurnDataMap, LegacyConversationSlice, PartialAssistant, RunningToolCall,
   ToolCallBlock, TurnLocation,
 } from '@deepseek-ai/dsh-client-runtime/client'
+import { assistantText } from '../src/client/chat/turn-assistant.ts'
 import { deriveTurnMetrics } from '../src/client/chat/turn-metrics.ts'
 
 const EMPTY: readonly never[] = []
@@ -248,6 +249,12 @@ export function chatSnapshotFixture(input: {
       seq: endSeq,
       time: turn.end?.time ?? 0,
       closing,
+      copyText: legacy.nodes
+        .filter((candidate): candidate is AssistantMessageNode => candidate.kind === 'assistant'
+          && candidate.turn === turnNumber)
+        .sort((left, right) => left.seq - right.seq)
+        .map(candidate => assistantText(candidate.blocks))
+        .join(''),
       branchUnavailable: closing === null
         || preceding?.kind !== 'assistant-step'
         || (preceding.data as ReturnType<typeof assistantData>).finalNode.seq !== closing.finalNode.seq,

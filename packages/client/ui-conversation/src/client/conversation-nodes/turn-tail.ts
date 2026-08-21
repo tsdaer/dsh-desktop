@@ -8,6 +8,7 @@ import type {
   AssistantChatData, FinalAssistantChatData, TurnTailChatData,
 } from '../contract/chat-nodes.ts'
 import { deriveTurnMetrics } from '../chat/turn-metrics.ts'
+import { assistantText } from '../chat/turn-assistant.ts'
 import { CHAT_SYNTHETIC_SEQ_OFFSETS, chatNode } from './common.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
@@ -142,6 +143,10 @@ function tailData(context: ConversationNodeContext<TurnTailState>): TurnTailChat
     seq: end.event.seq,
     time: end.event.time,
     closing,
+    // The footer copy action covers the Turn's complete Assistant prose, not
+    // only the closing node: multi-step narration before the last answer
+    // would otherwise be visible but not copyable.
+    copyText: finalized.map(candidate => assistantText(candidate.finalNode.blocks)).join(''),
     branchUnavailable: closing === null || latestTranscriptSeq !== closing.finalNode.seq,
     ...metrics?.ttftMs === undefined ? {} : { ttftMs: metrics.ttftMs },
     ...metrics?.tokensPerSecond === undefined ? {} : { tokensPerSecond: metrics.tokensPerSecond },

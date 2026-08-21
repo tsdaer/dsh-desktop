@@ -20,7 +20,7 @@ Planned for 0.3.0:
 - [x] A desktop-only Workspace/Worktree sidebar switch that preserves the shared Workspace browser
 - [x] Explorer, Search, read-only Git decorations, and Worktree path drops into the composer
 - [x] Whole-file Source Control writes: stage, unstage, discard (with a file-naming confirmation), commit with a message confined to the selected Workspace, and diff viewing through the shared diff presentation
-- [ ] A visually consistent copy action beside every ordinary user and assistant message
+- [x] A visually consistent copy action beside every ordinary user and assistant message
 - [x] API connection status beside the balance, with click-to-refresh balance updates
 - [x] Automatic update checks against this repository's GitHub Releases, with installation of available updates
 - [x] One black application icon shared by the splash screen, window, tray, and installer

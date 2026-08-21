@@ -628,6 +628,28 @@ describe('ChatView', () => {
     expect(branchButtons.map(button => button.getAttribute('aria-disabled'))).toEqual([null, null])
   })
 
+  it('the Turn Tail copy action writes the complete Turn prose across steps', () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    })
+    const h = makeHarness({
+      nodes: [
+        user(1, 'hi'),
+        assistant(2, 'mid-turn text'),
+        toolResult(3, 'a'),
+        assistant(4, 'final answer'),
+      ],
+      turnEnds: new Map([[1, 4]]),
+    })
+    const view = render(<h.ChatView {...h.props} />)
+    const copyButtons = view.getAllByRole('button', { name: '复制' })
+    expect(copyButtons).toHaveLength(2)
+    fireEvent.click(copyButtons.at(-1) as HTMLElement)
+    expect(writeText).toHaveBeenCalledWith('mid-turn textfinal answer')
+  })
+
   it('withholds assistant IconActions while the turn is still running', () => {
     const h = makeHarness({
       running: true,
