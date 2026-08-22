@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-08-22-desktop-update-smoke-manifest-base.md
-2026-08-22-desktop-update-smoke-manifest-base.md: 44710e5476d952aff89bde01f32852266550d629
-2026-08-22-desktop-update-smoke-manifest-base.zh.md: 453f48d26788bdd22cf6eea09fcf21f34037c44e
+2026-08-22-desktop-update-smoke-manifest-base.md: 480c233d54e229b02e1ea18d200b3c76ffc96a68
+2026-08-22-desktop-update-smoke-manifest-base.zh.md: 07d40a7364459de965669e864ccbcafd078df014

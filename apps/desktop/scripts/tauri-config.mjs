@@ -39,19 +39,47 @@ function isRecord(value) {
 }
 
 /**
+ * Build the updater configuration used by a target-runner update smoke.
+ * Production builds keep the endpoint from tauri.conf.json; this explicit
+ * overlay is only for a fixture server owned by the smoke.
+ *
+ * @param {string} endpoint HTTP(S) endpoint returning latest.json.
+ * @returns {{plugins: {updater: {endpoints: string[]}}}}
+ */
+export function updaterEndpointConfig(endpoint) {
+  let url;
+  try {
+    url = new URL(endpoint);
+  } catch {
+    throw new Error(`updater smoke endpoint is invalid: ${endpoint}`);
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new Error(`updater smoke endpoint must use HTTP(S): ${endpoint}`);
+  }
+  if (url.username || url.password || url.search || url.hash) {
+    throw new Error('updater smoke endpoint must not contain credentials, a query, or a fragment');
+  }
+  return { plugins: { updater: { endpoints: [url.href] } } };
+}
+
+/**
  * Resolve the reviewed base and target-specific Tauri configuration files.
  *
  * @param {Readonly<{tauriConfig: string}>} target
  * @param {string} desktopRoot
  * @param {string} [targetConfig=target.tauriConfig] Reviewed overlay path.
- * @returns {{basePath: string, targetPath: string}}
+ * @param {string} [extraConfigPath] Optional later config layer.
+ * @returns {{basePath: string, targetPath: string, extraConfigPath?: string}}
  */
-export function tauriConfigPaths(target, desktopRoot, targetConfig = target.tauriConfig) {
+export function tauriConfigPaths(target, desktopRoot, targetConfig = target.tauriConfig, extraConfigPath) {
   const basePath = resolve(desktopRoot, 'src-tauri/tauri.conf.json');
   const targetPath = resolve(desktopRoot, targetConfig);
   if (!existsSync(basePath)) throw new Error(`missing Tauri base config: ${basePath}`);
   if (!existsSync(targetPath)) throw new Error(`missing Tauri target config: ${targetPath}`);
-  return { basePath, targetPath };
+  if (extraConfigPath !== undefined && !existsSync(extraConfigPath)) {
+    throw new Error(`missing extra Tauri config: ${extraConfigPath}`);
+  }
+  return { basePath, targetPath, extraConfigPath };
 }
 
 /**
@@ -62,11 +90,13 @@ export function tauriConfigPaths(target, desktopRoot, targetConfig = target.taur
  * @param {Readonly<{bundleKinds: readonly string[], rustTriple: string, tauriConfig: string, updaterPlatform: string}>} target
  * @param {string} desktopRoot
  * @param {string} [targetConfig=target.tauriConfig] Reviewed overlay path.
+ * @param {string} [extraConfigPath] Optional later config layer.
  * @returns {Readonly<Record<string, unknown>>}
  */
-export function effectiveTauriConfig(target, desktopRoot, targetConfig = target.tauriConfig) {
-  const { basePath, targetPath } = tauriConfigPaths(target, desktopRoot, targetConfig);
-  const config = mergeTauriConfig(readJson(basePath), readJson(targetPath));
+export function effectiveTauriConfig(target, desktopRoot, targetConfig = target.tauriConfig, extraConfigPath) {
+  const { basePath, targetPath } = tauriConfigPaths(target, desktopRoot, targetConfig, extraConfigPath);
+  let config = mergeTauriConfig(readJson(basePath), readJson(targetPath));
+  if (extraConfigPath !== undefined) config = mergeTauriConfig(config, readJson(extraConfigPath));
   const bundle = isRecord(config.bundle) ? config.bundle : {};
   const plugins = isRecord(config.plugins) ? config.plugins : {};
   const updater = isRecord(plugins.updater) ? plugins.updater : {};
@@ -97,10 +127,13 @@ export function effectiveTauriConfig(target, desktopRoot, targetConfig = target.
  * @param {Readonly<{rustTriple: string, tauriConfig: string}>} target
  * @param {string} desktopRoot
  * @param {string} [targetConfig=target.tauriConfig] Reviewed overlay path.
+ * @param {string} [extraConfigPath] Optional later config layer.
  * @returns {string[]}
  */
-export function tauriBuildArgs(target, desktopRoot, targetConfig = target.tauriConfig) {
-  return ['--ci', '--target', target.rustTriple, '--config', resolve(desktopRoot, targetConfig)];
+export function tauriBuildArgs(target, desktopRoot, targetConfig = target.tauriConfig, extraConfigPath) {
+  const args = ['--ci', '--target', target.rustTriple, '--config', resolve(desktopRoot, targetConfig)];
+  if (extraConfigPath !== undefined) args.push('--config', extraConfigPath);
+  return args;
 }
 
 /**

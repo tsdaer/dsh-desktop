@@ -12,7 +12,7 @@ The updater manifest points at the published GitHub Release, while an installed 
 
 `updater-manifest.mjs` keeps the GitHub Release URL as its default and accepts an explicit `downloadBaseUrl` for controlled update smokes. The URL builder accepts only HTTP(S) bases without queries or fragments, rejects path-bearing tags and artifact names, and appends the encoded release tag and artifact name as separate path components. Signature verification and target inventory validation run identically for the default and controlled URLs.
 
-The command-line generator exposes the same option as `--download-base-url`. A local smoke can therefore prepare `latest.json` and the signed primary artifact under one temporary HTTP(S) directory while production manifests retain the GitHub Release endpoint. The installed application still needs target-specific endpoint injection; native installation, relaunch, user confirmation, and user-data retention remain required evidence.
+The command-line generator exposes the same option as `--download-base-url`. A local smoke can therefore prepare `latest.json` and the signed primary artifact under one temporary HTTP(S) directory while production manifests retain the GitHub Release endpoint. The [update-smoke endpoint injection](2026-08-22-desktop-update-smoke-endpoint-injection.md) supplies that endpoint to a target-specific build; native installation, relaunch, user confirmation, and user-data retention remain required evidence.
 
 ## Alternatives considered
 

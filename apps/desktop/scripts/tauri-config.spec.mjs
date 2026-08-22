@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { resolve } from 'node:path';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 
 import { resolveTarget } from './target-spec.mjs';
-import { effectiveTauriConfig, tauriBuildArgs } from './tauri-config.mjs';
+import { effectiveTauriConfig, tauriBuildArgs, updaterEndpointConfig } from './tauri-config.mjs';
 
 const desktopRoot = resolve(import.meta.dirname, '..');
 
@@ -39,6 +41,25 @@ test('Tauri build arguments carry the same explicit target and config layer', ()
     '--config',
     resolve(desktopRoot, 'src-tauri/tauri.linux-x64.conf.json'),
   ]);
+});
+
+test('an explicit updater smoke endpoint is an extra reviewed config layer', () => {
+  const target = resolveTarget('x86_64-unknown-linux-gnu');
+  const endpoint = 'http://127.0.0.1:4317/updates/latest.json';
+  const overlay = updaterEndpointConfig(endpoint);
+  assert.deepEqual(overlay, { plugins: { updater: { endpoints: [endpoint] } } });
+  assert.throws(() => updaterEndpointConfig('file:///tmp/latest.json'), /must use HTTP\(S\)/);
+  assert.throws(() => updaterEndpointConfig('http://user:pass@127.0.0.1/latest.json'), /credentials/);
+  assert.throws(() => updaterEndpointConfig('http://127.0.0.1/latest.json?token=secret'), /query/);
+  const temp = mkdtempSync(join(tmpdir(), 'dsh-tauri-config-'));
+  try {
+    const extra = join(temp, 'updater.json');
+    writeFileSync(extra, `${JSON.stringify(overlay)}\n`);
+    assert.equal(effectiveTauriConfig(target, desktopRoot, target.tauriConfig, extra).plugins.updater.endpoints[0], endpoint);
+    assert.deepEqual(tauriBuildArgs(target, desktopRoot, target.tauriConfig, extra).slice(-2), ['--config', extra]);
+  } finally {
+    rmSync(temp, { recursive: true, force: true });
+  }
 });
 
 test('the macOS experimental layer disables updater artifacts without changing bundle targets', () => {
