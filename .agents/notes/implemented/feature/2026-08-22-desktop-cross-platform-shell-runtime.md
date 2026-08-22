@@ -20,6 +20,10 @@ Runtime baking invokes the target sidecar for profile initialization and readine
 
 The Rust source compiles on the host with a temporary build configuration that omits unavailable packaged resources, and `cargo fmt -- --check` passes. Script syntax and target-sidecar tests pass. Native Linux and macOS linkage, packaged installation, and target-runner boot evidence remain open work-package requirements.
 
+## Related
+
+Target-native pruning and native-file validation are defined by the [desktop target-native runtime](2026-08-22-desktop-target-native-runtime.md) note.
+
 ## Alternatives considered
 
 **Use `node.exe` and ambient Node on every packaged target.** Rejected because POSIX artifacts do not contain that filename and release startup must remain self-contained and versioned.

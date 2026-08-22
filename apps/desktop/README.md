@@ -69,7 +69,7 @@ The installer is self-contained: it ships the shell executable, the target-named
 
 1. `pnpm deploy --legacy --prod --config.nodeLinker=hoisted` the dsh CLI closure. Production-only deploy drops the workspace's dev/build/lint/docs toolchain (TypeScript, oxlint, eslint, mermaid, ...); the spine packages stay reachable through dsh-base's dependencies. Hoisted linking is required — the isolated layout only exposes direct deps at the top level, while the profile fallback exposes the deployed closure to built-in package resolution.
 2. Bakes the auto-installed peers pnpm deploy drops (autoInstallPeers is not reproduced by deploy) plus the desktop bridge packages, copying each workspace package's shipped files (never its node_modules).
-3. Prunes single-platform native prebuilds: node-pty ships every platform plus debug symbols and build-time sources; `pruneRuntime` keeps only the selected target's prebuild.
+3. Prunes and validates native files: every `prebuilds` directory keeps only the selected target when a compatible prebuild exists, otherwise a target source build beside it is accepted and foreign prebuilds are removed; `node-pty` and `koffi` must contain a loadable native binary when present, and foreign-platform dynamic libraries or helpers fail the bake before boot verification.
 4. Verifies the result by booting the deployed CLI with the target sidecar against a throwaway DSH_HOME, requiring the 'dsh web:' readiness line while preserving profile-owned bundle resolution.
 
 Payload size gate: `pnpm --filter @deepseek-ai/dsh-desktop size-check` (or `node scripts/size-report.mjs --check`) asserts the runtime stays under its budget and that no dev toolchain leaked back in.

@@ -17,8 +17,8 @@
 //      deployed tree, resolves every bare @deepseek-ai import the way Node
 //      would, and copies the missing packages from their workspace source.
 //   3. Prune single-platform native prebuilds (node-pty ships every platform
-//      plus debug symbols and build-time sources): keep only the selected
-//      target's prebuild and the runtime binaries.
+//      plus debug symbols and build-time sources): keep the selected target's
+//      prebuild or a target source build, and remove foreign native bytes.
 //   4. Boot-verify: run the deployed CLI against a throwaway DSH_HOME and
 //      require the `dsh web:` readiness line.
 //
@@ -29,6 +29,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { pruneNativeRuntime, validateNativeRuntime } from './runtime-native.mjs';
 import { resolveTargetFromArgs } from './target-spec.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -127,6 +128,11 @@ async function main() {
   }
 
   pruneRuntime(deployDir);
+  try {
+    validateNativeRuntime(deployDir, target);
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
+  }
   await verifyBoot(deployDir);
   console.log('[bake-runtime] runtime ready at ' + deployDir);
 }
@@ -334,10 +340,11 @@ function terminateProcessTree(child) {
   }
 }
 
-/// Strip the non-target platforms, build-time sources, and Windows debug
-/// symbols from native packages that ship them all. Run before boot-verify so
-/// the boot proves the pruned tree still resolves its native addons.
+/// Strip non-target prebuilds, build-time sources, and Windows debug symbols
+/// from native packages that ship them all. Run before boot-verify so the boot
+/// proves the pruned tree still resolves its native addons.
 function pruneRuntime(root) {
+  pruneNativeRuntime(root, target);
   const nodePty = join(root, 'node_modules', 'node-pty');
   if (existsSync(nodePty)) {
     const prebuilds = join(nodePty, 'prebuilds');

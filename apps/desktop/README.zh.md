@@ -69,7 +69,7 @@ dev 启动器把 DSH_CLI 设为构建出的 apps/cli/lib/bin.js;DSH_NODE 默认�
 
 1. 对 dsh CLI 闭包执行 `pnpm deploy --legacy --prod --config.nodeLinker=hoisted`。生产依赖部署会丢掉工作区的 dev/build/lint/docs 工具链(TypeScript、oxlint、eslint、mermaid……);核心包仍通过 dsh-base 的依赖可达。hoisted 链接是必须的 —— isolated 布局只在顶层暴露直接依赖,而 profile 回退目录会把部署闭包暴露给内置包解析。
 2. 补烤 pnpm deploy 不会装的 auto-installed peers(deploy 不重现 autoInstallPeers)以及桌面桥接包,只拷贝每个 workspace 包随附的文件(绝不拷贝其 node_modules)。
-3. 单平台化原生预编译产物:node-pty 会带上所有平台、调试符号和构建期源码;`pruneRuntime` 只保留所选目标的预编译。
+3. 单平台化并校验原生文件:存在兼容预编译时每个 `prebuilds` 目录只保留所选目标;否则接受其旁边的目标 source build 并删除其他平台预编译;存在时 `node-pty` 与 `koffi` 必须包含可加载的原生二进制;发现其他平台的动态库或 helper 会在启动校验前让烘焙失败。
 4. 使用目标 sidecar 在一次性 DSH_HOME 中启动部署出的 CLI 验证,要求出现 `dsh web:` 就绪行,同时保留 profile 自有 bundle 的解析。
 
 负载体积门禁:`pnpm --filter @deepseek-ai/dsh-desktop size-check`(或 `node scripts/size-report.mjs --check`)断言运行时不超过预算,且没有 dev 工具链漏回来。

@@ -20,6 +20,10 @@ WebView2 controller 访问只在 Windows 编译。其他目标保留页面级调
 
 在临时移除不可用打包资源的构建配置下，Rust 源码通过宿主编译，且 `cargo fmt -- --check` 通过。脚本语法与目标 sidecar 测试通过。原生 Linux／macOS 链接、打包安装和目标 runner 启动证据仍是待完成工作包要求。
 
+## 相关记录
+
+目标原生文件裁剪与校验由[桌面目标原生运行时](2026-08-22-desktop-target-native-runtime.md)记录定义。
+
 ## Alternatives considered
 
 **在所有打包目标使用 `node.exe` 和环境中的 Node。** 不采用，因为 POSIX 制品没有该文件名，且发布启动必须自包含并固定版本。
