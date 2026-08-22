@@ -18,7 +18,7 @@ Runtime baking invokes the target sidecar for profile initialization and readine
 
 ## Testing
 
-The Rust source compiles on the host with a temporary build configuration that omits unavailable packaged resources, and `cargo fmt -- --check` passes. Script syntax and target-sidecar tests pass. Native Linux and macOS linkage, packaged installation, and target-runner boot evidence remain open work-package requirements.
+The Rust source compiles on the host with a temporary build configuration that omits unavailable packaged resources, and `cargo fmt -- --check` passes. Rust tests pin the compiled-target sidecar basename; script syntax and target-sidecar tests pass. Native Linux and macOS linkage, packaged installation, and target-runner boot evidence remain open work-package requirements.
 
 ## Related
 

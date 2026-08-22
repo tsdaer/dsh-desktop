@@ -163,6 +163,22 @@ jobs:
           pnpm --filter @deepseek-ai/dsh-desktop size-check -- --target x86_64-unknown-linux-gnu
           node apps/desktop/scripts/release-artifacts.mjs --target x86_64-unknown-linux-gnu --output "$RUNNER_TEMP/dsh-desktop-artifacts"
 
+      - name: Smoke-test the packaged AppImage
+        run: |
+          APPIMAGE="$(find apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage -maxdepth 1 -name '*.AppImage' -print -quit)"
+          test -n "$APPIMAGE"
+          xvfb-run --auto-servernum --server-args='-screen 0 1280x800x24' \
+            pnpm --filter @deepseek-ai/dsh-desktop packaged-smoke -- \
+              --target x86_64-unknown-linux-gnu --artifact "$APPIMAGE"
+
+      - name: Smoke-test install and removal of the deb package
+        run: |
+          DEB="$(find apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb -maxdepth 1 -name '*.deb' -print -quit)"
+          test -n "$DEB"
+          xvfb-run --auto-servernum --server-args='-screen 0 1280x800x24' \
+            pnpm --filter @deepseek-ai/dsh-desktop packaged-smoke -- \
+              --target x86_64-unknown-linux-gnu --artifact "$DEB" --install-deb
+
       - uses: actions/upload-artifact@v4
         with:
           name: dsh-desktop-linux-x64-${{ needs.validate.outputs.version }}

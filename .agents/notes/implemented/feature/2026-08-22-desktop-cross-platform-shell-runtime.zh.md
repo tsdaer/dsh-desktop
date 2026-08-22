@@ -18,7 +18,7 @@ WebView2 controller 访问只在 Windows 编译。其他目标保留页面级调
 
 ## Testing
 
-在临时移除不可用打包资源的构建配置下，Rust 源码通过宿主编译，且 `cargo fmt -- --check` 通过。脚本语法与目标 sidecar 测试通过。原生 Linux／macOS 链接、打包安装和目标 runner 启动证据仍是待完成工作包要求。
+在临时移除不可用打包资源的构建配置下，Rust 源码通过宿主编译，且 `cargo fmt -- --check` 通过。Rust 测试固定编译目标对应的 sidecar 文件名；脚本语法与目标 sidecar 测试通过。原生 Linux／macOS 链接、打包安装和目标 runner 启动证据仍是待完成工作包要求。
 
 ## 相关记录
 

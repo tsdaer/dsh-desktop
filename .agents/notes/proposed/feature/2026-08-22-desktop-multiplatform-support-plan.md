@@ -127,6 +127,10 @@ The runtime-bake path now requires the fetched target sidecar for profile initia
 
 [Target-aware bundle configuration and updater inventory](../../implemented/feature/2026-08-22-desktop-target-aware-bundles.md) now separates shared Tauri settings from reviewed Windows, Linux, and macOS layers. Bundle orchestration validates the effective target layer, target output directories include the Rust triple, size reporting checks every expected artifact and reports compressed installer bytes separately, and updater manifest tests cover signed primary artifacts for all three rows. Work package 5 and the Windows/Linux draft artifact staging portion of work package 6 are implemented; target-native installation, update, uninstall, and packaged GUI evidence remain open.
 
+The Linux release job now runs a target-native AppImage startup smoke and a deb install/start/purge smoke under `xvfb-run`. The smoke proves packaged readiness, managed-process cleanup, and temporary `DSH_HOME` retention; terminal interaction, updater installation, minimum-distribution coverage, and packaged GUI evidence remain open.
+
+Remaining work is target-native Linux terminal, update, minimum-baseline, and packaged GUI evidence; macOS native-runner compilation, release automation, signing/notarization, updater, installed-update smoke, documentation, and GUI evidence; plus final Windows regression evidence.
+
 The release product remains Windows x64 only. Linux and macOS are not supported until their native runtime, Rust/Tauri shell, target configuration, release workflow, updater, installation, update, uninstall, and packaged GUI evidence satisfy the acceptance criteria below.
 
 ## Pull-request partition

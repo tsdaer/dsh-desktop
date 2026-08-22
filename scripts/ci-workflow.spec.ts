@@ -437,6 +437,8 @@ describe('Desktop release workflow', () => {
     expect(linuxJson).toContain('release-artifacts.mjs')
     expect(linuxJson).toContain('size-check')
     expect(linuxJson).toContain('xvfb')
+    expect(linuxJson).toContain('packaged-smoke')
+    expect(linuxJson).toContain('--install-deb')
 
     expect(draft.needs).toEqual(['validate', 'build-windows', 'build-linux'])
     expect(draftJson).toContain('actions/download-artifact@v4')

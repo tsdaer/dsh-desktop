@@ -1353,6 +1353,16 @@ mod tests {
     }
 
     #[test]
+    fn packaged_sidecar_name_matches_the_compiled_target() {
+        #[cfg(windows)]
+        assert_eq!(packaged_node_basename(), "node-x86_64-pc-windows-msvc.exe");
+        #[cfg(target_os = "linux")]
+        assert_eq!(packaged_node_basename(), "node-x86_64-unknown-linux-gnu");
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        assert_eq!(packaged_node_basename(), "node-aarch64-apple-darwin");
+    }
+
+    #[test]
     fn workload_hysteresis_requires_dwell_before_transition() {
         let start = Instant::now();
         let mut state = WorkloadHysteresis::new();

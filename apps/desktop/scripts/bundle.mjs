@@ -39,6 +39,7 @@ run(node, ['--test',
   'scripts/size-report.spec.mjs',
   'scripts/updater-manifest.spec.mjs',
   'scripts/release-artifacts.spec.mjs',
+  'scripts/packaged-smoke.spec.mjs',
 ]);
 run(node, ['scripts/fetch-node-sidecar.mjs', '--target', target.rustTriple]);
 run(node, ['scripts/bake-runtime.mjs', '--target', target.rustTriple]);

@@ -127,6 +127,10 @@ Tauri updater 按平台和架构选择制品。从同一已校验工作流创建
 
 [按目标的 bundle 配置与 updater 构件清单](../../implemented/feature/2026-08-22-desktop-target-aware-bundles.md)现在把共享 Tauri 设置与经过审查的 Windows、Linux、macOS 配置层分开。bundle 编排会校验生效的目标层,目标输出目录包含 Rust triple,体积报告检查每个预期构件并单独报告压缩安装器字节数,updater 清单测试覆盖三个目标的已签名主构件。工作包 5 和工作包 6 中 Windows/Linux draft 构件暂存部分已实现;目标原生安装、更新、卸载和打包 GUI 证据仍未完成。
 
+Linux 发布 job 现在会在 `xvfb-run` 下运行目标原生 AppImage 启动冒烟,以及 deb 安装/启动/清除冒烟。该冒烟检查证明打包后的就绪状态、受管理进程清理和临时 `DSH_HOME` 保留;终端交互、更新安装、最低发行版覆盖和打包 GUI 证据仍未完成。
+
+剩余工作包括目标原生 Linux 终端、更新、最低基线和打包 GUI 证据;macOS 原生 runner 编译、发布自动化、签名/公证、updater、已安装更新冒烟、文档和 GUI 证据;以及最终的 Windows 回归证据。
+
 发布产品仍仅支持 Windows x64。Linux 与 macOS 需完成原生运行时、Rust/Tauri 壳子、目标配置、发布工作流、updater、安装、更新、卸载和打包 GUI 证据，并满足下方验收标准后，才能声明受支持。
 
 ## PR 划分
