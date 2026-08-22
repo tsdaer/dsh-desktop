@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-08-22-desktop-multiplatform-support-plan.md
-2026-08-22-desktop-multiplatform-support-plan.md: 88e408eef186430ca4bfa43e6b81e0e027291d55
-2026-08-22-desktop-multiplatform-support-plan.zh.md: 923d61a6ab8a934cb75f80b6afd9549a81c9c38e
+2026-08-22-desktop-multiplatform-support-plan.md: c21d4b3df4654717ecacf3b7a74925c0dfbb939d
+2026-08-22-desktop-multiplatform-support-plan.zh.md: c3b53946a51537094e5ae199b97c1405a6aea4d7

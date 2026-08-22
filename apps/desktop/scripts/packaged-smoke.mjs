@@ -11,36 +11,44 @@ import { spawn, spawnSync } from 'node:child_process';
 import { resolveTargetFromArgs } from './target-spec.mjs';
 
 /**
- * Parse the Linux packaged-smoke options.
+ * Parse target-native packaged-smoke options.
  *
  * @param {readonly string[]} argv Arguments after the script name.
- * @returns {{target: Readonly<object>, artifact: string, installDeb: boolean, installDmg: boolean, terminalSmoke: boolean}}
+ * @returns {{target: Readonly<object>, artifact: string, installDeb: boolean, installDmg: boolean, installNsis: boolean, terminalSmoke: boolean}}
  */
 export function parseArguments(argv) {
   const target = resolveTargetFromArgs(argv);
-  if (target.productTarget !== 'linux-x64' && target.productTarget !== 'macos-arm64') {
-    throw new Error(`packaged smoke supports Linux x64 and macOS arm64 only: ${target.rustTriple}`);
-  }
   const artifactIndex = argv.indexOf('--artifact');
   const artifact = artifactIndex < 0 ? undefined : argv[artifactIndex + 1];
   if (!artifact || artifact.startsWith('-')) throw new Error('--artifact requires a package path');
   const installDeb = argv.includes('--install-deb');
   const installDmg = argv.includes('--install-dmg');
+  const installNsis = argv.includes('--install-nsis');
   const terminalSmoke = argv.includes('--terminal-smoke');
-  if (installDeb && installDmg) throw new Error('--install-deb and --install-dmg are mutually exclusive');
+  if ([installDeb, installDmg, installNsis].filter(Boolean).length > 1) {
+    throw new Error('--install-deb, --install-dmg, and --install-nsis are mutually exclusive');
+  }
+  if (target.productTarget === 'windows-x64' && !installNsis) {
+    throw new Error('Windows x64 packaged smoke requires --install-nsis');
+  }
+  if (target.productTarget !== 'windows-x64' && installNsis) {
+    throw new Error('--install-nsis is only available for Windows x64');
+  }
   if (target.productTarget === 'linux-x64' && installDmg) {
     throw new Error('--install-dmg is only available for macOS arm64');
   }
   if (target.productTarget === 'macos-arm64' && installDeb) {
     throw new Error('--install-deb is only available for Linux x64');
   }
-  const expectedSuffix = target.productTarget === 'linux-x64'
-    ? (installDeb ? '.deb' : '.AppImage')
-    : (installDmg ? '.dmg' : '.app');
+  const expectedSuffix = target.productTarget === 'windows-x64'
+    ? '.exe'
+    : target.productTarget === 'linux-x64'
+      ? (installDeb ? '.deb' : '.AppImage')
+      : (installDmg ? '.dmg' : '.app');
   if (!artifact.endsWith(expectedSuffix)) {
     throw new Error(`expected a ${expectedSuffix} artifact: ${artifact}`);
   }
-  return { target, artifact: resolve(artifact), installDeb, installDmg, terminalSmoke };
+  return { target, artifact: resolve(artifact), installDeb, installDmg, installNsis, terminalSmoke };
 }
 
 /**
@@ -51,6 +59,7 @@ export function parseArguments(argv) {
  * @returns {string} Packaged shell executable path.
  */
 export function packagedExecutable(root, target) {
+  if (target.productTarget === 'windows-x64') return join(root, 'dsh-desktop.exe');
   if (target.productTarget === 'linux-x64') return join(root, 'usr', 'bin', 'dsh-desktop');
   return join(root, 'Contents', 'MacOS', 'dsh-desktop');
 }
@@ -182,11 +191,36 @@ function packageName(artifact) {
 }
 
 function processSnapshot() {
+  if (process.platform === 'win32') {
+    const output = run('powershell.exe', [
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      'Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,CommandLine | ConvertTo-Json -Compress',
+    ]);
+    if (output.length === 0) return [];
+    const rows = JSON.parse(output);
+    return (Array.isArray(rows) ? rows : [rows]).flatMap((row) => {
+      const pid = Number(row.ProcessId);
+      const parent = Number(row.ParentProcessId);
+      return Number.isInteger(pid) && Number.isInteger(parent)
+        ? [{ pid, parent, command: typeof row.CommandLine === 'string' ? row.CommandLine : '' }]
+        : [];
+    });
+  }
   return parseProcessSnapshot(run('ps', ['-eo', 'pid=,ppid=,args=']));
 }
 
 function stopProcessTree(child, signal = 'SIGTERM') {
   if (child.pid === undefined) return;
+  if (process.platform === 'win32') {
+    const force = signal === 'SIGKILL' ? '/F' : undefined;
+    const result = spawnSync('taskkill.exe', [
+      '/PID', String(child.pid), '/T', ...(force === undefined ? [] : [force]),
+    ], { stdio: 'ignore' });
+    if (result.error) throw result.error;
+    return;
+  }
   try {
     process.kill(-child.pid, signal);
   } catch {
@@ -229,6 +263,21 @@ const TERMINAL_SMOKE_SCRIPT = [
   'const timer = setTimeout(() => done(1), 10000);',
 ].join('');
 
+function terminalSmokeEnvironment(home, runtime) {
+  const environment = {
+    PATH: process.env.PATH ?? '',
+    HOME: process.env.HOME ?? runtime,
+    DSH_HOME: home,
+  };
+  if (process.platform === 'win32') {
+    for (const name of ['ComSpec', 'COMSPEC', 'SystemRoot', 'TEMP', 'TMP', 'USERPROFILE', 'PATHEXT']) {
+      const value = process.env[name];
+      if (value !== undefined) environment[name] = value;
+    }
+  }
+  return environment;
+}
+
 /**
  * Execute one fixed command through the packaged runtime's node-pty module.
  * The sidecar and runtime are both resolved from the installed artifact.
@@ -241,7 +290,7 @@ export async function runTerminalSmoke(packageRoot, target) {
   const { sidecar, runtime } = packagedRuntime(packageRoot, target);
   const child = spawn(sidecar, ['-e', TERMINAL_SMOKE_SCRIPT, `printf ${TERMINAL_SMOKE_MARKER}`], {
     cwd: runtime,
-    env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '', DSH_HOME: process.env.DSH_HOME ?? runtime },
+    env: terminalSmokeEnvironment(process.env.DSH_HOME ?? runtime, runtime),
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -346,14 +395,22 @@ async function main() {
   const home = mkdtempSync(join(tmpdir(), 'dsh-desktop-packaged-smoke-'));
   const userDataMarker = join(home, 'desktop-smoke-user-data.marker');
   writeFileSync(userDataMarker, 'user-owned desktop smoke data\n', { encoding: 'utf8' });
-  let installed;
+  let installedDeb;
+  let installedWindows;
   let mountedDmg;
   let smokeCompleted = false;
   try {
     let executable;
     let packageRoot;
-    if (options.installDeb) {
-      installed = packageName(options.artifact);
+    if (options.installNsis) {
+      installedWindows = join(home, 'installed');
+      mkdirSync(installedWindows);
+      run(options.artifact, ['/S', `/D=${installedWindows}`], { stdio: 'inherit' });
+      packageRoot = installedWindows;
+      executable = packagedExecutable(installedWindows, options.target);
+      if (!existsSync(executable)) throw new Error(`NSIS install has no executable: ${executable}`);
+    } else if (options.installDeb) {
+      installedDeb = packageName(options.artifact);
       packageRoot = join(home, 'deb-root');
       mkdirSync(packageRoot);
       run('dpkg-deb', ['--extract', options.artifact, packageRoot]);
@@ -397,8 +454,13 @@ async function main() {
     if (mountedDmg !== undefined) {
       run('hdiutil', ['detach', mountedDmg, '-force'], { stdio: 'inherit' });
     }
-    if (installed !== undefined) {
-      run('sudo', ['dpkg', '--purge', installed], { stdio: 'inherit' });
+    if (installedWindows !== undefined) {
+      const uninstaller = join(installedWindows, 'uninstall.exe');
+      if (existsSync(uninstaller)) run(uninstaller, ['/S'], { stdio: 'inherit' });
+      else throw new Error(`NSIS install has no uninstaller: ${uninstaller}`);
+    }
+    if (installedDeb !== undefined) {
+      run('sudo', ['dpkg', '--purge', installedDeb], { stdio: 'inherit' });
     }
     if (smokeCompleted) assertUserDataRetained(home, userDataMarker);
     rmSync(home, { recursive: true, force: true });

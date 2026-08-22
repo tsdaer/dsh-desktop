@@ -139,7 +139,9 @@ macOS arm64 workflow 保留未签名 experimental job，并提供由 `DSH_DESKTO
 
 目标原生打包冒烟接受 macOS arm64 的 app 和 dmg 构件。未签名 experimental job 与选择加入的签名 job 都会在 `macos-14` 上启动 app bundle；dmg 路径会挂载、复制、卸载并启动 app，然后检查就绪状态和受管理进程清理。这只构成打包启动证据；macOS 更新、卸载、公证／Gatekeeper 和 GUI 证据仍未完成。
 
-剩余工作包括目标原生 Linux 终端 UI／模型可见工作流、已安装版本更新冒烟、最低基线和打包 GUI 证据；macOS 已配置凭据执行签名 lane、公证／Gatekeeper 证据、已安装版本更新冒烟、受支持发布文档和 GUI 证据；以及最终的 Windows 安装包回归证据。签名 lane 自动化、清单签名校验和打包 PTY 冒烟不能替代要求的已安装版本更新冒烟或用户可见的 GUI 证据。
+Windows x64 发布 job 现在会在体积与构件检查后、上传前运行 [Windows 已安装包冒烟](../../implemented/testing/2026-08-22-desktop-windows-packaged-smoke.md)。它把 NSIS 构件安装到一次性目录，启动已安装壳子，按需运行打包 PTY 探针，校验受管理进程清理，运行卸载程序并检查临时用户数据保留。workflow 与脚本测试覆盖该机制；原生 Windows runner 执行仍是证据来源。
+
+剩余工作包括目标原生 Linux 终端 UI／模型可见工作流、已安装版本更新冒烟、最低基线和打包 GUI 证据；macOS 已配置凭据执行签名 lane、公证／Gatekeeper 证据、已安装版本更新冒烟、受支持发布文档和 GUI 证据；以及 Windows runner 上执行已安装 Windows 安装包回归。签名 lane 自动化、清单签名校验和打包 PTY 冒烟不能替代要求的已安装版本更新冒烟或用户可见的 GUI 证据。
 
 当前 Windows checkout 已通过桌面脚本测试(45 项)、桌面前端测试(58 项)、Tauri Rust 测试(5 项)、桌面发布 workflow 结构测试、命名的双语配对检查和 Agent Note 格式校验。`pnpm run doc-sync` 已通过全部 28 项门禁,包括文档构建。
 

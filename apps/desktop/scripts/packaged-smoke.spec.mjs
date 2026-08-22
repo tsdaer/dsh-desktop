@@ -24,7 +24,14 @@ test('requires a target-native package artifact for the packaged smoke', () => {
   ]).installDeb, true);
   assert.throws(
     () => parseArguments(['--target', 'x86_64-pc-windows-msvc', '--artifact', 'dsh.exe']),
-    /Linux x64 and macOS arm64 only/,
+    /requires --install-nsis/,
+  );
+  assert.equal(parseArguments([
+    '--target', 'x86_64-pc-windows-msvc', '--artifact', 'dist/dsh-desktop.exe', '--install-nsis',
+  ]).installNsis, true);
+  assert.throws(
+    () => parseArguments(['--target', 'x86_64-pc-windows-msvc', '--artifact', 'dsh.msi', '--install-nsis']),
+    /expected a \.exe artifact/,
   );
   assert.throws(
     () => parseArguments(['--target', 'x86_64-unknown-linux-gnu', '--artifact', 'dsh.deb']),
@@ -50,7 +57,11 @@ test('requires a target-native package artifact for the packaged smoke', () => {
   );
 });
 
-test('resolves the executable inside Linux packages and macOS app bundles', () => {
+test('resolves the executable inside target-native packages and app bundles', () => {
+  assert.equal(
+    packagedExecutable('C:/dsh-desktop', { productTarget: 'windows-x64' }),
+    join('C:/dsh-desktop', 'dsh-desktop.exe'),
+  );
   assert.equal(
     packagedExecutable('/tmp/squashfs-root', { productTarget: 'linux-x64' }),
     join('/tmp/squashfs-root', 'usr', 'bin', 'dsh-desktop'),

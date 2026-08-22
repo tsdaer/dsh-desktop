@@ -95,6 +95,13 @@ jobs:
           pnpm --filter @deepseek-ai/dsh-desktop size-check -- --target x86_64-pc-windows-msvc
           node apps/desktop/scripts/release-artifacts.mjs --target x86_64-pc-windows-msvc --output "$env:RUNNER_TEMP\dsh-desktop-artifacts"
 
+      - name: Smoke-test the installed Windows NSIS package
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem apps/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis -Filter '*.exe' | Select-Object -First 1 -ExpandProperty FullName
+          if ([string]::IsNullOrWhiteSpace($installer)) { throw 'Windows NSIS installer was not produced' }
+          pnpm --filter @deepseek-ai/dsh-desktop packaged-smoke -- --target x86_64-pc-windows-msvc --artifact $installer --install-nsis --terminal-smoke
+
       - uses: actions/upload-artifact@v4
         with:
           name: dsh-desktop-windows-x64-${{ needs.validate.outputs.version }}
