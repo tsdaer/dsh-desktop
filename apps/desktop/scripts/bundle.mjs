@@ -30,6 +30,7 @@ run(pnpm, ['exec', 'tsc', '-p', 'tsconfig.json']);
 run(pnpm, ['exec', 'tsc', '-p', 'bridge-client/tsconfig.tests.json']);
 run(pnpm, ['exec', 'vitest', '--config', 'bridge-client/vitest.config.ts', 'run']);
 run(node, ['--test', 'scripts/target-spec.spec.mjs']);
-run(node, ['scripts/bake-runtime.mjs', '--target', target.rustTriple]);
+run(node, ['--test', 'scripts/fetch-node-sidecar.spec.mjs']);
 run(node, ['scripts/fetch-node-sidecar.mjs', '--target', target.rustTriple]);
+run(node, ['scripts/bake-runtime.mjs', '--target', target.rustTriple]);
 run(pnpm, ['exec', 'tauri', 'build', '--ci', '--target', target.rustTriple]);

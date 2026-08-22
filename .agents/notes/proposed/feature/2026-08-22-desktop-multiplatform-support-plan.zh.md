@@ -121,7 +121,9 @@ Tauri updater 按平台和架构选择制品。从同一已校验工作流创建
 
 工作包 1 已在[桌面目标规格记录](../../implemented/feature/2026-08-22-desktop-target-specification.md)中实现。三个目标行是不可变的，并由 sidecar 获取、运行时烘焙、体积报告和 bundle 编排共同消费；目标测试覆盖每行全部字段、不支持的目标、Node 压缩包布局和压缩包路径穿越。
 
-sidecar 实现也已具备按目标选择压缩包、重定向与 HTTP 失败处理、临时解压、版本／目标缓存元数据、可执行文件版本校验、POSIX 权限和精确目标文件名。`SHASUMS256.txt` 校验与注入适配器测试矩阵仍属于工作包 2。按目标区分的运行时目录和目标派生的原生裁剪已经接通，但目标 runner 上的启动证据仍属于工作包 3。
+工作包 2 已在[可移植 Node sidecar 记录](../../implemented/feature/2026-08-22-desktop-portable-node-sidecar.md)中实现。sidecar 获取会按目标选择压缩包、跟随有上限的重定向、拒绝 HTTP 失败、在解压前校验匹配的 `SHASUMS256.txt` 摘要、记录版本／目标／摘要元数据、校验可执行文件版本、设置 POSIX 权限、在准备失败时保留旧目标，并清理临时目录。注入适配器测试覆盖摘要不匹配、损坏压缩包、缺少成员、陈旧元数据、精确目标文件名、重定向、HTTP 失败、清理和可执行权限请求。按目标区分的运行时目录和目标派生的原生裁剪已经接通，但目标 runner 上的启动证据仍属于工作包 3。
+
+运行时烘焙路径现在要求使用已获取的目标 sidecar 完成 profile 初始化与 readiness 校验，终止校验进程树，且 bundle 命令先获取 sidecar 再烘焙。Rust 壳已经具备按目标命名的安装版 sidecar、禁止安装版使用环境 Node、把 WebView2 controller 与修复代码隔离到 Windows，以及使用平台中立的 `webview` 启动画面步骤。工作包 3 仍需完成目标原生依赖校验与 Linux 启动证据；工作包 4 仍需在各目标原生 runner 上编译并验证可移植壳行为。
 
 发布产品仍仅支持 Windows x64。Linux 与 macOS 需完成原生运行时、Rust/Tauri 壳子、目标配置、发布工作流、updater、安装、更新、卸载和打包 GUI 证据，并满足下方验收标准后，才能声明受支持。
 

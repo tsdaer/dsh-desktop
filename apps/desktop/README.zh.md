@@ -59,7 +59,7 @@ dev 启动器把 DSH_CLI 设为构建出的 apps/cli/lib/bin.js;DSH_NODE 默认�
 
     pnpm --filter @deepseek-ai/dsh-desktop bundle
 
-它会运行按目标选择的准备阶段:把版本从 package.json 同步进 tauri.conf.json、Cargo.toml 和 Cargo.lock(`scripts/sync-version.mjs`),从源码构建桥接包(`scripts/build-bridge.mjs`),运行目标脚本测试,烘焙按目标划分的运行时(`scripts/bake-runtime.mjs`),拉取匹配的 Node sidecar(`scripts/fetch-node-sidecar.mjs`),再运行 `tauri build`(release profile 带 lto/strip)。可通过 `pnpm --filter @deepseek-ai/dsh-desktop bundle -- --target <triple>` 显式传入 Rust target;省略时脚本使用 `rustc -vV` 报告的宿主目标。Windows 发布产物位于 `src-tauri/target/release/bundle/nsis/`。版本只存在于 package.json,升级只需改那一处;`pnpm --filter @deepseek-ai/dsh-desktop version-check` 只校验同步结果是否一致而不写入,发布工作流会拒绝校验失败的标签。代理提示:首次打包会从 GitHub/nodejs.org 下载 NSIS 工具链和 Node sidecar;若机器需要代理,设置 HTTPS_PROXY/HTTP_PROXY。
+它会运行按目标选择的准备阶段:把版本从 package.json 同步进 tauri.conf.json、Cargo.toml 和 Cargo.lock(`scripts/sync-version.mjs`),从源码构建桥接包(`scripts/build-bridge.mjs`),运行目标脚本测试,拉取匹配的 Node sidecar(`scripts/fetch-node-sidecar.mjs`),使用该 sidecar 烘焙按目标划分的运行时(`scripts/bake-runtime.mjs`),再运行 `tauri build`(release profile 带 lto/strip)。可通过 `pnpm --filter @deepseek-ai/dsh-desktop bundle -- --target <triple>` 显式传入 Rust target;省略时脚本使用 `rustc -vV` 报告的宿主目标。Windows 发布产物位于 `src-tauri/target/release/bundle/nsis/`。版本只存在于 package.json,升级只需改那一处;`pnpm --filter @deepseek-ai/dsh-desktop version-check` 只校验同步结果是否一致而不写入,发布工作流会拒绝校验失败的标签。代理提示:首次打包会从 GitHub/nodejs.org 下载 NSIS 工具链和 Node sidecar;若机器需要代理,设置 HTTPS_PROXY/HTTP_PROXY。
 
 安装器是自包含的:它随附壳程序、按目标命名的 Node sidecar(Tauri externalBin)和 resources/runtime/ 下的烘焙运行时。源码运行时目录按 Rust target triple 区分,目标解析器会在暂存文件前拒绝不支持的目标。首次启动时壳子把桥接包拷入 profile(运行时没有 npm),为内置包修复 profile 回退目录,并导航到所服务的 UI。profile 安装的 bundle 仍从 profile 自己的 node_modules 解析。
 
@@ -70,17 +70,17 @@ dev 启动器把 DSH_CLI 设为构建出的 apps/cli/lib/bin.js;DSH_NODE 默认�
 1. 对 dsh CLI 闭包执行 `pnpm deploy --legacy --prod --config.nodeLinker=hoisted`。生产依赖部署会丢掉工作区的 dev/build/lint/docs 工具链(TypeScript、oxlint、eslint、mermaid……);核心包仍通过 dsh-base 的依赖可达。hoisted 链接是必须的 —— isolated 布局只在顶层暴露直接依赖,而 profile 回退目录会把部署闭包暴露给内置包解析。
 2. 补烤 pnpm deploy 不会装的 auto-installed peers(deploy 不重现 autoInstallPeers)以及桌面桥接包,只拷贝每个 workspace 包随附的文件(绝不拷贝其 node_modules)。
 3. 单平台化原生预编译产物:node-pty 会带上所有平台、调试符号和构建期源码;`pruneRuntime` 只保留所选目标的预编译。
-4. 用一次性 DSH_HOME 启动部署出的 CLI 验证,要求出现 `dsh web:` 就绪行,同时保留 profile 自有 bundle 的解析。
+4. 使用目标 sidecar 在一次性 DSH_HOME 中启动部署出的 CLI 验证,要求出现 `dsh web:` 就绪行,同时保留 profile 自有 bundle 的解析。
 
 负载体积门禁:`pnpm --filter @deepseek-ai/dsh-desktop size-check`(或 `node scripts/size-report.mjs --check`)断言运行时不超过预算,且没有 dev 工具链漏回来。
 
 ## 启动界面
 
-应用先打开一个无边框的 splashscreen 窗口,只有等到 `dsh web:` 就绪行才显示主窗口。启动界面(`apps/desktop/src/splashscreen.html`)在启动前做环境检查 —— WebView2、Node sidecar、烤出的运行时、数据目录与 API key —— 把每步记录到轮询状态板上;失败时停留在启动界面并给出重试,`下载 / 修复 WebView2` 链接通过 tauri-plugin-opener 打开微软下载页。
+应用先打开一个无边框的 splashscreen 窗口,只有等到 `dsh web:` 就绪行才显示主窗口。启动界面(`apps/desktop/src/splashscreen.html`)在启动前做环境检查 —— 平台 webview、Node sidecar、烤出的运行时、数据目录与 API key —— 把每步记录到轮询状态板上;失败时停留在启动界面并给出重试。Windows 通过 tauri-plugin-opener 提供 `下载 / 修复 WebView2` 链接;Linux 与 macOS 报告平台 webview 限制,不提供微软修复入口。
 
 WebView2 的获取是安装期的事:`bundle.windows.webviewInstallMode` 为 `embedBootstrapper`,NSIS 安装器内嵌引导器并以原生进度下载/安装运行时。启动界面无法自己安装缺失的 WebView2(它本身就是一个 WebView2 页面);它只检测并引导。
 
-main.rs 的环境变量接线:DSH_CLI/DSH_NODE/DSH_BARE_MODULE_BASE/DSH_BRIDGE_TARBALL 优先(dev 启动器);没有 DSH_CLI 的 release 构建回退到 resources/runtime/lib/bin.js、sidecar node.exe 和离线桥接拷贝。打包启动默认不设置 DSH_BARE_MODULE_BASE,使 profile 能解析用户 bundle;需要由宿主拥有完整插件集时仍可显式设置。
+main.rs 的环境变量接线:DSH_CLI/DSH_NODE/DSH_BARE_MODULE_BASE/DSH_BRIDGE_TARBALL 优先(dev 启动器);没有 DSH_CLI 的 release 构建要求 resources/runtime/lib/bin.js 与应用可执行文件旁按目标命名的 sidecar,然后执行离线桥接拷贝。打包启动默认不设置 DSH_BARE_MODULE_BASE,使 profile 能解析用户 bundle;需要由宿主拥有完整插件集时仍可显式设置。
 
 ## 自定义标题栏
 
@@ -161,7 +161,7 @@ dsh 设置页的 桌面设置 分区(由桥接 client 注册)有三行,都经桥
 
 ## 测试版范围
 
-- dev 用 PATH 上的 'node' 跑仓库构建出的 CLI;打包应用自带 Node sidecar 和烤出的运行时(见上文 打包 / 打包运行时)。更新器用于受支持的 Windows 安装包;Windows-only sidecar 仍意味着 Linux/macOS 未处理(dsh 依赖树里 node-pty 也没有 Linux 预编译)。
+- dev 用 PATH 上的 'node' 跑仓库构建出的 CLI;打包应用自带按目标命名的 Node sidecar 和烤出的运行时(见上文 打包 / 打包运行时)。更新器与发布安装包目前仍只支持 Windows x64;Linux x64 与 macOS arm64 已具备目标准备基础,但在声明支持前仍需完成原生运行时、Tauri 打包、签名、updater、安装和打包 GUI 证据。
 - 图标源自 DeepSeek 鱼形 logo(用 `node scripts/gen-icons.mjs` 重新生成);托盘复用捆绑的窗口图标。
 - 关闭窗口即终止运行时进程,除非开启了关闭到托盘(见“桌面设置、托盘与关闭行为”);会话持久化在 $DSH_HOME 下的磁盘上。
 - 窗口自身不绑定任何东西:运行时仍只服务 loopback(127.0.0.1)且无鉴权,与 'dsh web' 的姿态一致。

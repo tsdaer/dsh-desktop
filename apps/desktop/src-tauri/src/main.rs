@@ -5,13 +5,14 @@
 //! its Loader tree settles, and navigates the window to that URL. The
 //! `--no-open` flag suppresses the web profile's default-browser handoff: the
 //! shell owns the window that shows the page, so a system browser tab would
-//! duplicate it. The runtime is resolved from the environment:
+//! duplicate it. The runtime is resolved from the environment in development
+//! and from packaged resources in release builds:
 //!
-//! - 'DSH_NODE' — the Node executable (default: 'node' from PATH)
+//! - 'DSH_NODE' — the development Node executable (default: 'node' from PATH)
 //! - 'DSH_CLI' — the dsh CLI entry, e.g. 'apps/cli/lib/bin.js' (required)
 //!
-//! Test-version scope: no bundled Node sidecar, no installer, no Linux
-//! node-pty handling. See apps/desktop/README.md.
+//! A packaged build requires its target-specific Node sidecar beside the app
+//! executable and never falls back to ambient Node. See apps/desktop/README.md.
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
@@ -31,7 +32,10 @@ use tauri::{DragDropEvent, Emitter, Manager, Url, WebviewWindow, WindowEvent};
 use tauri_plugin_opener::OpenerExt;
 
 #[cfg(windows)]
-use windows::Win32::UI::WindowsAndMessaging::{GetWindowLongPtrW, SetWindowLongPtrW, SetWindowPos, GWL_STYLE, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, WINDOW_STYLE, WS_MAXIMIZEBOX, WS_THICKFRAME};
+use windows::Win32::UI::WindowsAndMessaging::{
+    GetWindowLongPtrW, SetWindowLongPtrW, SetWindowPos, GWL_STYLE, SWP_FRAMECHANGED,
+    SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, WINDOW_STYLE, WS_MAXIMIZEBOX, WS_THICKFRAME,
+};
 
 /// Holds the spawned runtime so it can be terminated at app exit.
 struct DshRuntime(Mutex<Option<Child>>);
@@ -208,16 +212,11 @@ impl RuntimePaths {
             .resource_dir()
             .ok()
             .map(|dir| dir.join("runtime").join("lib").join("bin.js"))
-            .filter(|path| path.exists())
             .map(|path| dunce::simplified(&path).to_owned())?;
-        let node = std::env::var("DSH_NODE").unwrap_or_else(|_| {
-            std::env::current_exe()
-                .ok()
-                .and_then(|exe| exe.parent().map(|dir| dir.join("node.exe")))
-                .filter(|path| path.exists())
-                .map(|path| path.to_string_lossy().into_owned())
-                .unwrap_or_else(|| "node".to_string())
-        });
+        let node = std::env::current_exe()
+            .ok()
+            .and_then(|exe| exe.parent().map(|dir| dir.join(packaged_node_basename())))
+            .unwrap_or_else(|| PathBuf::from(packaged_node_basename()));
         let module_base = std::env::var("DSH_BARE_MODULE_BASE").ok();
         let runtime_root = resource_cli
             .parent()
@@ -238,7 +237,7 @@ impl RuntimePaths {
         .filter(|path| path.exists())
         .collect();
         Some(RuntimePaths {
-            node,
+            node: node.to_string_lossy().into_owned(),
             cli: resource_cli.to_string_lossy().into_owned(),
             module_base,
             bridge_copy,
@@ -246,10 +245,36 @@ impl RuntimePaths {
     }
 }
 
+#[cfg(windows)]
+fn packaged_node_basename() -> &'static str {
+    "node-x86_64-pc-windows-msvc.exe"
+}
+
+#[cfg(target_os = "linux")]
+fn packaged_node_basename() -> &'static str {
+    "node-x86_64-unknown-linux-gnu"
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn packaged_node_basename() -> &'static str {
+    "node-aarch64-apple-darwin"
+}
+
+#[cfg(all(target_os = "macos", not(target_arch = "aarch64")))]
+fn packaged_node_basename() -> &'static str {
+    "node-unsupported-macos-architecture"
+}
+
+#[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
+fn packaged_node_basename() -> &'static str {
+    "node-unsupported-platform"
+}
+
 /// Toggle WebView2 DevTools availability (F12 / context-menu inspect).
 /// The page suppresses right-click and devtools shortcuts on its own when
 /// debug mode is off; this closes the browser-level escape hatch the page
 /// cannot intercept (WebView2's own F12 handling).
+#[cfg(windows)]
 #[tauri::command]
 fn set_debug_mode(window: WebviewWindow, enabled: bool) {
     let _ = window.with_webview(move |platform_webview| {
@@ -261,6 +286,14 @@ fn set_debug_mode(window: WebviewWindow, enabled: bool) {
                 .and_then(|settings| settings.SetAreDevToolsEnabled(enabled));
         }
     });
+}
+
+/// Keep the shell-level debug limitation explicit on platforms without the
+/// WebView2 controller API; the page-level debug guard still applies.
+#[cfg(not(windows))]
+#[tauri::command]
+fn set_debug_mode(_window: WebviewWindow, enabled: bool) {
+    eprintln!("[dsh-desktop] platform webview does not expose runtime DevTools control; requested enabled={enabled}");
 }
 
 /// How long to wait for the readiness URL line after spawning.
@@ -886,7 +919,12 @@ fn resolve_paths(handle: &tauri::AppHandle) -> RuntimePaths {
         println!("[dsh-desktop] packaged runtime at {}", paths.cli);
         paths
     } else {
-        RuntimePaths::from_env()
+        RuntimePaths {
+            node: packaged_node_basename().to_owned(),
+            cli: String::new(),
+            module_base: None,
+            bridge_copy: Vec::new(),
+        }
     }
 }
 
@@ -906,14 +944,23 @@ fn dsh_home() -> String {
 fn run_checks(handle: &tauri::AppHandle, paths: &RuntimePaths) -> bool {
     let mut fatal = false;
 
-    // WebView2: rendering the splash already proves the runtime is present and
-    // functional. Version/repair guidance lands in a later milestone.
-    push_status(handle, "webview2", "ok", "WebView2 可用", None);
+    // Rendering the splash proves that the selected platform webview is
+    // present. Only Windows offers the WebView2-specific repair action.
+    #[cfg(windows)]
+    push_status(handle, "webview", "ok", "WebView2 可用", None);
+    #[cfg(not(windows))]
+    push_status(
+        handle,
+        "webview",
+        "ok",
+        "系统 WebKit 可用；开发者工具由平台 webview 控制",
+        None,
+    );
 
     // Node executable: a full path must exist; a bare command name is left for
     // the spawn below to surface.
     let node_is_path = paths.node.contains('/') || paths.node.contains('\\');
-    if node_is_path && !Path::new(&paths.node).is_file() {
+    if (!paths.is_dev() || node_is_path) && !Path::new(&paths.node).is_file() {
         push_status(handle, "node", "error", "未找到 Node 运行时", None);
         fatal = true;
     } else {
@@ -1019,12 +1066,23 @@ fn splash_start(app: tauri::AppHandle) {
 /// Open the WebView2 Evergreen download page in the system browser. The splash
 /// itself is a WebView2 page, so it cannot install a missing WebView2 runtime;
 /// this routes the user to Microsoft's download for the repair/version case.
+#[cfg(windows)]
 #[tauri::command]
-fn splash_open_webview2_download(app: tauri::AppHandle) {
+fn splash_open_webview2_download(app: tauri::AppHandle) -> Result<(), String> {
     let url = "https://developer.microsoft.com/microsoft-edge/webview2/";
-    if let Err(err) = app.opener().open_url(url, None::<&str>) {
-        eprintln!("[dsh-desktop] failed to open WebView2 download page: {err}");
-    }
+    app.opener()
+        .open_url(url, None::<&str>)
+        .map_err(|err| format!("failed to open WebView2 download page: {err}"))
+}
+
+/// Report that WebView2 repair is not applicable outside Windows.
+#[cfg(not(windows))]
+#[tauri::command]
+fn splash_open_webview2_download(_app: tauri::AppHandle) -> Result<(), String> {
+    Err(
+        "WebView2 repair is Windows-only; the installed platform webview supplies this runtime"
+            .to_owned(),
+    )
 }
 
 /// The web-profile arguments the shell hands the spawned CLI: boot the web
@@ -1048,7 +1106,10 @@ fn web_profile_args(patches: &[String]) -> Vec<String> {
 /// appends it to the navigation URL so the page can attach it.
 fn generate_loopback_token() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
-    let seed = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos() as u64
+    let seed = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos() as u64
         ^ (std::process::id() as u64) << 32;
     // Two rounds of xorshift over the seed: enough for a per-boot nonce;
     // secrecy comes from the loopback-only surface, not from this PRNG.
@@ -1165,7 +1226,8 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
                     if let Some(candidate) = rest.split_whitespace().next() {
                         match Url::parse(candidate) {
                             Ok(mut url) => {
-                                url.query_pairs_mut().append_pair("dsh_token", &loopback_token);
+                                url.query_pairs_mut()
+                                    .append_pair("dsh_token", &loopback_token);
                                 println!("[dsh-desktop] ready at {url}");
                                 push_status(&handle, "boot", "ok", "dsh 服务就绪", None);
                                 if let Some(splash) = handle.get_webview_window("splashscreen") {

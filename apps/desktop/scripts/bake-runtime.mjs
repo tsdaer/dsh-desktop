@@ -243,20 +243,25 @@ function workspaceSources() {
 async function verifyBoot(root) {
   const home = mkdtempSync(join(process.env.TEMP ?? '/tmp', 'dsh-bake-'));
   const sources = workspaceSources();
+  const sidecar = resolve(here, '..', 'src-tauri', 'binaries', target.sidecarBasename);
+  if (!existsSync(sidecar)) {
+    fail('target Node sidecar not fetched: expected ' + sidecar + '\n  run: node apps/desktop/scripts/fetch-node-sidecar.mjs --target ' + target.rustTriple);
+  }
   try {
     // The profile fallback links built-in packages into the deployed tree;
     // leaving the module base unset also preserves profile-owned bundles.
     const bootEnv = { ...process.env, DSH_HOME: home };
     // First boot: initialize the web profile template (same trick main.rs uses).
-    const init = spawnSync('node', [join(root, 'lib/bin.js'), '--profile', 'web', '--dump-default-config'], {
+    const init = spawnSync(sidecar, [join(root, 'lib/bin.js'), '--profile', 'web', '--dump-default-config'], {
       env: bootEnv,
       encoding: 'utf8',
+      windowsHide: true,
     });
     if (init.status !== 0) {
       fail('profile init failed: ' + (init.stderr || init.stdout));
     }
     for (let attempt = 1; attempt <= maxBakeRounds; attempt++) {
-      const { ok, line, stderr } = await attemptBoot(root, bootEnv);
+      const { ok, line, stderr } = await attemptBoot(root, bootEnv, sidecar);
       if (ok) {
         console.log('[bake-runtime] boot verified at ' + line);
         return;
@@ -277,34 +282,56 @@ async function verifyBoot(root) {
 }
 
 /// Run one boot attempt; return the readiness line (or empty) and stderr.
-function attemptBoot(root, bootEnv) {
+function attemptBoot(root, bootEnv, sidecar) {
   return new Promise((finish) => {
-    const child = spawn('node', [join(root, 'lib/bin.js'), '--profile', 'web', '--port', '0'], {
+    const child = spawn(sidecar, [join(root, 'lib/bin.js'), '--profile', 'web', '--port', '0'], {
       env: bootEnv,
       stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
     });
     let stderr = '';
+    let settled = false;
+    const complete = (result) => {
+      if (settled) return;
+      settled = true;
+      finish(result);
+    };
     child.stderr.on('data', (chunk) => { stderr += chunk; });
     const deadline = Date.now() + 90_000;
     const timer = setInterval(() => {
       if (Date.now() > deadline) {
-        child.kill();
-        finish({ ok: false, line: '', stderr });
+        clearInterval(timer);
+        terminateProcessTree(child);
+        complete({ ok: false, line: '', stderr });
       }
     }, 500);
     child.stdout.on('data', (chunk) => {
       const match = ('' + chunk).match(/dsh web: (https?:\/\/[^\s\r\n]+)/);
       if (match) {
         clearInterval(timer);
-        child.kill();
-        finish({ ok: true, line: match[1], stderr });
+        terminateProcessTree(child);
+        complete({ ok: true, line: match[1], stderr });
       }
+    });
+    child.on('error', (error) => {
+      clearInterval(timer);
+      stderr += `\n${error.message}`;
+      complete({ ok: false, line: '', stderr });
     });
     child.on('exit', () => {
       clearInterval(timer);
-      finish({ ok: false, line: '', stderr });
+      complete({ ok: false, line: '', stderr });
     });
   });
+}
+
+function terminateProcessTree(child) {
+  if (child.exitCode !== null) return;
+  if (process.platform === 'win32') {
+    spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true });
+  } else {
+    child.kill('SIGTERM');
+  }
 }
 
 /// Strip the non-target platforms, build-time sources, and Windows debug

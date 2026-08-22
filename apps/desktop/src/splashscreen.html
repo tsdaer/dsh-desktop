@@ -57,7 +57,7 @@
     <div class="actions" id="actions">
       <button id="retry" class="primary">重试</button>
     </div>
-    <p class="help"><a href="#" id="webview2-help">下载 / 修复 WebView2</a></p>
+    <p class="help" id="webview-help"><a href="#" id="webview2-help">下载 / 修复 WebView2</a></p>
   </footer>
   <script>
     (function () {
@@ -77,7 +77,7 @@
       }
 
       var STEPS = [
-        ['webview2', 'WebView2 运行时'],
+        ['webview', '平台 WebView 运行时'],
         ['node', 'Node 运行时'],
         ['runtime', 'dsh 运行时'],
         ['home', '数据目录'],
@@ -89,11 +89,16 @@
       var statusEl = document.getElementById('status');
       var errorEl = document.getElementById('error');
       var actionsEl = document.getElementById('actions');
+      var webviewHelp = document.getElementById('webview-help');
       var retryBtn = document.getElementById('retry');
       var helpLink = document.getElementById('webview2-help');
       var rowById = {};
       var receivedAny = false;
       var pollCount = 0;
+
+      if (!/Windows/i.test(navigator.userAgent) && webviewHelp) {
+        webviewHelp.style.display = 'none';
+      }
 
       STEPS.forEach(function (step) {
         var row = document.createElement('div');
