@@ -3,7 +3,7 @@
 // file, a commit bar for the Workspace's staged entries, and a diff panel
 // rendered through the shared DiffBlock presentation. All paths stay
 // Workspace-relative; the Host owns every Git argument.
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DiffBlock, type DiffHunk } from '@deepseek-ai/dsh-client-ui-primitives'
 import { bridgeFetch } from './bridge-fetch.ts'
 import css from './DesktopWorkspaceWorkbench.module.css'
@@ -86,6 +86,23 @@ export function useSourceControlActions(
   const [commitBusy, setCommitBusy] = useState(false)
   const [commitError, setCommitError] = useState<string | null>(null)
   const [diff, setDiff] = useState<SourceControlDiffView | null>(null)
+  const activeRequests = useRef(new Set<AbortController>())
+  const activeDiffRequest = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    setBusyPath(null)
+    setConfirmPath(null)
+    setError(null)
+    setCommitBusy(false)
+    setCommitError(null)
+    setDiff(null)
+    return () => {
+      for (const controller of activeRequests.current) controller.abort()
+      activeRequests.current.clear()
+      activeDiffRequest.current?.abort()
+      activeDiffRequest.current = null
+    }
+  }, [workspaceId])
 
   const entryByPath = useMemo(() => {
     const entries = new Map<string, SourceControlEntry>()
@@ -97,6 +114,8 @@ export function useSourceControlActions(
 
   const runMutation = useCallback(async (path: string, operation: 'stage' | 'unstage' | 'discard'): Promise<void> => {
     if (workspaceId === undefined || busyPath !== null) return
+    const controller = new AbortController()
+    activeRequests.current.add(controller)
     setBusyPath(path)
     setError(null)
     try {
@@ -104,15 +123,19 @@ export function useSourceControlActions(
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ workspaceId, path }),
+        signal: controller.signal,
       })
+      if (controller.signal.aborted) return
       const body = await response.json() as unknown
       if (!response.ok) throw new Error(mutationError(body, t))
       setConfirmPath(null)
       refresh()
     } catch (reason: unknown) {
+      if (controller.signal.aborted) return
       setError(reason instanceof Error ? reason.message : t('worktree.actionFailed'))
     } finally {
-      setBusyPath(null)
+      activeRequests.current.delete(controller)
+      if (!controller.signal.aborted) setBusyPath(null)
     }
   }, [busyPath, refresh, t, workspaceId])
 
@@ -128,6 +151,8 @@ export function useSourceControlActions(
     if (workspaceId === undefined || commitBusy) return
     const message = commitMessage.trim()
     if (message.length === 0) return
+    const controller = new AbortController()
+    activeRequests.current.add(controller)
     setCommitBusy(true)
     setCommitError(null)
     void (async () => {
@@ -136,36 +161,51 @@ export function useSourceControlActions(
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ workspaceId, message }),
+          signal: controller.signal,
         })
+        if (controller.signal.aborted) return
         const body = await response.json() as unknown
         if (!response.ok) throw new Error(mutationError(body, t))
         setCommitMessage('')
         refresh()
       } catch (reason: unknown) {
+        if (controller.signal.aborted) return
         setCommitError(reason instanceof Error ? reason.message : t('worktree.commitFailed'))
       } finally {
-        setCommitBusy(false)
+        activeRequests.current.delete(controller)
+        if (!controller.signal.aborted) setCommitBusy(false)
       }
     })()
   }, [commitBusy, commitMessage, refresh, t, workspaceId])
 
   const openDiff = useCallback((path: string): void => {
     if (workspaceId === undefined) return
+    activeDiffRequest.current?.abort()
+    const controller = new AbortController()
+    activeDiffRequest.current = controller
     setDiff({ status: 'loading', path })
     void (async () => {
       try {
         const query = new URLSearchParams({ workspaceId, path })
-        const response = await bridgeFetch(`/dsh-bridge/worktree/source-control/diff?${query.toString()}`)
+        const response = await bridgeFetch(`/dsh-bridge/worktree/source-control/diff?${query.toString()}`, { signal: controller.signal })
+        if (controller.signal.aborted) return
         const body = await response.json() as unknown
         if (!response.ok) throw new Error(mutationError(body, t))
         setDiff({ status: 'ready', diff: parseDiff(body) })
       } catch (reason: unknown) {
+        if (controller.signal.aborted) return
         setDiff({ status: 'error', path, message: reason instanceof Error ? reason.message : t('worktree.diffFailed') })
+      } finally {
+        if (activeDiffRequest.current === controller) activeDiffRequest.current = null
       }
     })()
   }, [t, workspaceId])
 
-  const closeDiff = useCallback((): void => { setDiff(null) }, [])
+  const closeDiff = useCallback((): void => {
+    activeDiffRequest.current?.abort()
+    activeDiffRequest.current = null
+    setDiff(null)
+  }, [])
 
   return {
     entryByPath,

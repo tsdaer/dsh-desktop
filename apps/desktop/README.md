@@ -29,6 +29,8 @@ Planned for 0.3.0:
 
 “Worktree” refers to a project view rooted in the selected Workspace; it does not manage Git worktree checkouts. The [Desktop 0.3 plan](../../.agents/notes/proposed/feature/2026-08-17-desktop-0.3-worktree-and-runtime-chrome.md) defines the scope and acceptance criteria.
 
+Source Control requests carry browser cancellation signals. Switching Workspaces or leaving Worktree cancels in-flight mutations, commits, and diff reads; canceled responses do not update the new view. If the bridge reconnects, use Refresh to issue a new Git status request. The lifecycle decision is recorded in the [Source Control request lifecycle note](../../.agents/notes/implemented/bug-fix/2026-08-22-desktop-source-control-request-lifecycle.md).
+
 The switch is contributed by `bridge-client` through the existing sidebar plugin lifecycle. It portals desktop chrome into the Workspace region and leaves the shared `ui-workspace` package and its browser registration unchanged; unloading the desktop plugin removes the switch and restores the standard web composition.
 
 ## Run (test version)

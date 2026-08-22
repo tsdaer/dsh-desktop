@@ -29,6 +29,8 @@
 
 “工作树”指以当前所选工作区为根目录的项目视图,不负责管理 Git worktree checkout。[桌面端 0.3 计划](../../.agents/notes/proposed/feature/2026-08-17-desktop-0.3-worktree-and-runtime-chrome.md)定义了范围与验收标准。
 
+Source Control 请求会携带浏览器取消信号。切换 Workspace 或离开 Worktree 时,进行中的变更、提交与差异读取会被取消;已取消的响应不会更新新的视图。bridge 重连后,使用“刷新”发起新的 Git 状态请求。生命周期决策记录在 [Source Control 请求生命周期说明](../../.agents/notes/implemented/bug-fix/2026-08-22-desktop-source-control-request-lifecycle.md)中。
+
 该切换由 `bridge-client` 通过现有侧边栏插件生命周期贡献。它把桌面 chrome portal 到 Workspace 区域,不改变共享 `ui-workspace` package 及其浏览器注册;卸载桌面插件后,切换一并移除并恢复标准 web 组合。
 
 ## 运行(测试版)

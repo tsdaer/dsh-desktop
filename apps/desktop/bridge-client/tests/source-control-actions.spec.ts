@@ -35,16 +35,21 @@ const EXPLORER_ENTRIES = [
   { name: 'dir', path: 'dir', type: 'directory', expandable: true },
 ]
 
-function renderExplorer(entries: readonly unknown[], posts: Array<{ url: string; body: unknown }> = [], diff: unknown = null) {
+function renderExplorer(
+  entries: readonly unknown[],
+  posts: Array<{ url: string; body: unknown }> = [],
+  diff: unknown = null,
+  postResponse: Response | Promise<Response> = new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'content-type': 'application/json' } }),
+) {
   const workspaces = mutableSource<{ items: readonly { workspaceId: string; title: string; sessionIds: readonly string[] }[] }>({
     items: [{ workspaceId: 'workspace-1', title: 'Workspace', sessionIds: [] }],
   })
   const sessions = mutableSource({ current: undefined as string | undefined })
-  vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+  const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const url = new URL(String(input), 'http://desktop.test')
     if (init?.method === 'POST') {
       posts.push({ url: url.pathname, body: JSON.parse(String(init.body)) })
-      return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'content-type': 'application/json' } })
+      return postResponse
     }
     if (url.pathname.endsWith('/source-control')) {
       return new Response(JSON.stringify({ workspaceId: 'workspace-1', state: 'repository', entries, truncated: false }), {
@@ -68,9 +73,10 @@ function renderExplorer(entries: readonly unknown[], posts: Array<{ url: string;
       })
     }
     return new Response('{}', { status: 404 })
-  }))
+  })
+  vi.stubGlobal('fetch', fetchMock)
   const view = render(createElement(DesktopWorkspaceExplorer, { workspaces, sessions, t: (key: string) => key }))
-  return { view, workspaces }
+  return { view, workspaces, fetchMock }
 }
 
 beforeEach(() => {
@@ -106,6 +112,23 @@ describe('desktop Source Control action surface', () => {
     fireEvent.click(screen.getByRole('button', { name: 'worktree.stage' }))
     await waitFor(() => { expect(posts).toHaveLength(1) })
     expect(posts[0]).toEqual({ url: '/dsh-bridge/worktree/source-control/stage', body: { workspaceId: 'workspace-1', path: 'a.ts' } })
+  })
+
+  it('aborts an in-flight mutation when the Worktree unmounts', async () => {
+    let resolvePost!: (response: Response) => void
+    const pendingPost = new Promise<Response>((resolve) => { resolvePost = resolve })
+    const { fetchMock } = renderExplorer([{ path: 'a.ts', statuses: ['unstaged'] }], [], null, pendingPost)
+    await waitFor(() => { expect(screen.getByRole('button', { name: 'worktree.stage' })).toBeTruthy() })
+    fireEvent.click(screen.getByRole('button', { name: 'worktree.stage' }))
+    await waitFor(() => {
+      expect(fetchMock.mock.calls.some(([, init]) => (init as RequestInit | undefined)?.method === 'POST')).toBe(true)
+    })
+    const postInit = fetchMock.mock.calls.find(([, init]) => (init as RequestInit | undefined)?.method === 'POST')?.[1] as RequestInit | undefined
+    const signal = postInit?.signal as AbortSignal | undefined
+    expect(signal).toBeInstanceOf(AbortSignal)
+    cleanup()
+    expect(signal?.aborted).toBe(true)
+    resolvePost(new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'content-type': 'application/json' } }))
   })
 
   it('confirms destructive discards by file name before posting', async () => {
