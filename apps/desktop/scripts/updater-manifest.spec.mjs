@@ -48,6 +48,35 @@ test('generates one signed updater row for each supported target', async () => {
   }
 });
 
+test('uses only the target directories present in a staged release', async () => {
+  const testFixture = fixture();
+  try {
+    for (const target of [
+      SUPPORTED_TARGETS['x86_64-pc-windows-msvc'],
+      SUPPORTED_TARGETS['x86_64-unknown-linux-gnu'],
+    ]) {
+      const directory = join(testFixture.root, target.productTarget);
+      mkdirSync(directory, { recursive: true });
+      const primary = `dsh-desktop_0.3.4${target.updaterArtifactSuffix}`;
+      writeFileSync(join(directory, primary), 'artifact');
+      writeFileSync(join(directory, `${primary}.sig`), 'signature');
+    }
+    const manifest = await buildUpdaterManifest({
+      version: '0.3.4',
+      tag: 'v0.3.4',
+      desktopRoot: testFixture.root,
+      targets: [
+        SUPPORTED_TARGETS['x86_64-pc-windows-msvc'],
+        SUPPORTED_TARGETS['x86_64-unknown-linux-gnu'],
+      ],
+    });
+    assert.deepEqual(Object.keys(manifest.platforms).sort(), ['linux-x86_64', 'windows-x86_64']);
+    assert.match(manifest.platforms['linux-x86_64'].url, /\.AppImage$/);
+  } finally {
+    testFixture.cleanup();
+  }
+});
+
 test('rejects missing signatures, duplicate targets, wrong versions, and unexpected files', async () => {
   const cases = [
     {

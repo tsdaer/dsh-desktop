@@ -399,6 +399,57 @@ describe('Python release workflows', () => {
   })
 })
 
+describe('Desktop release workflow', () => {
+  it('builds Windows and Linux artifacts from one validated tag without publishing a non-draft release', () => {
+    const workflow = loadWorkflow('.github/workflows/desktop-release.yml')
+    if (!isRecord(workflow.jobs)) throw new TypeError('desktop release workflow must define jobs')
+
+    const validate = workflow.jobs.validate
+    const windows = workflow.jobs['build-windows']
+    const linux = workflow.jobs['build-linux']
+    const draft = workflow.jobs['draft-release']
+    if (!isRecord(validate) || !isRecord(windows) || !isRecord(linux) || !isRecord(draft)) {
+      throw new TypeError('desktop release workflow must define validate, build-windows, build-linux, and draft-release jobs')
+    }
+    const workflowJson = JSON.stringify(workflow)
+    const validateJson = JSON.stringify(validate)
+    const windowsJson = JSON.stringify(windows)
+    const linuxJson = JSON.stringify(linux)
+    const draftJson = JSON.stringify(draft)
+
+    expect(workflow.on).toMatchObject({ push: { tags: ['v*'] }, workflow_dispatch: null })
+    expect(workflow).not.toHaveProperty('on.push.branches')
+    expect(validate['runs-on']).toBe('ubuntu-24.04')
+    expect(validateJson).toContain('GITHUB_REF_TYPE')
+    expect(validateJson).toContain('sync-version.mjs --check')
+    expect(validateJson).toContain('changelog-section.mjs')
+    expect(validateJson).toContain('commit=${GITHUB_SHA}')
+
+    expect(windows['runs-on']).toBe('windows-latest')
+    expect(windowsJson).toContain('x86_64-pc-windows-msvc')
+    expect(windowsJson).toContain('TAURI_SIGNING_PRIVATE_KEY')
+    expect(windowsJson).toContain('release-artifacts.mjs')
+    expect(windowsJson).toContain('size-check')
+
+    expect(linux['runs-on']).toBe('ubuntu-24.04')
+    expect(linuxJson).toContain('libwebkit2gtk-4.1-dev')
+    expect(linuxJson).toContain('x86_64-unknown-linux-gnu')
+    expect(linuxJson).toContain('release-artifacts.mjs')
+    expect(linuxJson).toContain('size-check')
+    expect(linuxJson).toContain('xvfb')
+
+    expect(draft.needs).toEqual(['validate', 'build-windows', 'build-linux'])
+    expect(draftJson).toContain('actions/download-artifact@v4')
+    expect(draftJson).toContain('release-artifacts.mjs verify')
+    expect(draftJson).toContain('sha256sum')
+    expect(draftJson).toContain('updater-manifest.mjs')
+    expect(draftJson).toContain('--draft')
+    expect(draftJson).toContain("steps.check.outputs.is_draft == 'true'")
+    expect(draftJson).not.toContain("steps.check.outputs.is_draft == 'false'")
+    expect(workflowJson).not.toContain('macos-14')
+  })
+})
+
 describe('Issue lifecycle workflow', () => {
   it('uses explicit review handoff events without rerunning when a draft becomes ready', () => {
     const lifecycle = loadWorkflow('.github/workflows/issue-lifecycle.yml')

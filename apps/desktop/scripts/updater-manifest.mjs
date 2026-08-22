@@ -25,6 +25,17 @@ async function directEntries(directory) {
  */
 async function targetArtifacts(target, desktopRoot) {
   const entries = [];
+  const stagedDirectory = resolve(desktopRoot, target.productTarget);
+  const stagedEntries = await directEntries(stagedDirectory);
+  if (stagedEntries.length > 0) {
+    return stagedEntries
+      .filter((entry) => !entry.isSymbolicLink())
+      .map((entry) => ({
+        name: entry.name,
+        path: join(stagedDirectory, entry.name),
+        directory: entry.isDirectory(),
+      }));
+  }
   for (const relative of target.artifactDirectories) {
     const directory = resolve(desktopRoot, relative.replaceAll('{rustTriple}', target.rustTriple));
     for (const entry of await directEntries(directory)) {
@@ -98,7 +109,12 @@ async function main() {
   const desktopRoot = resolve(distArg);
   const windows = SUPPORTED_TARGETS['x86_64-pc-windows-msvc'];
   const directFiles = await directEntries(desktopRoot);
-  const targets = directFiles.some((entry) => entry.name.toLowerCase().endsWith('.exe'))
+  const stagedTargets = Object.values(SUPPORTED_TARGETS).filter((target) =>
+    directFiles.some((entry) => entry.isDirectory() && entry.name === target.productTarget),
+  );
+  const targets = stagedTargets.length > 0
+    ? stagedTargets
+    : directFiles.some((entry) => entry.name.toLowerCase().endsWith('.exe'))
     ? [windows]
     : Object.values(SUPPORTED_TARGETS);
   const manifest = await buildUpdaterManifest({ version, tag, desktopRoot, targets });

@@ -161,7 +161,7 @@ Registration is best-effort and logged on failure. Because the application write
 
 ## Test-version scope
 
-- Dev runs the repo-built CLI on the PATH 'node'; the packaged app carries its own target-named Node sidecar and baked runtime (see Bundle / Packaged runtime above). The updater and release package remain supported on Windows x64 only; Linux x64 and macOS arm64 target preparation exists, while native runtime, Tauri packaging, signing, updater, installation, and packaged GUI evidence are still required before those platforms are supported.
+- Dev runs the repo-built CLI on the PATH 'node'; the packaged app carries its own target-named Node sidecar and baked runtime (see Bundle / Packaged runtime above). The tag-gated release workflow builds Windows x64 and Linux x64 draft artifacts from target-native jobs, but the supported updater and release package remain Windows x64 only until Linux native installation, update, uninstall, and packaged GUI evidence are complete; macOS arm64 remains at target-preparation stage.
 - Icons derive from the DeepSeek fish logo (regenerate via `node scripts/gen-icons.mjs`); the tray reuses the bundled window icon.
 - Closing the window terminates the runtime process unless close-to-tray is enabled (see "Desktop settings, tray, and close behavior"); sessions persist on disk under $DSH_HOME.
 - The window binds nothing of its own: the runtime still serves only loopback (127.0.0.1) with no auth, matching 'dsh web' posture.
