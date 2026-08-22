@@ -127,7 +127,7 @@ Tauri updater 按平台和架构选择制品。从同一已校验工作流创建
 
 [按目标的 bundle 配置与 updater 构件清单](../../implemented/feature/2026-08-22-desktop-target-aware-bundles.md)现在把共享 Tauri 设置与经过审查的 Windows、Linux、macOS 配置层分开。bundle 编排会校验生效的目标层,目标输出目录包含 Rust triple,体积报告检查每个预期构件并单独报告压缩安装器字节数,updater 清单生成会读取共享 Tauri updater 公钥,并在写入清单前校验每个主构件的 Minisign 文件签名和 trusted comment 签名。测试覆盖有效签名、构件被修改、公钥不匹配以及三个目标的已签名主构件。工作包 5、工作包 6 中 Windows/Linux draft 构件暂存部分以及工作包 7 的清单生成部分已实现;目标原生安装、更新、卸载和打包 GUI 证据仍未完成。
 
-Linux 发布 job 现在会在 `xvfb-run` 下运行目标原生 AppImage 启动冒烟,以及 deb 安装/启动/清除冒烟。该冒烟检查证明打包后的就绪状态、受管理进程清理和临时 `DSH_HOME` 保留;终端交互、更新安装、最低发行版覆盖和打包 GUI 证据仍未完成。
+Linux 发布 job 现在会在 `xvfb-run` 下运行目标原生 AppImage 启动冒烟,以及 deb 安装/启动/清除冒烟。它还会调用[Linux 基线 preflight](../../implemented/feature/2026-08-22-desktop-linux-baseline-preflight.md),在安装前置依赖后记录 runner 的 glibc、GTK、WebKitGTK 和打包工具版本。该冒烟检查证明打包后的就绪状态、受管理进程清理和临时 `DSH_HOME` 保留;终端交互、更新安装、最低发行版覆盖和打包 GUI 证据仍未完成。preflight 记录构建环境,但不证明对更旧发行版的兼容性。
 
 macOS arm64 workflow 保留未签名 experimental job，并提供由 `DSH_DESKTOP_MACOS_RELEASE=true` 显式启用的签名发布 lane。该 lane 将 Developer ID 证书导入临时 keychain，在 bundle 和 updater 生成前把 `APPLE_SIGNING_IDENTITY` 传给 Tauri，使用 `codesign` 校验嵌套代码，使用 `notarytool` 提交 dmg，staple app 与 dmg，使用 `spctl` 检查 app，从已 staple 的 app 重建 updater archive，并使用受保护的 Tauri key 重新签名该 archive。始终执行的清理步骤会恢复 runner keychain 列表并删除临时密钥材料。单独的 attachment job 只会把已签名 macOS 清单以及刷新的 `latest.json`／`SHA256SUMS` 加入 draft Release；experimental 清单不会进入 manifest。该 lane 提供发布自动化，不构成 macOS 支持证据。
 

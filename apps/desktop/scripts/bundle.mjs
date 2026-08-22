@@ -47,6 +47,7 @@ run(node, ['--test',
   'scripts/updater-manifest.spec.mjs',
   'scripts/release-artifacts.spec.mjs',
   'scripts/packaged-smoke.spec.mjs',
+  'scripts/linux-baseline.spec.mjs',
   'scripts/macos-sign-release.spec.mjs',
 ]);
 run(node, ['scripts/fetch-node-sidecar.mjs', '--target', target.rustTriple]);

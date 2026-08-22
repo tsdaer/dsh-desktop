@@ -451,6 +451,7 @@ describe('Desktop release workflow', () => {
     expect(linuxJson).toContain('release-artifacts.mjs')
     expect(linuxJson).toContain('size-check')
     expect(linuxJson).toContain('xvfb')
+    expect(linuxJson).toContain('linux-baseline')
     expect(linuxJson).toContain('packaged-smoke')
     expect(linuxJson).toContain('--install-deb')
 
