@@ -862,6 +862,13 @@ export interface Config {
   host: '127.0.0.1' | '0.0.0.0'
   /** Listen port; zero requests an OS-assigned port. */
   port: number
+  /**
+   * Optional bearer token. When set, every registered (non-fallback) route and
+   * every upgrade requires `Authorization: Bearer <token>`; the static dist
+   * fallback stays open so a browser can load the page before the client
+   * learns the token. Omission preserves the plain loopback posture.
+   */
+  token?: string
 }
 ```
 
