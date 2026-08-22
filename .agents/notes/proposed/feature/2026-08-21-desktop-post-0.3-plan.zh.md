@@ -68,7 +68,7 @@ Explorer 与搜索能定位文件，却无法展示它。为根内文件新增�
 
 ### 阶段 6：第二个平台
 
-先 Linux 后 macOS，因为 macOS 还要加签名与公证。四个阻塞点是具体的：Node sidecar 拉取仅限 Windows、本依赖树中 `node-pty` 缺少 Linux 预构建、bundle target 仅 NSIS、发布工作流只跑 `windows-latest`。把该阶段视为受控启动：等 harness 自身的 Linux 支持完整到只剩桌面壳子这一处缺口时再开始，不要更早。
+先 Linux 后 macOS，因为 macOS 还要增加签名与公证。[桌面端多平台支持实施计划](2026-08-22-desktop-multiplatform-support-plan.md)拥有目标矩阵、有序工作包、发布自动化、updater 规则、安装版 smoke 与完成标准。把该阶段视为受控启动：组装后的 harness profile 已在 Linux 完成构建、启动和终端 smoke，且不再存在 package 级 Linux 缺口时再开始。
 
 ### 阶段 7：休眠能力的体积决策
 

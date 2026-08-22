@@ -68,7 +68,7 @@ The chrome pass is complete: the main window re-adds `WS_THICKFRAME` (without `W
 
 ### Phase 6: a second platform
 
-Linux before macOS, because macOS adds signing and notarization. Four blockers are concrete: the Node sidecar fetch is Windows-only, `node-pty` lacks Linux prebuilds in this dependency tree, the bundle targets are NSIS-only, and the release workflow runs only on `windows-latest`. Treat this phase as gated: it starts when the harness's own Linux support is complete enough that the desktop shell is the only remaining gap, not before.
+Linux before macOS, because macOS adds signing and notarization. The [desktop multi-platform implementation plan](2026-08-22-desktop-multiplatform-support-plan.md) owns the target matrix, ordered work packages, release automation, updater rules, packaged smokes, and completion criteria. Treat this phase as gated: it starts when the assembled harness profile already completes its build, boot, and terminal smoke on Linux, not while a package-level Linux gap remains.
 
 ### Phase 7: dormant-capability payload decision
 
