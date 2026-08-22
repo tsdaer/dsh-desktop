@@ -33,8 +33,6 @@ class FakeWebSocket extends EventTarget {
     this.dispatchEvent(new Event('close'))
   }
 
-  addEventListener(): void {}
-  removeEventListener(): void {}
   send(): void {}
 }
 
@@ -59,7 +57,7 @@ describe('WebApiClient loopback token', () => {
     vi.stubGlobal('fetch', fetchMock)
     const { WebApiClient } = await import('../src/client/web-api-client.ts')
     const client = new WebApiClient()
-    await client.sessions.list({ limit: 1 }).catch(() => { /* parse may fail; the header assertion below matters */ })
+    await client.sessions.list({}).catch(() => { /* parse may fail; the header assertion below matters */ })
     expect(fetchMock).toHaveBeenCalled()
     const [, init] = fetchMock.mock.calls[0] ?? [undefined, undefined]
     const headers = new Headers(init?.headers)
@@ -72,7 +70,7 @@ describe('WebApiClient loopback token', () => {
     vi.stubGlobal('fetch', fetchMock)
     const { WebApiClient } = await import('../src/client/web-api-client.ts')
     const client = new WebApiClient()
-    await client.sessions.list({ limit: 1 }).catch(() => {})
+    await client.sessions.list({}).catch(() => {})
     const [, init] = fetchMock.mock.calls[0] ?? [undefined, undefined]
     expect(new Headers(init?.headers).get('authorization')).toBeNull()
   })
