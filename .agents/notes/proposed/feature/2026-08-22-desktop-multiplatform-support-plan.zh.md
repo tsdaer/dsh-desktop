@@ -141,9 +141,11 @@ macOS arm64 workflow 保留未签名 experimental job，并提供由 `DSH_DESKTO
 
 Windows x64 发布 job 现在会在体积与构件检查后、上传前运行 [Windows 已安装包冒烟](../../implemented/testing/2026-08-22-desktop-windows-packaged-smoke.md)。它把 NSIS 构件安装到一次性目录，启动已安装壳子，按需运行打包 PTY 探针，校验受管理进程清理，运行卸载程序并检查临时用户数据保留。workflow 与脚本测试覆盖该机制；原生 Windows runner 执行仍是证据来源。
 
+更新器清单生成器现在接受 `--download-base-url` 用于受控更新 fixture。它校验 HTTP(S) base,拒绝查询字符串、片段和带路径的 release 名称,并保留 GitHub Release URL 作为默认值；[受控清单 URL 记录](../../implemented/testing/2026-08-22-desktop-update-smoke-manifest-base.md)记录了该机制。这一步只准备本地已签名 fixture,不提供端点注入、已安装版本 N 到 N+1 替换、重启或用户数据证据。
+
 剩余工作包括目标原生 Linux 终端 UI／模型可见工作流、已安装版本更新冒烟、最低基线和打包 GUI 证据；macOS 已配置凭据执行签名 lane、公证／Gatekeeper 证据、已安装版本更新冒烟、受支持发布文档和 GUI 证据；以及 Windows runner 上执行已安装 Windows 安装包回归。签名 lane 自动化、清单签名校验和打包 PTY 冒烟不能替代要求的已安装版本更新冒烟或用户可见的 GUI 证据。
 
-当前 Windows checkout 已通过桌面脚本测试(45 项)、桌面前端测试(58 项)、Tauri Rust 测试(5 项)、桌面发布 workflow 结构测试、命名的双语配对检查和 Agent Note 格式校验。`pnpm run doc-sync` 已通过全部 28 项门禁,包括文档构建。
+当前 Windows checkout 已通过桌面脚本测试(47 项)、桌面前端测试(58 项)、Tauri Rust 测试(5 项)、桌面发布 workflow 结构测试、命名的双语配对检查和 Agent Note 格式校验。`pnpm run doc-sync` 已通过全部 28 项门禁,包括文档构建。
 
 发布产品仍仅支持 Windows x64。Linux 与 macOS 需完成原生运行时、Rust/Tauri 壳子、目标配置、发布工作流、updater、安装、更新、卸载和打包 GUI 证据，并满足下方验收标准后，才能声明受支持。
 

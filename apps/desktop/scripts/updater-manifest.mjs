@@ -9,6 +9,7 @@ import { SUPPORTED_TARGETS } from './target-spec.mjs';
 const repo = 'tsdaer/dsh-desktop';
 const publicKeyConfig = JSON.parse(readFileSync(new URL('../src-tauri/tauri.conf.json', import.meta.url), 'utf8'));
 const DEFAULT_UPDATER_PUBLIC_KEY = publicKeyConfig?.plugins?.updater?.pubkey;
+const DEFAULT_DOWNLOAD_BASE_URL = `https://github.com/${repo}/releases/download`;
 
 function decodeBase64(value, label) {
   if (!/^[A-Za-z0-9+/]*={0,2}$/.test(value) || value.length % 4 !== 0) {
@@ -34,6 +35,36 @@ function decodeMinisignPublicKey(value) {
     throw new Error('updater public key is not a Minisign public key');
   }
   return decodeBase64(lines[1], 'updater public key payload');
+}
+
+/**
+ * Resolve one artifact URL from a validated release base URL.
+ *
+ * @param {string} baseUrl Directory containing the release artifacts.
+ * @param {string} tag Release tag used as the next path component.
+ * @param {string} artifactName Artifact file name.
+ * @returns {string}
+ */
+export function updaterArtifactUrl(baseUrl, tag, artifactName) {
+  let url;
+  try {
+    url = new URL(baseUrl);
+  } catch {
+    throw new Error(`updater download base URL is invalid: ${baseUrl}`);
+  }
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+    throw new Error(`updater download base URL must use HTTP(S): ${baseUrl}`);
+  }
+  if (url.search || url.hash) {
+    throw new Error(`updater download base URL must not contain a query or fragment: ${baseUrl}`);
+  }
+  if (!tag || tag.includes('/') || tag.includes('\\')) throw new Error(`invalid updater release tag: ${tag}`);
+  if (!artifactName || artifactName.includes('/') || artifactName.includes('\\')) {
+    throw new Error(`invalid updater artifact name: ${artifactName}`);
+  }
+  if (!url.pathname.endsWith('/')) url.pathname += '/';
+  url.pathname += `${encodeURIComponent(tag)}/${encodeURIComponent(artifactName)}`;
+  return url.href;
 }
 
 /**
@@ -130,7 +161,7 @@ async function targetArtifacts(target, desktopRoot) {
  * Each target owns a directory or bundle output set; a Windows flat directory
  * remains accepted for the existing single-target release workflow.
  *
- * @param {{version: string, tag: string, desktopRoot: string, targets?: readonly Readonly<object>[], publicKey?: string}} input
+ * @param {{version: string, tag: string, desktopRoot: string, targets?: readonly Readonly<object>[], publicKey?: string, downloadBaseUrl?: string}} input
  * @returns {Promise<Record<string, unknown>>}
  */
 export async function buildUpdaterManifest({
@@ -139,8 +170,12 @@ export async function buildUpdaterManifest({
   desktopRoot,
   targets = Object.values(SUPPORTED_TARGETS),
   publicKey = DEFAULT_UPDATER_PUBLIC_KEY,
+  downloadBaseUrl = DEFAULT_DOWNLOAD_BASE_URL,
 }) {
   if (typeof publicKey !== 'string' || publicKey.length === 0) throw new Error('updater public key is missing');
+  if (typeof downloadBaseUrl !== 'string' || downloadBaseUrl.length === 0) {
+    throw new Error('updater download base URL is missing');
+  }
   const platforms = {};
   for (const target of targets) {
     const entries = await targetArtifacts(target, desktopRoot);
@@ -165,7 +200,7 @@ export async function buildUpdaterManifest({
     verifyMinisignSignature(await readFile(artifact.path), signatureText, publicKey, artifact.name);
     const release = {
       signature: signatureText,
-      url: `https://github.com/${repo}/releases/download/${tag}/${encodeURIComponent(basename(artifact.name))}`,
+      url: updaterArtifactUrl(downloadBaseUrl, tag, basename(artifact.name)),
     };
     platforms[target.updaterPlatform] = release;
   }
@@ -178,10 +213,17 @@ export async function buildUpdaterManifest({
 }
 
 async function main() {
-  const [version, tag, distArg = 'dist'] = process.argv.slice(2);
+  const args = process.argv.slice(2);
+  const positional = args.filter((arg, index) => arg !== '--download-base-url' && args[index - 1] !== '--download-base-url');
+  const baseUrlIndex = args.indexOf('--download-base-url');
+  const downloadBaseUrl = baseUrlIndex < 0 ? undefined : args[baseUrlIndex + 1];
+  const [version, tag, distArg = 'dist'] = positional;
   if (!version || !tag) {
-    console.error('usage: node updater-manifest.mjs <version> <tag> [desktop-root]');
+    console.error('usage: node updater-manifest.mjs <version> <tag> [desktop-root] [--download-base-url <url>]');
     process.exit(1);
+  }
+  if (baseUrlIndex >= 0 && (!downloadBaseUrl || downloadBaseUrl.startsWith('-'))) {
+    throw new Error('--download-base-url requires an HTTP(S) base URL');
   }
   const desktopRoot = resolve(distArg);
   const windows = SUPPORTED_TARGETS['x86_64-pc-windows-msvc'];
@@ -194,7 +236,7 @@ async function main() {
     : directFiles.some((entry) => entry.name.toLowerCase().endsWith('.exe'))
     ? [windows]
     : Object.values(SUPPORTED_TARGETS);
-  const manifest = await buildUpdaterManifest({ version, tag, desktopRoot, targets });
+  const manifest = await buildUpdaterManifest({ version, tag, desktopRoot, targets, downloadBaseUrl });
   await writeFile(resolve('latest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
   console.log(`[updater-manifest] wrote latest.json for ${version}`);
 }

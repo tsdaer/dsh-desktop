@@ -108,6 +108,8 @@ main.rs 的环境变量接线:DSH_CLI/DSH_NODE/DSH_BARE_MODULE_BASE/DSH_BRIDGE_T
 
 更新器只接受与 `src-tauri/tauri.conf.json` 内置公钥匹配的分离签名构件。目标构件存在且签名有效时,清单使用 `windows-x86_64`、`linux-x86_64` 和 `darwin-aarch64` 平台行。Draft Release 构件不是更新 endpoint;必须发布已验收的 Release,客户端才能发现它。标签门控工作流需要匹配的 GitHub Secret `TAURI_SIGNING_PRIVATE_KEY`,并以 CI 模式运行 Tauri;私钥不会存入仓库或应用。带密码的私钥可以配置 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`,无密码私钥不需要该 secret。
 
+更新 smoke fixture 可以向 `scripts/updater-manifest.mjs` 传入 `--download-base-url <http(s)://host/path>`,让目标 runner 从本地提供已签名构件;该选项拒绝查询字符串、片段和带路径的 release 名称,也不会改变生产 GitHub 端点。版本 N 到 N+1 的已安装更新工作流仍需要按目标注入端点以及原生安装证据。
+
 无边框主窗口在 setup 时重新加回 `WS_THICKFRAME`(不加 `WS_CAPTION`),由操作系统提供原生缩放边框与 Windows 11 贴靠布局弹出层,标题栏保持自绘。最大化图标从原生宿主读取窗口状态:Rust 在每次尺寸事件时推送 `dsh://maximize-change`,标题栏监听该事件,并保留轮询读取作为回退。
 
 ## 拖放

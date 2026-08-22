@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { SUPPORTED_TARGETS } from './target-spec.mjs';
-import { buildUpdaterManifest, verifyMinisignSignature } from './updater-manifest.mjs';
+import { buildUpdaterManifest, updaterArtifactUrl, verifyMinisignSignature } from './updater-manifest.mjs';
 
 const { privateKey, publicKey } = generateKeyPairSync('ed25519');
 const publicKeyBytes = publicKey.export({ format: 'der', type: 'spki' }).subarray(-32);
@@ -42,6 +42,25 @@ test('fixture signature matches its generated public key', () => {
   } finally {
     rmSync(path, { force: true });
   }
+});
+
+test('renders controlled update-smoke URLs without accepting ambiguous bases', () => {
+  assert.equal(
+    updaterArtifactUrl('http://127.0.0.1:4317/updates', 'v0.3.5', 'dsh-desktop_0.3.5.AppImage'),
+    'http://127.0.0.1:4317/updates/v0.3.5/dsh-desktop_0.3.5.AppImage',
+  );
+  assert.throws(
+    () => updaterArtifactUrl('file:///tmp/updates', 'v0.3.5', 'dsh-desktop.AppImage'),
+    /must use HTTP\(S\)/,
+  );
+  assert.throws(
+    () => updaterArtifactUrl('https://updates.example.test/releases?token=secret', 'v0.3.5', 'dsh-desktop.AppImage'),
+    /must not contain a query or fragment/,
+  );
+  assert.throws(
+    () => updaterArtifactUrl('https://updates.example.test/releases', 'v0.3.5/latest', 'dsh-desktop.AppImage'),
+    /invalid updater release tag/,
+  );
 });
 
 test('rejects a changed artifact and a different updater public key', () => {
@@ -115,6 +134,25 @@ test('generates one signed updater row for each supported target', async () => {
       readFileSync(join(artifactDirectory(testFixture.root, SUPPORTED_TARGETS['x86_64-unknown-linux-gnu']), 'dsh-desktop_0.3.4.AppImage.sig'), 'utf8').trim(),
     );
     assert.match(manifest.platforms['darwin-aarch64'].url, /dsh-desktop_0.3.4.app.tar.gz$/);
+  } finally {
+    testFixture.cleanup();
+  }
+});
+
+test('uses the controlled update-smoke base for every signed artifact URL', async () => {
+  const testFixture = fixture();
+  try {
+    populate(testFixture.root);
+    const manifest = await buildUpdaterManifest({
+      version: '0.3.4',
+      tag: 'v0.3.4',
+      desktopRoot: testFixture.root,
+      publicKey: fixturePublicKey,
+      downloadBaseUrl: 'http://127.0.0.1:4317/updates',
+    });
+    for (const release of Object.values(manifest.platforms)) {
+      assert.match(release.url, /^http:\/\/127\.0\.0\.1:4317\/updates\/v0\.3\.4\//);
+    }
   } finally {
     testFixture.cleanup();
   }
