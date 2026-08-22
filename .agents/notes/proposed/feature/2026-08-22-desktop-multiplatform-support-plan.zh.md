@@ -129,6 +129,8 @@ Tauri updater 按平台和架构选择制品。从同一已校验工作流创建
 
 Linux 发布 job 现在会在 `xvfb-run` 下运行目标原生 AppImage 启动冒烟,以及 deb 安装/启动/清除冒烟。它还会调用[Linux 基线 preflight](../../implemented/feature/2026-08-22-desktop-linux-baseline-preflight.md),在安装前置依赖后记录 runner 的 glibc、GTK、WebKitGTK 和打包工具版本。该冒烟检查证明打包后的就绪状态、受管理进程清理和临时 `DSH_HOME` 保留;终端交互、更新安装、最低发行版覆盖和打包 GUI 证据仍未完成。preflight 记录构建环境,但不证明对更旧发行版的兼容性。
 
+打包冒烟会在启动前创建用户数据标记,并要求 deb purge 后标记和 `DSH_HOME` 仍然存在。这完成了安装包冒烟对用户数据保留的检查,但不表示已经验证安装版从版本 N 更新到版本 N+1。[桌面 Linux 安装包冒烟记录](../../implemented/feature/2026-08-22-desktop-linux-packaged-smoke.md)记录了该机制及其剩余证据边界。
+
 打包冒烟现在会在 POSIX 进程快照中保留命令行,在 sidecar 被重新托管后仍按目标命名的 Node sidecar 识别它,并在尝试 `SIGKILL` 清理前限制优雅停止的等待时间。[桌面打包进程清理校验](../../implemented/bug-fix/2026-08-22-desktop-packaged-process-cleanup.md)记录了这项检查;它强化了进程清理证据,但不会关闭剩余的原生平台验收工作。
 
 打包冒烟现在也接受 `--terminal-smoke`。启动 AppImage、deb、app 或 dmg 构件后,它会从构件中解析出且仅解析出一个目标 sidecar 和运行时,使用该运行时通过 `node-pty` 执行固定的 `printf` 探针,等待探针退出,并执行目标本地清理。Linux 和 macOS workflow job 都会调用这项检查。[桌面打包终端冒烟](../../implemented/testing/2026-08-22-desktop-packaged-terminal-smoke.md)记录了证据及其边界:它证明打包后的 PTY 字节和释放,不证明浏览器／模型可见的终端工作流。
@@ -137,7 +139,9 @@ macOS arm64 workflow 保留未签名 experimental job，并提供由 `DSH_DESKTO
 
 目标原生打包冒烟接受 macOS arm64 的 app 和 dmg 构件。未签名 experimental job 与选择加入的签名 job 都会在 `macos-14` 上启动 app bundle；dmg 路径会挂载、复制、卸载并启动 app，然后检查就绪状态和受管理进程清理。这只构成打包启动证据；macOS 更新、卸载、公证／Gatekeeper 和 GUI 证据仍未完成。
 
-剩余工作包括目标原生 Linux 终端 UI／模型可见工作流、已安装版本更新冒烟、最低基线和打包 GUI 证据；macOS 已配置凭据执行签名 lane、公证／Gatekeeper 证据、已安装版本更新冒烟、文档和 GUI 证据；以及最终的 Windows 回归证据。签名 lane 自动化、清单签名校验和打包 PTY 冒烟不能替代要求的已安装版本更新冒烟或用户可见的 GUI 证据。
+剩余工作包括目标原生 Linux 终端 UI／模型可见工作流、已安装版本更新冒烟、最低基线和打包 GUI 证据；macOS 已配置凭据执行签名 lane、公证／Gatekeeper 证据、已安装版本更新冒烟、受支持发布文档和 GUI 证据；以及最终的 Windows 安装包回归证据。签名 lane 自动化、清单签名校验和打包 PTY 冒烟不能替代要求的已安装版本更新冒烟或用户可见的 GUI 证据。
+
+当前 Windows checkout 已通过桌面脚本测试(43 项)、桌面前端测试(58 项)、Tauri Rust 测试(5 项)、桌面发布 workflow 结构测试、命名的双语配对检查和 Agent Note 格式校验。`pnpm run doc-sync` 已通过 27 项门禁;文档构建仍因当前 checkout 缺少 `vue/server-renderer` 依赖而受阻,不是桌面文档本身失败。
 
 发布产品仍仅支持 Windows x64。Linux 与 macOS 需完成原生运行时、Rust/Tauri 壳子、目标配置、发布工作流、updater、安装、更新、卸载和打包 GUI 证据，并满足下方验收标准后，才能声明受支持。
 

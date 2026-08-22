@@ -12,6 +12,7 @@ import {
   packagedExecutable,
   parseArguments,
   parseProcessSnapshot,
+  assertUserDataRetained,
 } from './packaged-smoke.mjs';
 
 test('requires a target-native package artifact for the packaged smoke', () => {
@@ -110,6 +111,20 @@ test('locates exactly one target sidecar and runtime inside an extracted package
     );
   } finally {
     rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('requires user-owned data to survive package removal', () => {
+  const home = join(tmpdir(), `dsh-packaged-home-${process.pid}-${Date.now()}`);
+  const marker = join(home, 'desktop-smoke-user-data.marker');
+  try {
+    mkdirSync(home, { recursive: true });
+    writeFileSync(marker, 'retained\n');
+    assert.doesNotThrow(() => assertUserDataRetained(home, marker));
+    rmSync(marker);
+    assert.throws(() => assertUserDataRetained(home, marker), /user data marker was removed/);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
   }
 });
 

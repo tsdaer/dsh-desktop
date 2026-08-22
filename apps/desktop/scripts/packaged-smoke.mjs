@@ -2,7 +2,7 @@
 // shell reaches its runtime readiness line before the process tree is stopped.
 // The smoke intentionally runs the installed entry point, not `cargo run` or
 // the source CLI, so resource lookup and the target Node sidecar are included.
-import { cpSync, existsSync, mkdtempSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -261,6 +261,22 @@ export async function runTerminalSmoke(packageRoot, target) {
   return output;
 }
 
+/**
+ * Assert that package removal did not remove data owned by the user.
+ *
+ * @param {string} home - The temporary DSH_HOME used by the smoke.
+ * @param {string} marker - A marker created before installation or launch.
+ * @returns {void}
+ */
+export function assertUserDataRetained(home, marker) {
+  if (!existsSync(home) || !statSync(home).isDirectory()) {
+    throw new Error(`user data directory was removed: ${home}`);
+  }
+  if (!existsSync(marker) || statSync(marker).size === 0) {
+    throw new Error(`user data marker was removed: ${marker}`);
+  }
+}
+
 async function launch(command, args, env, sidecarBasename) {
   const child = spawn(command, args, {
     env,
@@ -328,6 +344,8 @@ async function main() {
     throw new Error(`package artifact is missing or empty: ${options.artifact}`);
   }
   const home = mkdtempSync(join(tmpdir(), 'dsh-desktop-packaged-smoke-'));
+  const userDataMarker = join(home, 'desktop-smoke-user-data.marker');
+  writeFileSync(userDataMarker, 'user-owned desktop smoke data\n', { encoding: 'utf8' });
   let installed;
   let mountedDmg;
   let smokeCompleted = false;
@@ -382,7 +400,7 @@ async function main() {
     if (installed !== undefined) {
       run('sudo', ['dpkg', '--purge', installed], { stdio: 'inherit' });
     }
-    if (smokeCompleted && !existsSync(home)) throw new Error(`smoke DSH_HOME was removed: ${home}`);
+    if (smokeCompleted) assertUserDataRetained(home, userDataMarker);
     rmSync(home, { recursive: true, force: true });
   }
 }

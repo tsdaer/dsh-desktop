@@ -10,13 +10,13 @@ Linux bundle creation and artifact inventory checks do not prove that an AppImag
 
 ## Decision
 
-`apps/desktop/scripts/packaged-smoke.mjs` owns the Linux x64 package smoke. The AppImage is extracted and the deb is installed with `dpkg` on the target runner; both launch the packaged executable under the runner's virtual display with a temporary `DSH_HOME`. The smoke requires the shell's readiness URL, stops the detached process group, verifies that the recorded runtime descendants have exited, and checks that the temporary home still exists after deb removal. The release workflow runs both package paths after bundling and before artifact upload.
+`apps/desktop/scripts/packaged-smoke.mjs` owns the Linux x64 package smoke. The AppImage is extracted and the deb is installed with `dpkg` on the target runner; both launch the packaged executable under the runner's virtual display with a temporary `DSH_HOME`. The smoke creates a user-data marker before launch, requires the shell's readiness URL, stops the detached process group, verifies that the recorded runtime descendants have exited, and checks that the home and marker survive deb removal. The release workflow runs both package paths after bundling and before artifact upload.
 
 The smoke does not classify Linux as a supported release target. It proves package launch, target-resource lookup, managed-process cleanup, and deb removal; terminal interaction, updater installation, minimum-distribution coverage, and GUI evidence remain separate requirements.
 
 ## Testing
 
-`apps/desktop/scripts/packaged-smoke.spec.mjs` pins Linux-only argument validation and descendant discovery. The script is included in the desktop bundle preparation tests. The release job supplies `xvfb-run`, runs the AppImage from its extracted package, and installs then purges the deb in the disposable runner.
+`apps/desktop/scripts/packaged-smoke.spec.mjs` pins Linux-only argument validation, descendant discovery, package resource lookup, and user-data retention. The script is included in the desktop bundle preparation tests. The release job supplies `xvfb-run`, runs the AppImage from its extracted package, and installs then purges the deb in the disposable runner.
 
 ## Consequences
 
