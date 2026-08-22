@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync, rmSync } from 'node:fs';
 import { Readable } from 'node:stream';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -10,6 +10,7 @@ import {
   checksumForArchive,
   downloadFile,
   fetchNodeSidecar,
+  installFetchedSidecar,
   verifySha256,
 } from './fetch-node-sidecar.mjs';
 import { resolveTarget } from './target-spec.mjs';
@@ -113,7 +114,7 @@ test('verifies, installs, and records an exact POSIX sidecar name and mode', asy
   });
   assert.equal(result.cached, false);
   assert.equal(result.destination.endsWith('node-x86_64-unknown-linux-gnu'), true);
-  assert.deepEqual(executableModes.map(({ mode }) => mode), [0o755, 0o755]);
+  assert.deepEqual(executableModes.map(({ mode }) => mode), [0o755, 0o755, 0o755]);
   if (process.platform !== 'win32') assert.equal(statSync(destination).mode & 0o111, 0o111);
   assert.deepEqual(JSON.parse(readFileSync(metadataPath, 'utf8')), {
     archiveName: 'node-v22.23.1-linux-x64.tar.xz',
@@ -121,6 +122,36 @@ test('verifies, installs, and records an exact POSIX sidecar name and mode', asy
     version,
     rustTriple: target.rustTriple,
   });
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('restores the previous sidecar when the final replacement fails', () => {
+  const root = temporaryDirectory();
+  const destination = join(root, target.sidecarBasename);
+  const metadataPath = `${destination}.meta.json`;
+  const staged = join(root, 'staged-sidecar');
+  writeFileSync(destination, 'old binary');
+  writeFileSync(metadataPath, 'old metadata\n');
+  writeFileSync(staged, 'new binary');
+  let modeCalls = 0;
+
+  assert.throws(() => installFetchedSidecar({
+    stagedDestination: staged,
+    destination,
+    metadataPath,
+    metadataText: 'new metadata\n',
+    setExecutable: () => {
+      modeCalls += 1;
+      if (modeCalls === 2) throw new Error('mode update failed');
+    },
+    hostPlatform: 'linux',
+  }), /mode update failed/);
+  assert.equal(readFileSync(destination, 'utf8'), 'old binary');
+  assert.equal(readFileSync(metadataPath, 'utf8'), 'old metadata\n');
+  assert.deepEqual(
+    readdirSync(root).filter((name) => name.includes('.tmp-') || name.includes('.bak-')),
+    [],
+  );
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -148,6 +179,30 @@ test('invalidates stale metadata and rejects a missing archive member or corrupt
     extract: fixtureExtract('node binary'),
   }), /SHA-256 mismatch/);
   assert.equal(readFileSync(destination, 'utf8'), 'old binary');
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('keeps the previous cache when the injected installation step fails', async () => {
+  const root = temporaryDirectory();
+  const destination = join(root, target.sidecarBasename);
+  const metadataPath = `${destination}.meta.json`;
+  writeFileSync(destination, 'old binary');
+  writeFileSync(metadataPath, 'old metadata\n');
+  const archiveBytes = Buffer.from('fixture archive');
+  const digest = checksum(archiveBytes);
+  await assert.rejects(fetchNodeSidecar({
+    target,
+    version,
+    destination,
+    metadataPath,
+    download: fixtureDownload(archiveBytes, `${digest}  node-v22.23.1-linux-x64.tar.xz\n`),
+    extract: fixtureExtract('node binary'),
+    readVersion: () => 'v22.23.1',
+    install: () => { throw new Error('installation failed'); },
+    hostPlatform: 'linux',
+  }), /installation failed/);
+  assert.equal(readFileSync(destination, 'utf8'), 'old binary');
+  assert.equal(readFileSync(metadataPath, 'utf8'), 'old metadata\n');
   rmSync(root, { recursive: true, force: true });
 });
 

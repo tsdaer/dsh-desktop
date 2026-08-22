@@ -121,7 +121,7 @@ Tauri updater 按平台和架构选择制品。从同一已校验工作流创建
 
 工作包 1 已在[桌面目标规格记录](../../implemented/feature/2026-08-22-desktop-target-specification.md)中实现。三个目标行是不可变的，并由 sidecar 获取、运行时烘焙、体积报告和 bundle 编排共同消费；目标测试覆盖每行全部字段、不支持的目标、Node 压缩包布局和压缩包路径穿越。
 
-工作包 2 已在[可移植 Node sidecar 记录](../../implemented/feature/2026-08-22-desktop-portable-node-sidecar.md)中实现。sidecar 获取会按目标选择压缩包、跟随有上限的重定向、拒绝 HTTP 失败、在解压前校验匹配的 `SHASUMS256.txt` 摘要、记录版本／目标／摘要元数据、校验可执行文件版本、设置 POSIX 权限、在准备失败时保留旧目标，并清理临时目录。注入适配器测试覆盖摘要不匹配、损坏压缩包、缺少成员、陈旧元数据、精确目标文件名、重定向、HTTP 失败、清理和可执行权限请求。按目标区分的运行时目录和目标派生的原生裁剪已经接通；目标 runner 上的启动证据仍属于工作包 3。
+工作包 2 已在[可移植 Node sidecar 记录](../../implemented/feature/2026-08-22-desktop-portable-node-sidecar.md)中实现。sidecar 获取会按目标选择压缩包、跟随有上限的重定向、拒绝 HTTP 失败、在解压前校验匹配的 `SHASUMS256.txt` 摘要、记录版本／目标／摘要元数据、校验可执行文件版本、设置 POSIX 权限，通过可恢复替换同时更新 sidecar 与元数据，在安装或最终权限检查失败时保留旧目标，并清理临时文件。注入适配器测试覆盖摘要不匹配、损坏压缩包、缺少成员、陈旧元数据、精确目标文件名、重定向、HTTP 失败、清理、可执行权限请求和替换回滚。按目标区分的运行时目录和目标派生的原生裁剪已经接通；目标 runner 上的启动证据仍属于工作包 3。
 
 运行时烘焙路径现在要求使用已获取的目标 sidecar 完成 profile 初始化与 readiness 校验，终止校验进程树，且 bundle 命令先获取 sidecar 再烘焙。[目标原生运行时校验](../../implemented/feature/2026-08-22-desktop-target-native-runtime.md)会裁剪每个原生 `prebuilds` 目录；没有兼容预编译时接受目标 source build；存在时要求 `node-pty` 与 `koffi` 有可加载二进制；并在启动校验前拒绝可识别的其他平台原生文件。聚焦测试覆盖兼容预编译、source-build fallback、缺少目标二进制和跨平台文件。Rust 壳已经具备按目标命名的安装版 sidecar、禁止安装版使用环境 Node、把 WebView2 controller 与修复代码隔离到 Windows，以及使用平台中立的 `webview` 启动画面步骤。可移植 debug-mode 命令返回 `{ requested, applied, limitation }`；Linux 和 macOS 返回 `applied: false` 及明确的平台 webview 限制，bridge client 会记录该限制。工作包 3 仍需完成目标原生启动与 Linux 终端证据；工作包 4 仍需在各目标原生 runner 上编译并验证可移植壳行为。
 
@@ -141,7 +141,7 @@ macOS arm64 workflow 保留未签名 experimental job，并提供由 `DSH_DESKTO
 
 剩余工作包括目标原生 Linux 终端 UI／模型可见工作流、已安装版本更新冒烟、最低基线和打包 GUI 证据；macOS 已配置凭据执行签名 lane、公证／Gatekeeper 证据、已安装版本更新冒烟、受支持发布文档和 GUI 证据；以及最终的 Windows 安装包回归证据。签名 lane 自动化、清单签名校验和打包 PTY 冒烟不能替代要求的已安装版本更新冒烟或用户可见的 GUI 证据。
 
-当前 Windows checkout 已通过桌面脚本测试(43 项)、桌面前端测试(58 项)、Tauri Rust 测试(5 项)、桌面发布 workflow 结构测试、命名的双语配对检查和 Agent Note 格式校验。`pnpm run doc-sync` 已通过 27 项门禁;文档构建仍因当前 checkout 缺少 `vue/server-renderer` 依赖而受阻,不是桌面文档本身失败。
+当前 Windows checkout 已通过桌面脚本测试(45 项)、桌面前端测试(58 项)、Tauri Rust 测试(5 项)、桌面发布 workflow 结构测试、命名的双语配对检查和 Agent Note 格式校验。`pnpm run doc-sync` 已通过全部 28 项门禁,包括文档构建。
 
 发布产品仍仅支持 Windows x64。Linux 与 macOS 需完成原生运行时、Rust/Tauri 壳子、目标配置、发布工作流、updater、安装、更新、卸载和打包 GUI 证据，并满足下方验收标准后，才能声明受支持。
 

@@ -11,6 +11,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  renameSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -168,6 +169,68 @@ export function executableVersion(filePath) {
 }
 
 /**
+ * Commit a prepared sidecar and its metadata as one recoverable replacement.
+ * The temporary files live beside their destinations so the final renames do
+ * not cross filesystems. Existing files remain restorable until both new
+ * files have been installed successfully.
+ *
+ * @param {{stagedDestination: string, destination: string, metadataPath: string, metadataText: string, setExecutable?: (filePath: string, mode: number) => void, hostPlatform?: string}} options
+ * @returns {void}
+ */
+export function installFetchedSidecar({
+  stagedDestination,
+  destination,
+  metadataPath,
+  metadataText,
+  setExecutable = chmodSync,
+  hostPlatform = process.platform,
+}) {
+  const token = `${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const destinationTemp = `${destination}.tmp-${token}`;
+  const metadataTemp = `${metadataPath}.tmp-${token}`;
+  const destinationBackup = `${destination}.bak-${token}`;
+  const metadataBackup = `${metadataPath}.bak-${token}`;
+  const hadDestination = existsSync(destination);
+  const hadMetadata = existsSync(metadataPath);
+  let installedDestination = false;
+  let installedMetadata = false;
+  let backedUpDestination = false;
+  let backedUpMetadata = false;
+
+  try {
+    mkdirSync(dirname(destination), { recursive: true });
+    copyFileSync(stagedDestination, destinationTemp);
+    if (hostPlatform !== 'win32') setExecutable(destinationTemp, 0o755);
+    writeFileSync(metadataTemp, metadataText, { flag: 'wx' });
+
+    if (hadDestination) {
+      renameSync(destination, destinationBackup);
+      backedUpDestination = true;
+    }
+    if (hadMetadata) {
+      renameSync(metadataPath, metadataBackup);
+      backedUpMetadata = true;
+    }
+    renameSync(destinationTemp, destination);
+    installedDestination = true;
+    renameSync(metadataTemp, metadataPath);
+    installedMetadata = true;
+    if (hostPlatform !== 'win32') setExecutable(destination, 0o755);
+  } catch (error) {
+    if (installedMetadata) rmSync(metadataPath, { force: true });
+    if (installedDestination) rmSync(destination, { force: true });
+    if (backedUpMetadata) renameSync(metadataBackup, metadataPath);
+    if (backedUpDestination) renameSync(destinationBackup, destination);
+    throw error;
+  } finally {
+    rmSync(destinationTemp, { force: true });
+    rmSync(metadataTemp, { force: true });
+    rmSync(destinationBackup, { force: true });
+    rmSync(metadataBackup, { force: true });
+  }
+}
+
+/**
  * Fetch, verify, extract, and install one target-owned Node sidecar.
  *
  * @param {object} options
@@ -180,6 +243,7 @@ export function executableVersion(filePath) {
  * @param {(filePath: string) => string} [options.readVersion]
  * @param {() => string} [options.createTemporaryRoot]
  * @param {(filePath: string, mode: number) => void} [options.setExecutable]
+ * @param {(options: {stagedDestination: string, destination: string, metadataPath: string, metadataText: string, setExecutable?: (filePath: string, mode: number) => void, hostPlatform?: string}) => void} [options.install]
  * @param {string} [options.hostPlatform]
  * @returns {Promise<{destination: string, sha256: string, cached: boolean}>}
  */
@@ -197,6 +261,7 @@ export async function fetchNodeSidecar({
   readVersion = executableVersion,
   createTemporaryRoot = () => mkdtempSync(join(tmpdir(), 'dsh-node-')),
   setExecutable = chmodSync,
+  install = installFetchedSidecar,
   hostPlatform = process.platform,
 }) {
   const { archiveName, sourceMember } = nodeDistributionFiles(target, version);
@@ -231,17 +296,20 @@ export async function fetchNodeSidecar({
       throw new Error(`Node sidecar reported an unexpected version; expected v${version}`);
     }
 
-    mkdirSync(dirname(destination), { recursive: true });
-    rmSync(destination, { force: true });
-    rmSync(metadataPath, { force: true });
-    copyFileSync(stagedDestination, destination);
-    if (hostPlatform !== 'win32') setExecutable(destination, 0o755);
-    writeFileSync(metadataPath, `${JSON.stringify({
+    const metadataText = `${JSON.stringify({
       archiveName,
       sha256,
       version,
       rustTriple: target.rustTriple,
-    }, null, 2)}\n`);
+    }, null, 2)}\n`;
+    install({
+      stagedDestination,
+      destination,
+      metadataPath,
+      metadataText,
+      setExecutable,
+      hostPlatform,
+    });
     console.log(`[fetch-node-sidecar] sidecar at ${destination}`);
     return { destination, sha256, cached: false };
   } finally {
