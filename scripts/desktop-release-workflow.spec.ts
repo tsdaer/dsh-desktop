@@ -47,6 +47,8 @@ describe('desktop release workflow', () => {
       expect(json).not.toContain('actions/download-artifact')
     }
     expect(JSON.stringify(linux)).toContain('linux-baseline')
+    expect(JSON.stringify(linux)).toContain('--output')
+    expect(JSON.stringify(linux)).toContain('Upload Linux baseline evidence')
     expect(JSON.stringify(linux)).toContain('packaged-smoke')
     expect(JSON.stringify(linux)).toContain('--terminal-smoke')
     expect(JSON.stringify(linux)).toContain('--install-deb')

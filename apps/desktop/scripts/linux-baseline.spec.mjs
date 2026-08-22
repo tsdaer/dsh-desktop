@@ -1,7 +1,32 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { parseGlibcVersion, readLinuxBaseline } from './linux-baseline.mjs';
+import { parseArguments, parseGlibcVersion, readLinuxBaseline, renderLinuxBaseline } from './linux-baseline.mjs';
+
+test('accepts an explicit output file without changing target selection', () => {
+  const options = parseArguments([
+    '--target', 'x86_64-unknown-linux-gnu', '--output', 'artifacts/linux-baseline.json',
+  ]);
+  assert.equal(options.target.rustTriple, 'x86_64-unknown-linux-gnu');
+  assert.match(options.output, /artifacts[\\/]linux-baseline\.json$/);
+  assert.throws(() => parseArguments([
+    '--target', 'x86_64-unknown-linux-gnu', '--output',
+  ]), /--output requires/);
+});
+
+test('renders the target and measured prerequisites as durable JSON', () => {
+  const target = { rustTriple: 'x86_64-unknown-linux-gnu' };
+  const baseline = {
+    platform: 'linux',
+    glibc: '2.39',
+    libraries: { 'glib-2.0': '2.80.0' },
+    commands: ['pkg-config'],
+  };
+  assert.deepEqual(JSON.parse(renderLinuxBaseline(target, baseline)), {
+    target: 'x86_64-unknown-linux-gnu',
+    ...baseline,
+  });
+});
 
 test('parses common glibc version banners', () => {
   assert.equal(parseGlibcVersion('ldd (Ubuntu GLIBC 2.39-0ubuntu8.6) 2.39'), '2.39');

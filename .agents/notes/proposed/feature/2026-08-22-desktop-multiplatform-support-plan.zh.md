@@ -129,6 +129,8 @@ Tauri updater 按平台和架构选择制品。从同一已校验工作流创建
 
 Linux 发布 job 现在会在 `xvfb-run` 下运行目标原生 AppImage 启动冒烟,以及 deb 安装/启动/清除冒烟。它还会调用[Linux 基线 preflight](../../implemented/feature/2026-08-22-desktop-linux-baseline-preflight.md),在安装前置依赖后记录 runner 的 glibc、GTK、WebKitGTK 和打包工具版本。该冒烟检查证明打包后的就绪状态、受管理进程清理和临时 `DSH_HOME` 保留;终端交互、更新安装、最低发行版覆盖和打包 GUI 证据仍未完成。preflight 记录构建环境,但不证明对更旧发行版的兼容性。
 
+Linux 基线 preflight 接受 `--output <file>`,发布 job 会把包含 target、库和打包工具记录的文件作为独立于可安装发布清单、带版本号的证据 artifact 上传。[基线 artifact 记录](../../implemented/testing/2026-08-23-desktop-linux-baseline-artifact.md)记录了这项证据保留机制;它不会关闭最低发行版支持。
+
 打包冒烟会在启动前创建用户数据标记,并要求 deb purge 后标记和 `DSH_HOME` 仍然存在。这完成了安装包冒烟对用户数据保留的检查,但不表示已经验证安装版从版本 N 更新到版本 N+1。[桌面 Linux 安装包冒烟记录](../../implemented/feature/2026-08-22-desktop-linux-packaged-smoke.md)记录了该机制及其剩余证据边界。
 
 打包冒烟现在会在 POSIX 进程快照中保留命令行,在 sidecar 被重新托管后仍按目标命名的 Node sidecar 识别它,并在尝试 `SIGKILL` 清理前限制优雅停止的等待时间。[桌面打包进程清理校验](../../implemented/bug-fix/2026-08-22-desktop-packaged-process-cleanup.md)记录了这项检查;它强化了进程清理证据,但不会关闭剩余的原生平台验收工作。
@@ -145,7 +147,7 @@ Windows x64 发布 job 现在会在体积与构件检查后、上传前运行 [W
 
 剩余工作包括目标原生 Linux 终端 UI／模型可见工作流、已安装版本更新冒烟、最低基线和打包 GUI 证据；macOS 已配置凭据执行签名 lane、公证／Gatekeeper 证据、已安装版本更新冒烟、受支持发布文档和 GUI 证据；以及 Windows runner 上执行已安装 Windows 安装包回归。签名 lane 自动化、清单签名校验和打包 PTY 冒烟不能替代要求的已安装版本更新冒烟或用户可见的 GUI 证据。
 
-当前 Windows checkout 已通过桌面脚本测试(47 项)、桌面前端测试(58 项)、Tauri Rust 测试(5 项)、桌面发布 workflow 结构测试、命名的双语配对检查和 Agent Note 格式校验。`pnpm run doc-sync` 已通过全部 28 项门禁,包括文档构建。
+当前 Windows checkout 已通过桌面脚本测试(52 项)、桌面前端测试(58 项)、Tauri Rust 测试(5 项)、桌面发布 workflow 结构测试、命名的双语配对检查和 Agent Note 格式校验。`pnpm run doc-sync` 已通过全部 28 项门禁,包括文档构建。
 
 发布产品仍仅支持 Windows x64。Linux 与 macOS 需完成原生运行时、Rust/Tauri 壳子、目标配置、发布工作流、updater、安装、更新、卸载和打包 GUI 证据，并满足下方验收标准后，才能声明受支持。
 

@@ -2,8 +2,9 @@
 // build. This is a host check: it does not claim compatibility with a
 // distribution that was not actually inspected.
 import { spawnSync } from 'node:child_process';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 
 import { resolveTargetFromArgs } from './target-spec.mjs';
 
@@ -14,6 +15,32 @@ const REQUIRED_COMMANDS = Object.freeze([
   ['patchelf', ['--version']],
   ['xvfb-run', ['--help']],
 ]);
+
+/**
+ * Parse the Linux baseline command options.
+ *
+ * @param {readonly string[]} argv Arguments after the script name.
+ * @returns {{target: Readonly<object>, output?: string}}
+ */
+export function parseArguments(argv) {
+  const target = resolveTargetFromArgs(argv);
+  const outputIndex = argv.indexOf('--output');
+  if (outputIndex < 0) return { target };
+  const output = argv[outputIndex + 1];
+  if (output === undefined || output.startsWith('-')) throw new Error('--output requires a file path');
+  return { target, output: resolve(output) };
+}
+
+/**
+ * Render a durable baseline record for one validated target.
+ *
+ * @param {{readonly rustTriple: string}} target Resolved Linux target.
+ * @param {Readonly<{platform: string, glibc: string, libraries: Readonly<Record<string, string>>, commands: readonly string[]}>} baseline Host measurements.
+ * @returns {string} Pretty-printed JSON with one trailing newline.
+ */
+export function renderLinuxBaseline(target, baseline) {
+  return `${JSON.stringify({ target: target.rustTriple, ...baseline }, null, 2)}\n`;
+}
 
 /**
  * Parse the glibc version printed by the host's ldd implementation.
@@ -71,11 +98,19 @@ function runCommand(command, args) {
 }
 
 function main() {
-  const target = resolveTargetFromArgs(process.argv.slice(2));
+  const options = parseArguments(process.argv.slice(2));
+  const target = options.target;
   if (target.productTarget !== 'linux-x64') {
     throw new Error(`Linux baseline check currently supports Linux x64 only: ${target.rustTriple}`);
   }
-  console.log(`[linux-baseline] ${JSON.stringify(readLinuxBaseline())}`);
+  const baseline = readLinuxBaseline();
+  const rendered = renderLinuxBaseline(target, baseline);
+  if (options.output !== undefined) {
+    mkdirSync(dirname(options.output), { recursive: true });
+    writeFileSync(options.output, rendered, { encoding: 'utf8' });
+    console.log(`[linux-baseline] wrote ${options.output}`);
+  }
+  console.log(`[linux-baseline] ${JSON.stringify({ target: target.rustTriple, ...baseline })}`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

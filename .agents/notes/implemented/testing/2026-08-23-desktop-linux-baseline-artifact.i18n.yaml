@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-08-23-desktop-linux-baseline-artifact.md
+2026-08-23-desktop-linux-baseline-artifact.md: 610ac6c561bc9ca2bbe32ba8e19c7ce1eb1747d1
+2026-08-23-desktop-linux-baseline-artifact.zh.md: 63e8b19f466cdde58c14aa1469f94e1058b1b430

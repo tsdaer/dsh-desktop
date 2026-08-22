@@ -153,7 +153,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Record the Linux desktop baseline
-        run: pnpm --filter @deepseek-ai/dsh-desktop linux-baseline -- --target x86_64-unknown-linux-gnu
+        run: pnpm --filter @deepseek-ai/dsh-desktop linux-baseline -- --target x86_64-unknown-linux-gnu --output "$RUNNER_TEMP/dsh-desktop-linux-baseline.json"
 
       - name: Build the workspace (CLI + web frontend)
         run: pnpm run build
@@ -191,6 +191,14 @@ jobs:
             pnpm --filter @deepseek-ai/dsh-desktop packaged-smoke -- \
               --target x86_64-unknown-linux-gnu --artifact "$DEB" --install-deb \
               --terminal-smoke
+
+      - name: Upload Linux baseline evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dsh-desktop-linux-baseline-${{ needs.validate.outputs.version }}
+          path: ${{ runner.temp }}/dsh-desktop-linux-baseline.json
+          if-no-files-found: ignore
 
       - uses: actions/upload-artifact@v4
         with:
