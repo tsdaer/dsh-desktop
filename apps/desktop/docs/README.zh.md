@@ -16,6 +16,6 @@
 
 **当前的运行环境就建立在本仓库工作目录(`J:\Projects\deepseek-harness`)之上。**
 
-任何会触发构建、重装依赖、清理 `node_modules`、替换 `.runtime/deploy`、运行 dev server 或 `tauri build` 的操作,都可能与被正在运行的环境占用的文件发生冲突(Windows 文件锁 / `EBUSY` / `EPERM`)。
+任何会触发构建、重装依赖、清理 `node_modules`、替换按目标划分的 `.runtime/<rust-target>/deploy` 目录、运行 dev server 或 `tauri build` 的操作,都可能与被正在运行的环境占用的文件发生冲突(Windows 文件锁 / `EBUSY` / `EPERM`)。
 
 一旦遇到进程占用问题,**立即停止,不要重试、不要绕过**,然后按 [operating-constraints.md](operating-constraints.md) 里的手动步骤提示用户操作。

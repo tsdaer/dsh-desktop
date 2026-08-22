@@ -16,6 +16,6 @@ Planning and implementation docs for the desktop shell (`apps/desktop`). These a
 
 **The running environment is built on this repository's working directory (`J:\Projects\deepseek-harness`).**
 
-Any operation that triggers a build, reinstalls dependencies, cleans `node_modules`, replaces `.runtime/deploy`, runs the dev server, or runs `tauri build` can collide with files the running environment holds open (Windows file locks / `EBUSY` / `EPERM`).
+Any operation that triggers a build, reinstalls dependencies, cleans `node_modules`, replaces a target-owned `.runtime/<rust-target>/deploy` directory, runs the dev server, or runs `tauri build` can collide with files the running environment holds open (Windows file locks / `EBUSY` / `EPERM`).
 
 On any process-occupation error, **stop immediately — do not retry or work around it** — then follow the manual steps in [operating-constraints.md](operating-constraints.md) to prompt the user.

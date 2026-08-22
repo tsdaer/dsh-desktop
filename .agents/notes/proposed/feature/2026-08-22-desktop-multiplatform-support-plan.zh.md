@@ -117,6 +117,14 @@ Tauri updater 按平台和架构选择制品。从同一已校验工作流创建
 
 确定性行为使用聚焦自动化测试，壳子／运行时连线使用 native-host 集成测试，安装使用目标原生 packaged smoke。只有人工 checklist 不足以完成；只有 GUI 自动化也不足以验证进程清理和 updater 签名。记录实际运行的命令，并在平台发布时链接产生的 implemented Agent Note。
 
+## Current progress
+
+工作包 1 已在[桌面目标规格记录](../../implemented/feature/2026-08-22-desktop-target-specification.md)中实现。三个目标行是不可变的，并由 sidecar 获取、运行时烘焙、体积报告和 bundle 编排共同消费；目标测试覆盖每行全部字段、不支持的目标、Node 压缩包布局和压缩包路径穿越。
+
+sidecar 实现也已具备按目标选择压缩包、重定向与 HTTP 失败处理、临时解压、版本／目标缓存元数据、可执行文件版本校验、POSIX 权限和精确目标文件名。`SHASUMS256.txt` 校验与注入适配器测试矩阵仍属于工作包 2。按目标区分的运行时目录和目标派生的原生裁剪已经接通，但目标 runner 上的启动证据仍属于工作包 3。
+
+发布产品仍仅支持 Windows x64。Linux 与 macOS 需完成原生运行时、Rust/Tauri 壳子、目标配置、发布工作流、updater、安装、更新、卸载和打包 GUI 证据，并满足下方验收标准后，才能声明受支持。
+
 ## PR 划分
 
 按以下依赖顺序保持改动可评审：

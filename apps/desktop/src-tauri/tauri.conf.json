@@ -48,7 +48,7 @@
       "binaries/node"
     ],
     "resources": {
-      "../.runtime/deploy/": "runtime"
+      "../.runtime/x86_64-pc-windows-msvc/deploy/": "runtime"
     },
     "icon": [
       "icons/icon.ico",

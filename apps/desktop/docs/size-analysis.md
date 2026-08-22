@@ -6,8 +6,8 @@
 
 | 内容 | 体积 | 说明 |
 |---|---|---|
-| `resources/runtime/`（即 `.runtime/deploy`） | **573.8 MB** / 50,746 个文件 | 主体，dsh CLI 全量依赖闭包 |
-| `node.exe`（sidecar） | 83.0 MB | `externalBin: ["binaries/node"]`，Node 22.23.1 |
+| `resources/runtime/`（Windows x64 即 `.runtime/x86_64-pc-windows-msvc/deploy`） | **573.8 MB** / 50,746 个文件 | 主体，dsh CLI 全量依赖闭包 |
+| Windows x64 Node sidecar | 83.0 MB | `externalBin: ["binaries/node"]`，Node 22.23.1 |
 | `dsh-desktop.exe` | 4.3 MB | Tauri/Rust 壳本体，可忽略 |
 | NSIS 安装包 | 114.9 MB | 上面全部经 LZMA 压缩后的结果 |
 | WebView2 Runtime | ~150–200 MB（首次安装时按需下载） | 未配置 `webviewInstallMode`，默认 `downloadBootstrapper` |
@@ -95,4 +95,4 @@ corepack pnpm deploy --filter @deepseek-ai/dsh --legacy --config.nodeLinker=hois
 
 **产品决策（2026-08-22）：保留。** 该载荷是可选多 provider 与显式遥测能力的合法产品面，默认不激活；裁剪将交付 DeepSeek-only 桌面版并带来新的 bundle profile 与维护成本。
 
-> 备注：体积门禁 `size-check` 依赖 `.runtime/deploy` 这个 bake 产物，只应在桌面 bundle 流程（bake 之后）调用，不宜挂进 clean-tree 的 CI 全量 gate。
+> 备注：体积门禁 `size-check` 依赖当前 target 的 `.runtime/<rust-target>/deploy` bake 产物，只应在桌面 bundle 流程（bake 之后）调用，不宜挂进 clean-tree 的 CI 全量 gate。

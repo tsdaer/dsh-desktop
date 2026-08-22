@@ -117,6 +117,14 @@ For each target, retain this evidence from a clean installed artifact, not `carg
 
 Use focused automated tests for deterministic behavior, native-host integration tests for shell/runtime wiring, and target-native packaged smokes for installation. A manual checklist alone is insufficient; GUI automation alone is insufficient for process cleanup and updater signatures. Record commands actually run and link the resulting implemented Agent Note when the platform ships.
 
+## Current progress
+
+Work package 1 is implemented in [the desktop target specification note](../../implemented/feature/2026-08-22-desktop-target-specification.md). The three target rows are immutable and are consumed by sidecar acquisition, runtime baking, size reporting, and bundle orchestration; target-specific tests cover all row fields, unsupported targets, Node archive layouts, and archive path traversal.
+
+The sidecar implementation also has target-specific archive selection, redirect and HTTP failure handling, temporary extraction, version/target cache metadata, executable-version verification, POSIX permissions, and exact destination names. `SHASUMS256.txt` verification and the injected-adapter test matrix remain part of work package 2. Target-owned runtime directories and target-derived native pruning are wired, but native target-runner boot evidence remains part of work package 3.
+
+The release product remains Windows x64 only. Linux and macOS are not supported until their native runtime, Rust/Tauri shell, target configuration, release workflow, updater, installation, update, uninstall, and packaged GUI evidence satisfy the acceptance criteria below.
+
 ## Pull-request partition
 
 Keep these changes reviewable in this dependency order:

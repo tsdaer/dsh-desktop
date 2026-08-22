@@ -17,8 +17,8 @@
 //      deployed tree, resolves every bare @deepseek-ai import the way Node
 //      would, and copies the missing packages from their workspace source.
 //   3. Prune single-platform native prebuilds (node-pty ships every platform
-//      plus Windows debug symbols and build-time sources): keep only the
-//      win32-x64 prebuild and the runtime binaries.
+//      plus debug symbols and build-time sources): keep only the selected
+//      target's prebuild and the runtime binaries.
 //   4. Boot-verify: run the deployed CLI against a throwaway DSH_HOME and
 //      require the `dsh web:` readiness line.
 //
@@ -29,18 +29,16 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { resolveTargetFromArgs } from './target-spec.mjs';
+
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '../../..');
-const defaultDeployDir = resolve(here, '../.runtime/deploy');
 const cliBin = resolve(repoRoot, 'apps/cli/lib/bin.js');
 const webDist = resolve(repoRoot, 'apps/web/dist/index.html');
 
-// The desktop sidecar is a win-x64 Node binary, so only that platform's native
-// prebuilds are ever loaded; every other platform and the build-time artifacts
-// of native packages are dead weight.
-const TARGET_TRIPLE = 'win32-x64';
-
 const args = process.argv.slice(2);
+const target = resolveTargetFromArgs(args);
+const defaultDeployDir = resolve(here, '..', target.runtimeRelativeDir);
 // Resolve once against the repository, never against the ambient cwd: a
 // relative --dir would otherwise plant a deploy tree wherever the command
 // happened to run from, and `pnpm deploy` creates every missing parent.
@@ -318,7 +316,7 @@ function pruneRuntime(root) {
     const prebuilds = join(nodePty, 'prebuilds');
     if (existsSync(prebuilds)) {
       for (const entry of readdirSafe(prebuilds)) {
-        if (entry !== TARGET_TRIPLE) rmSync(join(prebuilds, entry), { recursive: true, force: true });
+        if (entry !== target.nativePlatformKey) rmSync(join(prebuilds, entry), { recursive: true, force: true });
       }
     }
     // Build-time-only content: the C++ sources, winpty vendored sources, and
@@ -331,7 +329,7 @@ function pruneRuntime(root) {
     walkFiles(nodePty, (file) => {
       if (file.endsWith('.pdb')) rmSync(file, { force: true });
     });
-    console.log('[bake-runtime] pruned node-pty to ' + TARGET_TRIPLE + ' prebuild');
+    console.log('[bake-runtime] pruned node-pty to ' + target.nativePlatformKey + ' prebuild');
   }
 }
 

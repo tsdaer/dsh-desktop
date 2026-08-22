@@ -9,14 +9,16 @@ import { existsSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const here = dirname(fileURLToPath(import.meta.url));
-const runtimeDir = resolve(here, '../.runtime/deploy');
-const nsisDir = resolve(here, '../src-tauri/target/release/bundle/nsis');
+import { resolveTargetFromArgs } from './target-spec.mjs';
 
-// Runtime payload budget in MiB. Baseline after the --prod deploy and the
-// node-pty single-platform prune is ~186 MB; this leaves headroom for small
-// additions while a FULL-deploy regression (~574 MB) blows well past it.
-const BUDGET_MB = Number(process.env.DSH_RUNTIME_BUDGET_MB ?? 200);
+const here = dirname(fileURLToPath(import.meta.url));
+const target = resolveTargetFromArgs(process.argv.slice(2));
+const runtimeDir = resolve(here, '..', target.runtimeRelativeDir);
+const artifactDirs = target.artifactDirectories.map((dir) => resolve(here, '..', dir));
+
+// Runtime payload budget in MiB. The target specification owns the baseline so
+// each platform reports against its own recorded allowance.
+const BUDGET_MB = Number(process.env.DSH_RUNTIME_BUDGET_MB ?? target.sizeBudgetMiB);
 
 // Top-level dev/build/lint/docs packages that must never reach the runtime.
 // Every name here was verified absent after the --prod deploy.
@@ -78,11 +80,14 @@ function main() {
     console.log(`  ${d.mb.toFixed(1).padStart(8)} MB  ${d.name}`);
   }
 
-  if (existsSync(nsisDir)) {
-    for (const name of readdirSync(nsisDir)) {
-      if (name.endsWith('.exe')) {
-        const mb = statSync(join(nsisDir, name)).size / (1024 * 1024);
-        console.log(`\nnsis installer: ${mb.toFixed(1)} MB  (${name})`);
+  for (const artifactDir of artifactDirs) {
+    if (existsSync(artifactDir)) {
+      for (const name of readdirSync(artifactDir)) {
+        const path = join(artifactDir, name);
+        if (statSync(path).isFile()) {
+          const mb = statSync(path).size / (1024 * 1024);
+          console.log(`\n${target.productTarget} artifact: ${mb.toFixed(1)} MB  (${name})`);
+        }
       }
     }
   }

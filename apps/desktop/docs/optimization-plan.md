@@ -43,7 +43,7 @@
 - `bake-runtime.mjs` 改为 `pnpm deploy --filter @deepseek-ai/dsh-desktop-runtime --prod --legacy --config.nodeLinker=hoisted`。
 - 保留 `scanMissing` + 逐轮 bake + `verifyBoot` 三段安全网。
 
-**验收**：`.runtime/deploy/node_modules` 中不再出现 `mermaid`/`typescript`/`oxlint`/`eslint`/`lefthook`/`tsx`/`rolldown`/`esbuild`/`vitest`/`jsdom`/`jscpd`/`knip`/`publint`；且 `verifyBoot` 仍读到 `dsh web:` 就绪行。
+**验收**：`.runtime/<rust-target>/deploy/node_modules` 中不再出现 `mermaid`/`typescript`/`oxlint`/`eslint`/`lefthook`/`tsx`/`rolldown`/`esbuild`/`vitest`/`jsdom`/`jscpd`/`knip`/`publint`；且 `verifyBoot` 仍读到 `dsh web:` 就绪行。
 
 > 预期收益：一次性砍掉 ~300+ MB 构建/静态检查/文档工具链。
 
@@ -52,11 +52,11 @@
 - A1 落地后 mermaid/cytoscape/d3/dagre/dompurify/roughjs 应自动消失；若仍有残留，单独评估是否改 `optionalDependencies`。
 - **katex 是合法运行时依赖**（`packages/client/ui-primitives` 的 `dependencies`，渲染数学公式），保留，不与 mermaid 混淆。
 
-### A3 原生二进制单平台化（只留 win-x64）
+### A3 原生二进制按目标单平台化
 
-- **node-pty（62.6 MB → ~30 MB）**：在 `bake-runtime` 加 prune 步骤，只留 `prebuilds/win32-x64` 与运行必需文件，删 arm64/darwin/winpty 源码。
+- **node-pty（62.6 MB → ~30 MB）**：在 `bake-runtime` 加 prune 步骤，只留目标规格指定的 `prebuilds/<native-platform-key>` 与运行必需文件，删其他平台和 winpty 源码。
 - **sharp（@img 18.3 MB）**：先确认是否被运行时代码使用；不用就裁，用就只留 `sharp-win32-x64`。
-- 同类规则写成白名单 prune 脚本，对仍存在的原生包（esbuild/lightningcss/@rolldown）只留 `-win32-x64-msvc` 变体。
+- 同类规则写成白名单 prune 脚本，对仍存在的原生包（esbuild/lightningcss/@rolldown）只留当前目标的变体。
 
 > 预期收益：~35–55 MB。
 

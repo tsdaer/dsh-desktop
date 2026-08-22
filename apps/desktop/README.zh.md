@@ -59,9 +59,9 @@ dev 启动器把 DSH_CLI 设为构建出的 apps/cli/lib/bin.js;DSH_NODE 默认�
 
     pnpm --filter @deepseek-ai/dsh-desktop bundle
 
-分五步:把版本从 package.json 同步进 tauri.conf.json、Cargo.toml 和 Cargo.lock(`scripts/sync-version.mjs`)、从源码构建桥接包(`scripts/build-bridge.mjs`)、烤出运行时(`scripts/bake-runtime.mjs`)、拉取打包用的 Node sidecar(`scripts/fetch-node-sidecar.mjs`)、再 `tauri build`(release profile 带 lto/strip;NSIS 安装器输出到 src-tauri/target/release/bundle/nsis/)。版本只存在于 package.json,升级只需改那一处;`pnpm --filter @deepseek-ai/dsh-desktop version-check` 只校验同步结果是否一致而不写入,发布工作流会拒绝校验失败的标签。代理提示:首次打包会从 GitHub/nodejs.org 下载 NSIS 工具链和 Node sidecar;若机器需要代理,设置 HTTPS_PROXY/HTTP_PROXY。
+它会运行按目标选择的准备阶段:把版本从 package.json 同步进 tauri.conf.json、Cargo.toml 和 Cargo.lock(`scripts/sync-version.mjs`),从源码构建桥接包(`scripts/build-bridge.mjs`),运行目标脚本测试,烘焙按目标划分的运行时(`scripts/bake-runtime.mjs`),拉取匹配的 Node sidecar(`scripts/fetch-node-sidecar.mjs`),再运行 `tauri build`(release profile 带 lto/strip)。可通过 `pnpm --filter @deepseek-ai/dsh-desktop bundle -- --target <triple>` 显式传入 Rust target;省略时脚本使用 `rustc -vV` 报告的宿主目标。Windows 发布产物位于 `src-tauri/target/release/bundle/nsis/`。版本只存在于 package.json,升级只需改那一处;`pnpm --filter @deepseek-ai/dsh-desktop version-check` 只校验同步结果是否一致而不写入,发布工作流会拒绝校验失败的标签。代理提示:首次打包会从 GitHub/nodejs.org 下载 NSIS 工具链和 Node sidecar;若机器需要代理,设置 HTTPS_PROXY/HTTP_PROXY。
 
-安装器是自包含的:它随附壳 exe、node.exe(Tauri externalBin sidecar)和 resources/runtime/ 下的烤出运行时。首次启动时壳子把桥接包拷入 profile(运行时没有 npm),为内置包修复 profile 回退目录,并导航到所服务的 UI。profile 安装的 bundle 仍从 profile 自己的 node_modules 解析。
+安装器是自包含的:它随附壳程序、按目标命名的 Node sidecar(Tauri externalBin)和 resources/runtime/ 下的烘焙运行时。源码运行时目录按 Rust target triple 区分,目标解析器会在暂存文件前拒绝不支持的目标。首次启动时壳子把桥接包拷入 profile(运行时没有 npm),为内置包修复 profile 回退目录,并导航到所服务的 UI。profile 安装的 bundle 仍从 profile 自己的 node_modules 解析。
 
 ## 打包运行时
 
@@ -69,7 +69,7 @@ dev 启动器把 DSH_CLI 设为构建出的 apps/cli/lib/bin.js;DSH_NODE 默认�
 
 1. 对 dsh CLI 闭包执行 `pnpm deploy --legacy --prod --config.nodeLinker=hoisted`。生产依赖部署会丢掉工作区的 dev/build/lint/docs 工具链(TypeScript、oxlint、eslint、mermaid……);核心包仍通过 dsh-base 的依赖可达。hoisted 链接是必须的 —— isolated 布局只在顶层暴露直接依赖,而 profile 回退目录会把部署闭包暴露给内置包解析。
 2. 补烤 pnpm deploy 不会装的 auto-installed peers(deploy 不重现 autoInstallPeers)以及桌面桥接包,只拷贝每个 workspace 包随附的文件(绝不拷贝其 node_modules)。
-3. 单平台化原生预编译产物:node-pty 会带上所有平台、Windows 调试符号(.pdb)和构建期源码;`pruneRuntime` 只保留 win32-x64 预编译。
+3. 单平台化原生预编译产物:node-pty 会带上所有平台、调试符号和构建期源码;`pruneRuntime` 只保留所选目标的预编译。
 4. 用一次性 DSH_HOME 启动部署出的 CLI 验证,要求出现 `dsh web:` 就绪行,同时保留 profile 自有 bundle 的解析。
 
 负载体积门禁:`pnpm --filter @deepseek-ai/dsh-desktop size-check`(或 `node scripts/size-report.mjs --check`)断言运行时不超过预算,且没有 dev 工具链漏回来。

@@ -14,14 +14,14 @@
   ```
 
   找到桌面进程后，检查其 `ParentProcessId` 对应的 Node 进程；`ExecutablePath` 区分 Node 来源，`CommandLine` 区分仓库中的 `apps/cli/lib/bin.js` 与安装目录资源中的 `runtime/lib/bin.js`。两者都可能服务当前页面，只有实测结果决定是否会锁住构建输出。
-- 因此，工作目录里的文件可能正被运行中的进程占用：`node_modules`、构建产物、`.runtime/deploy`、`apps/web/dist`、会话/缓存文件等。
+- 因此，工作目录里的文件可能正被运行中的进程占用：`node_modules`、构建产物、按目标划分的 `.runtime/<rust-target>/deploy`、`apps/web/dist`、会话/缓存文件等。
 - 在 Windows 上，被占用的文件无法被删除、覆盖或移动，会表现为文件锁错误（`EBUSY`、`EPERM`、`Access is denied`、`process cannot access the file` 等）。
 
 ## 会触碰这些文件的操作（高风险）
 
 - `pnpm install` / `pnpm deploy` / 重装或清理 `node_modules`
 - `pnpm run build` / `build:lib` / `build:web`（覆盖 `lib/`、`apps/web/dist`）
-- `bake-runtime.mjs`（删除并重建 `.runtime/deploy`）
+- `bake-runtime.mjs`（删除并重建 `.runtime/<rust-target>/deploy`）
 - `tauri build` / `cargo build`（写 `src-tauri/target/`）
 - 删除、重命名、覆盖任何正在被运行环境读取的文件
 
