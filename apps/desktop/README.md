@@ -135,7 +135,7 @@ The bridge client half owns the shell-side behaviors on the page: the drag-drop 
 The dsh settings page's 桌面设置 (Desktop) section (registered by the bridge client) hosts three rows, all persisted through the bridge host route:
 
 - 关闭按钮行为 (Close button behavior): an explicit choice between closing and exiting the application or hiding the window while retaining it in the system tray. The retained runtime keeps serving and sessions keep running; the tray menu's 退出 stops the runtime child and terminates the app.
-- 调试模式 (Debug mode): while off, right-click and devtools shortcuts are suppressed, and the shell flips WebView2's AreDevToolsEnabled.
+- Debug mode: while off, right-click and devtools shortcuts are suppressed. Windows also flips WebView2's `AreDevToolsEnabled`; Linux and macOS return an explicit platform limitation because their system webviews do not expose the same runtime control.
 - 新会话 Logo 动效 (New-session Logo animation): an explicit opt-in for the centered fish Logo hover animation; enabling it overrides the system reduced-motion preference for this cue only.
 
 Both settings are stored in the bridge settings namespace ($DSH_HOME/settings.yaml, same seam as every other setting), with static fallbacks in the bridge row config:

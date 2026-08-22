@@ -12,7 +12,7 @@ The desktop shell resolved a packaged runtime by looking for `node.exe` and coul
 
 Packaged startup derives the Node sidecar basename from the compiled target: `node-x86_64-pc-windows-msvc.exe`, `node-x86_64-unknown-linux-gnu`, or `node-aarch64-apple-darwin`. Release startup checks the target sidecar and runtime paths as files and does not fall back to a PATH-provided Node; development retains the `DSH_CLI`/`DSH_NODE` environment wiring.
 
-WebView2 controller access is compiled only on Windows. Other targets retain the page-level debug guard and report that runtime developer-tool control belongs to the platform webview. The WebView2 repair command remains available only as a Windows action and returns an explicit unsupported-platform error elsewhere. Splash status uses the platform-neutral `webview` identifier. Windows Explorer registration and native window chrome remain cfg-gated Windows integrations.
+WebView2 controller access is compiled only on Windows. Other targets retain the page-level debug guard and return a status with `applied: false` and an explicit platform limitation because runtime developer-tool control belongs to the platform webview. The WebView2 repair command remains available only as a Windows action and returns an explicit unsupported-platform error elsewhere. Splash status uses the platform-neutral `webview` identifier. Windows Explorer registration and native window chrome remain cfg-gated Windows integrations.
 
 Runtime baking invokes the target sidecar for profile initialization and readiness verification, terminates the spawned process tree, and fails before boot verification when the sidecar has not been fetched. The bundle command fetches the sidecar before baking so this invariant holds for every target.
 

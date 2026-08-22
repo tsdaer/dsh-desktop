@@ -156,7 +156,11 @@ function applyDebugMode(enabled: boolean): void {
   debugMode = enabled
   const tauri = getTauri()
   if (tauri?.core) {
-    void tauri.core.invoke('set_debug_mode', { enabled }).catch(() => {
+    void tauri.core.invoke<{ applied: boolean; limitation: string | null }>('set_debug_mode', { enabled }).then((status) => {
+      if (status?.applied === false && status.limitation !== null && status.limitation !== undefined) {
+        console.info(`[dsh-desktop] debug-mode limitation: ${status.limitation}`)
+      }
+    }).catch(() => {
       /* shell command unavailable (plain browser dev): page guard still applies */
     })
   }

@@ -273,27 +273,48 @@ fn packaged_node_basename() -> &'static str {
 /// Toggle WebView2 DevTools availability (F12 / context-menu inspect).
 /// The page suppresses right-click and devtools shortcuts on its own when
 /// debug mode is off; this closes the browser-level escape hatch the page
-/// cannot intercept (WebView2's own F12 handling).
+/// cannot intercept (WebView2's own F12 handling). The returned status tells
+/// the caller whether the native toggle request was accepted.
+fn debug_mode_status(
+    requested: bool,
+    applied: bool,
+    limitation: Option<&'static str>,
+) -> serde_json::Value {
+    serde_json::json!({
+        "requested": requested,
+        "applied": applied,
+        "limitation": limitation,
+    })
+}
+
 #[cfg(windows)]
 #[tauri::command]
-fn set_debug_mode(window: WebviewWindow, enabled: bool) {
-    let _ = window.with_webview(move |platform_webview| {
-        let controller = platform_webview.controller();
-        unsafe {
-            let _ = controller
-                .CoreWebView2()
-                .and_then(|webview| webview.Settings())
-                .and_then(|settings| settings.SetAreDevToolsEnabled(enabled));
-        }
-    });
+fn set_debug_mode(window: WebviewWindow, enabled: bool) -> Result<serde_json::Value, String> {
+    window
+        .with_webview(move |platform_webview| {
+            let controller = platform_webview.controller();
+            unsafe {
+                if let Err(error) = controller
+                    .CoreWebView2()
+                    .and_then(|webview| webview.Settings())
+                    .and_then(|settings| settings.SetAreDevToolsEnabled(enabled))
+                {
+                    eprintln!("[dsh-desktop] WebView2 DevTools setting failed: {error}");
+                }
+            }
+        })
+        .map_err(|error| format!("WebView2 controller unavailable: {error}"))?;
+    Ok(debug_mode_status(enabled, true, None))
 }
 
 /// Keep the shell-level debug limitation explicit on platforms without the
 /// WebView2 controller API; the page-level debug guard still applies.
 #[cfg(not(windows))]
 #[tauri::command]
-fn set_debug_mode(_window: WebviewWindow, enabled: bool) {
-    eprintln!("[dsh-desktop] platform webview does not expose runtime DevTools control; requested enabled={enabled}");
+fn set_debug_mode(_window: WebviewWindow, enabled: bool) -> serde_json::Value {
+    let limitation = "platform webview does not expose runtime DevTools control";
+    eprintln!("[dsh-desktop] {limitation}; requested enabled={enabled}");
+    debug_mode_status(enabled, false, Some(limitation))
 }
 
 /// How long to wait for the readiness URL line after spawning.
@@ -1360,6 +1381,26 @@ mod tests {
         assert_eq!(packaged_node_basename(), "node-x86_64-unknown-linux-gnu");
         #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
         assert_eq!(packaged_node_basename(), "node-aarch64-apple-darwin");
+    }
+
+    #[test]
+    fn debug_mode_status_distinguishes_page_guard_from_native_control() {
+        assert_eq!(
+            debug_mode_status(false, false, Some("platform limitation")),
+            serde_json::json!({
+                "requested": false,
+                "applied": false,
+                "limitation": "platform limitation",
+            })
+        );
+        assert_eq!(
+            debug_mode_status(true, true, None),
+            serde_json::json!({
+                "requested": true,
+                "applied": true,
+                "limitation": null,
+            })
+        );
     }
 
     #[test]
