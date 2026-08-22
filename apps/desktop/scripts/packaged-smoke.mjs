@@ -88,6 +88,42 @@ export function descendantPids(processes, rootPid) {
   return descendants;
 }
 
+/**
+ * Parse a POSIX process snapshot while preserving the command column.
+ *
+ * @param {string} output Output from `ps -eo pid=,ppid=,args=`.
+ * @returns {Array<{pid: number, parent: number, command: string}>}
+ */
+export function parseProcessSnapshot(output) {
+  return output.split(/\r?\n/).filter(Boolean).flatMap((line) => {
+    const match = line.trim().match(/^(\d+)\s+(\d+)\s*(.*)$/);
+    if (!match) return [];
+    const pid = Number(match[1]);
+    const parent = Number(match[2]);
+    return Number.isInteger(pid) && Number.isInteger(parent)
+      ? [{ pid, parent, command: match[3] }]
+      : [];
+  });
+}
+
+/**
+ * Return the packaged shell and its managed Node process, including a Node
+ * process that was re-parented during shutdown.
+ *
+ * @param {readonly {pid: number, parent: number, command?: string}[]} processes Process snapshot rows.
+ * @param {number} rootPid Packaged shell process id.
+ * @param {string} sidecarBasename Exact target sidecar basename.
+ * @returns {Set<number>}
+ */
+export function managedProcessPids(processes, rootPid, sidecarBasename) {
+  const managed = descendantPids(processes, rootPid);
+  for (const process of processes) {
+    if (process.command?.includes(sidecarBasename)) managed.add(process.pid);
+  }
+  if (processes.some((process) => process.pid === rootPid)) managed.add(rootPid);
+  return managed;
+}
+
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, { encoding: 'utf8', ...options });
   if (result.error) throw result.error;
@@ -111,25 +147,43 @@ function packageName(artifact) {
 }
 
 function processSnapshot() {
-  const output = run('ps', ['-eo', 'pid=,ppid=']);
-  return output.split(/\r?\n/).filter(Boolean).flatMap((line) => {
-    const fields = line.trim().split(/\s+/).map(Number);
-    return fields.length === 2 && fields.every(Number.isInteger)
-      ? [{ pid: fields[0], parent: fields[1] }]
-      : [];
-  });
+  return parseProcessSnapshot(run('ps', ['-eo', 'pid=,ppid=,args=']));
 }
 
-function stopProcessTree(child) {
+function stopProcessTree(child, signal = 'SIGTERM') {
   if (child.pid === undefined) return;
   try {
-    process.kill(-child.pid, 'SIGTERM');
+    process.kill(-child.pid, signal);
   } catch {
-    child.kill('SIGTERM');
+    child.kill(signal);
   }
 }
 
-async function launch(command, args, env) {
+async function waitForExit(child, timeoutMs = 10_000) {
+  if (child.exitCode !== null) return;
+  await new Promise((resolveExit, rejectExit) => {
+    const timer = setTimeout(() => rejectExit(new Error('packaged app did not exit after shutdown')), timeoutMs);
+    child.once('exit', () => {
+      clearTimeout(timer);
+      resolveExit();
+    });
+  });
+}
+
+async function waitForManagedProcesses(child, sidecarBasename, timeoutMs = 10_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const remaining = managedProcessPids(processSnapshot(), child.pid, sidecarBasename);
+    if (remaining.size === 0) return;
+    await new Promise((resolveWait) => setTimeout(resolveWait, 100));
+  }
+  const remaining = managedProcessPids(processSnapshot(), child.pid, sidecarBasename);
+  if (remaining.size > 0) {
+    throw new Error(`packaged app left managed processes after shutdown: ${[...remaining].join(', ')}`);
+  }
+}
+
+async function launch(command, args, env, sidecarBasename) {
   const child = spawn(command, args, {
     env,
     cwd: dirname(command),
@@ -172,19 +226,20 @@ async function launch(command, args, env) {
     });
   });
   const url = await ready;
-  const descendants = descendantPids(processSnapshot(), child.pid);
   stopProcessTree(child);
-  if (child.exitCode === null) {
-    await new Promise((resolveExit, rejectExit) => {
-      child.once('exit', (code, signal) => {
-        if (code !== null || signal === 'SIGTERM' || signal === 'SIGKILL') resolveExit();
-        else rejectExit(new Error(`packaged app stopped unexpectedly (code=${code}, signal=${signal})`));
-      });
-    });
+  try {
+    await waitForExit(child);
+  } catch (error) {
+    stopProcessTree(child, 'SIGKILL');
+    await waitForExit(child, 2_000).catch(() => {});
+    throw error;
   }
-  const remaining = descendantPids(processSnapshot(), child.pid);
-  if ([...descendants].some((pid) => remaining.has(pid))) {
-    throw new Error(`packaged app left a child process after shutdown: ${[...remaining].join(', ')}`);
+  try {
+    await waitForManagedProcesses(child, sidecarBasename);
+  } catch (error) {
+    stopProcessTree(child, 'SIGKILL');
+    await waitForManagedProcesses(child, sidecarBasename, 2_000).catch(() => {});
+    throw error;
   }
   return url;
 }
@@ -228,7 +283,7 @@ async function main() {
       ...process.env,
       APPIMAGE_EXTRACT_AND_RUN: '1',
       DSH_HOME: home,
-    });
+    }, options.target.sidecarBasename);
     console.log(`[packaged-smoke] ready at ${url}`);
     smokeCompleted = true;
   } finally {

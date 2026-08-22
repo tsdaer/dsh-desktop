@@ -2,7 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { join } from 'node:path';
 
-import { descendantPids, dmgMountArguments, packagedExecutable, parseArguments } from './packaged-smoke.mjs';
+import {
+  descendantPids,
+  dmgMountArguments,
+  managedProcessPids,
+  packagedExecutable,
+  parseArguments,
+  parseProcessSnapshot,
+} from './packaged-smoke.mjs';
 
 test('requires a target-native package artifact for the packaged smoke', () => {
   assert.equal(parseArguments([
@@ -62,4 +69,25 @@ test('finds all runtime descendants from an immutable process snapshot', () => {
     { pid: 50, parent: 999 },
   ], 10);
   assert.deepEqual([...descendants].sort((a, b) => a - b), [20, 30, 40]);
+});
+
+test('keeps command lines so re-parented sidecars remain observable', () => {
+  const processes = parseProcessSnapshot([
+    '  10   1 /opt/dsh-desktop/usr/bin/dsh-desktop',
+    '  20  10 /opt/dsh-desktop/usr/lib/dsh-desktop/node-x86_64-unknown-linux-gnu runtime/lib/bin.js',
+    '  30   1 /usr/bin/node unrelated.js',
+  ].join('\n'));
+  assert.deepEqual(processes, [
+    { pid: 10, parent: 1, command: '/opt/dsh-desktop/usr/bin/dsh-desktop' },
+    {
+      pid: 20,
+      parent: 10,
+      command: '/opt/dsh-desktop/usr/lib/dsh-desktop/node-x86_64-unknown-linux-gnu runtime/lib/bin.js',
+    },
+    { pid: 30, parent: 1, command: '/usr/bin/node unrelated.js' },
+  ]);
+  assert.deepEqual(
+    [...managedProcessPids(processes, 10, 'node-x86_64-unknown-linux-gnu')].sort((a, b) => a - b),
+    [10, 20],
+  );
 });
