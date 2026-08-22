@@ -65,6 +65,7 @@ try {
     'scripts/packaged-smoke.spec.mjs',
     'scripts/linux-baseline.spec.mjs',
     'scripts/macos-sign-release.spec.mjs',
+    'scripts/update-fixture.spec.mjs',
   ]);
   run(node, ['scripts/fetch-node-sidecar.mjs', '--target', target.rustTriple]);
   run(node, ['scripts/bake-runtime.mjs', '--target', target.rustTriple]);

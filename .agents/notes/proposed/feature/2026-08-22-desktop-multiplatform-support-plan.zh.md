@@ -141,7 +141,7 @@ macOS arm64 workflow 保留未签名 experimental job，并提供由 `DSH_DESKTO
 
 Windows x64 发布 job 现在会在体积与构件检查后、上传前运行 [Windows 已安装包冒烟](../../implemented/testing/2026-08-22-desktop-windows-packaged-smoke.md)。它把 NSIS 构件安装到一次性目录，启动已安装壳子，按需运行打包 PTY 探针，校验受管理进程清理，运行卸载程序并检查临时用户数据保留。workflow 与脚本测试覆盖该机制；原生 Windows runner 执行仍是证据来源。
 
-更新器清单生成器现在接受 `--download-base-url` 用于受控更新 fixture,`bundle` 接受 `--updater-endpoint`,并通过临时 Tauri 配置层把 runner 本地 endpoint 写入构件。两个选项都会校验 endpoint,不会改变生产 GitHub URL；[受控清单 URL 记录](../../implemented/testing/2026-08-22-desktop-update-smoke-manifest-base.md)和[端点注入记录](../../implemented/testing/2026-08-22-desktop-update-smoke-endpoint-injection.md)记录这两项机制。安装版从 N 更新到 N+1 的替换、重启、用户确认和用户数据证据仍未完成。
+更新器清单生成器现在接受 `--download-base-url` 用于受控更新 fixture,`bundle` 接受 `--updater-endpoint`,并通过临时 Tauri 配置层把 runner 本地 endpoint 写入构件；`update-fixture` 会校验所选下一版本构件,并通过 loopback 提供只含当前目标的带签名清单与构件。这些选项都会校验 endpoint,不会改变生产 GitHub URL；[受控清单 URL 记录](../../implemented/testing/2026-08-22-desktop-update-smoke-manifest-base.md)、[端点注入记录](../../implemented/testing/2026-08-22-desktop-update-smoke-endpoint-injection.md)和[更新 fixture server 记录](../../implemented/testing/2026-08-22-desktop-update-fixture-server.md)记录这些机制。安装版从 N 更新到 N+1 的替换、重启、用户确认和用户数据证据仍未完成。
 
 剩余工作包括目标原生 Linux 终端 UI／模型可见工作流、已安装版本更新冒烟、最低基线和打包 GUI 证据；macOS 已配置凭据执行签名 lane、公证／Gatekeeper 证据、已安装版本更新冒烟、受支持发布文档和 GUI 证据；以及 Windows runner 上执行已安装 Windows 安装包回归。签名 lane 自动化、清单签名校验和打包 PTY 冒烟不能替代要求的已安装版本更新冒烟或用户可见的 GUI 证据。
 

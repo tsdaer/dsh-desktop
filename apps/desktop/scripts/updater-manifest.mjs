@@ -8,7 +8,7 @@ import { SUPPORTED_TARGETS } from './target-spec.mjs';
 
 const repo = 'tsdaer/dsh-desktop';
 const publicKeyConfig = JSON.parse(readFileSync(new URL('../src-tauri/tauri.conf.json', import.meta.url), 'utf8'));
-const DEFAULT_UPDATER_PUBLIC_KEY = publicKeyConfig?.plugins?.updater?.pubkey;
+export const DEFAULT_UPDATER_PUBLIC_KEY = publicKeyConfig?.plugins?.updater?.pubkey;
 const DEFAULT_DOWNLOAD_BASE_URL = `https://github.com/${repo}/releases/download`;
 
 function decodeBase64(value, label) {

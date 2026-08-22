@@ -110,6 +110,8 @@ main.rs 的环境变量接线:DSH_CLI/DSH_NODE/DSH_BARE_MODULE_BASE/DSH_BRIDGE_T
 
 更新 smoke fixture 可以向 `scripts/updater-manifest.mjs` 传入 `--download-base-url <http(s)://host/path>`,并向 `bundle` 传入 `--updater-endpoint <http(s)://host/path/latest.json>`,让目标 runner 从本地提供已签名构件。bundle 命令会把该端点写入临时的额外 Tauri 配置层;它拒绝凭据、查询字符串和片段,显式不传该选项时生产构建仍使用 GitHub 端点。版本 N 到 N+1 的已安装更新工作流仍需要原生安装、重启、用户确认和用户数据证据。
 
+`pnpm --filter @deepseek-ai/dsh-desktop update-fixture -- --target <triple> --version <next-version> --artifact-root <staged-root>` 会校验所选目标的分离签名,并通过 loopback 提供该目标的更新构件与只含当前目标的 `latest.json`。启动版本 N 前,用 `bundle -- --updater-endpoint <打印出的 URL>` 构建版本 N;fixture 会在目标 runner 执行现有更新确认期间持续运行。该辅助程序不会代替用户确认、执行安装,也不会单独声称 N 到 N+1 已完成。
+
 无边框主窗口在 setup 时重新加回 `WS_THICKFRAME`(不加 `WS_CAPTION`),由操作系统提供原生缩放边框与 Windows 11 贴靠布局弹出层,标题栏保持自绘。最大化图标从原生宿主读取窗口状态:Rust 在每次尺寸事件时推送 `dsh://maximize-change`,标题栏监听该事件,并保留轮询读取作为回退。
 
 ## 拖放

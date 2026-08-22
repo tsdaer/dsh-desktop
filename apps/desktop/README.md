@@ -110,6 +110,8 @@ The updater accepts only an artifact whose detached signature matches the public
 
 An update-smoke fixture may pass `--download-base-url <http(s)://host/path>` to `scripts/updater-manifest.mjs` and `--updater-endpoint <http(s)://host/path/latest.json>` to `bundle` so a target runner can serve signed artifacts locally. The bundle command writes the endpoint to a temporary extra Tauri config layer; it rejects credentials, query strings, and fragments, and production builds retain the GitHub endpoint unless the option is explicit. The installed version-N to version-N+1 workflow still needs native installation, relaunch, user confirmation, and user-data evidence.
 
+`pnpm --filter @deepseek-ai/dsh-desktop update-fixture -- --target <triple> --version <next-version> --artifact-root <staged-root>` validates the selected target's detached signature and serves its updater artifact plus a target-only `latest.json` from loopback. Build the version-N artifact with `bundle -- --updater-endpoint <printed-url>` before launching it; the fixture keeps running while the target runner performs the existing update confirmations. This helper does not approve, install, or claim the N-to-N+1 transition itself.
+
 The frameless main window re-adds `WS_THICKFRAME` (without `WS_CAPTION`) at setup, so the OS provides native resize borders and the Windows 11 snap-layout flyout while the title bar stays custom. The maximize icon reads window state from the native host: Rust pushes `dsh://maximize-change` on every size event and the title bar listens for it, with the polling read kept as a fallback.
 
 ## Drag and drop
