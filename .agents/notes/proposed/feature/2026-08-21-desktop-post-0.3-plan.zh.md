@@ -46,7 +46,7 @@ Status: proposed
 
 ### 阶段 3：源代码管理写操作
 
-[只读装饰](../../implemented/feature/2026-08-19-desktop-worktree-source-control.md)今天已交付。新增暂存、取消暂存、丢弃、带消息提交，以及查看单文件 diff，全部经由同一个有界 Host 适配器完成 —— 它持有固定 Git argv、环境、输出上限、取消与规范根校验。浏览器继续只发送 Workspace id 与 Workspace 相对路径，绝不发送 argv。
+阶段 3 已完成：桥通过同一个有界 Host 适配器提供暂存、取消暂存、丢弃、带消息提交以及查看单文件 diff；该适配器持有固定 Git argv、环境、输出上限、取消与规范根校验。浏览器只发送 Workspace id 与 Workspace 相对路径，绝不发送 argv。已交付决策及聚焦验证记录在[已实现的源代码管理写操作记录](../../implemented/feature/2026-08-21-desktop-source-control-actions.md)中。
 
 只做整文件操作。按 hunk 与按行暂存需要 Host 目前不具备的 diff 模型，属于后续阶段。丢弃与取消暂存具有破坏性，因此各自需要一次点名文件的显式确认，且对状态解析未能归类的条目一律不提供。diff 查看复用既有的 diff 呈现，而不新增第二个渲染器。Git worktree 检出管理不在范围内；0.3 提案已记录它为何需要独立设计。
 

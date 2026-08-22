@@ -46,7 +46,7 @@ Phase 2 is complete: the evidence command builds the standalone bridge packages,
 
 ### Phase 3: Source Control writes
 
-[Read-only decorations](../../implemented/feature/2026-08-19-desktop-worktree-source-control.md) ship today. Add staging, unstaging, discarding, committing with a message, and viewing a file's diff, through the same bounded Host adapter that owns the fixed Git argv, environment, output cap, cancellation, and canonical-root checks. The browser continues to send a Workspace id and a Workspace-relative path, never argv.
+Phase 3 is complete: the bridge adds staging, unstaging, discarding, committing with a message, and viewing a file's diff through the same bounded Host adapter that owns the fixed Git argv, environment, output cap, cancellation, and canonical-root checks. The browser sends only a Workspace id and a Workspace-relative path, never argv. The shipped decision and focused verification are recorded in [the implemented Source Control writes note](../../implemented/feature/2026-08-21-desktop-source-control-actions.md).
 
 Whole-file operations only. Hunk and line staging need a diff model the Host does not have and belong to a later phase. Discarding and unstaging are destructive, so each requires an explicit confirmation that names the file, and neither is offered for an entry the status parse did not classify. Diff viewing reuses the existing diff presentation rather than adding a second renderer. Git worktree checkout management stays out of scope; the 0.3 proposal already records why it needs its own design.
 
