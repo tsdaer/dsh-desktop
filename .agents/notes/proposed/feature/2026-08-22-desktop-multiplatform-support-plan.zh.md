@@ -129,9 +129,9 @@ Tauri updater 按平台和架构选择制品。从同一已校验工作流创建
 
 Linux 发布 job 现在会在 `xvfb-run` 下运行目标原生 AppImage 启动冒烟,以及 deb 安装/启动/清除冒烟。该冒烟检查证明打包后的就绪状态、受管理进程清理和临时 `DSH_HOME` 保留;终端交互、更新安装、最低发行版覆盖和打包 GUI 证据仍未完成。
 
-macOS arm64 发布 job 现在会在 `macos-14` 上通过经过审查的实验性配置编译未签名 app 和 dmg,不生成 updater 构件,校验仅构建体积清单,并把结果与 draft Release 分开上传。它不构成 macOS 支持或签名证据。
+macOS arm64 workflow 保留未签名 experimental job，并提供由 `DSH_DESKTOP_MACOS_RELEASE=true` 显式启用的签名发布 lane。该 lane 将 Developer ID 证书导入临时 keychain，在 bundle 和 updater 生成前把 `APPLE_SIGNING_IDENTITY` 传给 Tauri，使用 `codesign` 校验嵌套代码，使用 `notarytool` 提交 dmg，staple app 与 dmg，使用 `spctl` 检查 app，从已 staple 的 app 重建 updater archive，并使用受保护的 Tauri key 重新签名该 archive。始终执行的清理步骤会恢复 runner keychain 列表并删除临时密钥材料。单独的 attachment job 只会把已签名 macOS 清单以及刷新的 `latest.json`／`SHA256SUMS` 加入 draft Release；experimental 清单不会进入 manifest。该 lane 提供发布自动化，不构成 macOS 支持证据。
 
-剩余工作包括目标原生 Linux 终端、已安装版本更新冒烟、最低基线和打包 GUI 证据;macOS 原生安装版冒烟、签名/公证、updater 构件发布、已安装版本更新冒烟、文档和 GUI 证据;以及最终的 Windows 回归证据。清单签名校验已经完成,但不能替代要求的已安装版本更新冒烟。
+剩余工作包括目标原生 Linux 终端、已安装版本更新冒烟、最低基线和打包 GUI 证据；macOS 原生安装版冒烟、已配置凭据执行签名 lane、公证／Gatekeeper 证据、已安装版本更新冒烟、文档和 GUI 证据；以及最终的 Windows 回归证据。签名 lane 自动化和清单签名校验不能替代要求的已安装版本更新冒烟。
 
 发布产品仍仅支持 Windows x64。Linux 与 macOS 需完成原生运行时、Rust/Tauri 壳子、目标配置、发布工作流、updater、安装、更新、卸载和打包 GUI 证据，并满足下方验收标准后，才能声明受支持。
 

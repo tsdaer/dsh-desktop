@@ -1,6 +1,7 @@
 # Build target-native desktop release candidates only for an explicit release
-# tag. Windows and Linux build their own sidecars and native runtimes; the
-# release job combines only the staged artifacts produced by those jobs.
+# tag. Windows and Linux build their own sidecars and native runtimes. A
+# signed macOS lane is opt-in until the repository owns its Apple credentials;
+# the release job combines only staged artifacts from completed target lanes.
 name: Draft desktop release
 
 on:
@@ -231,6 +232,135 @@ jobs:
             apps/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg
           if-no-files-found: error
 
+  build-macos-signed:
+    name: build and notarize macOS arm64 release bundle
+    if: vars.DSH_DESKTOP_MACOS_RELEASE == 'true'
+    needs: validate
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate.outputs.tag }}
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - uses: pnpm/action-setup@v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install (immutable)
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the workspace (CLI + web frontend)
+        run: pnpm run build
+
+      - name: Verify macOS signing inputs
+        env:
+          DSH_MACOS_CERTIFICATE_BASE64: ${{ secrets.DSH_MACOS_CERTIFICATE_BASE64 }}
+          DSH_MACOS_CERTIFICATE_PASSWORD: ${{ secrets.DSH_MACOS_CERTIFICATE_PASSWORD }}
+          DSH_MACOS_SIGNING_IDENTITY: ${{ secrets.DSH_MACOS_SIGNING_IDENTITY }}
+          DSH_MACOS_APPLE_ID: ${{ secrets.DSH_MACOS_APPLE_ID }}
+          DSH_MACOS_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.DSH_MACOS_APPLE_APP_SPECIFIC_PASSWORD }}
+          DSH_MACOS_APPLE_TEAM_ID: ${{ secrets.DSH_MACOS_APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DSH_MACOS_CERTIFICATE_BASE64"
+          test -n "$DSH_MACOS_CERTIFICATE_PASSWORD"
+          test -n "$DSH_MACOS_SIGNING_IDENTITY"
+          test -n "$DSH_MACOS_APPLE_ID"
+          test -n "$DSH_MACOS_APPLE_APP_SPECIFIC_PASSWORD"
+          test -n "$DSH_MACOS_APPLE_TEAM_ID"
+          test -n "$TAURI_SIGNING_PRIVATE_KEY"
+
+      - name: Import the Developer ID certificate into a temporary keychain
+        env:
+          DSH_MACOS_CERTIFICATE_BASE64: ${{ secrets.DSH_MACOS_CERTIFICATE_BASE64 }}
+          DSH_MACOS_CERTIFICATE_PASSWORD: ${{ secrets.DSH_MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          keychain="$RUNNER_TEMP/dsh-desktop-signing.keychain-db"
+          certificate="$RUNNER_TEMP/dsh-desktop-signing.p12"
+          keychain_password="$(openssl rand -hex 24)"
+          printf '%s' "$DSH_MACOS_CERTIFICATE_BASE64" | base64 -D > "$certificate"
+          security list-keychains -d user | sed 's/^[[:space:]]*//; s/"//g' | sed '/^$/d' > "$RUNNER_TEMP/dsh-desktop-keychains.txt"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$certificate" -k "$keychain" -P "$DSH_MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain"
+          security list-keychains -d user -s "$keychain"
+          {
+            echo "DSH_MACOS_KEYCHAIN=$keychain"
+            echo "DSH_MACOS_CERTIFICATE_FILE=$certificate"
+          } >> "$GITHUB_ENV"
+
+      - name: Bundle the signed macOS artifacts
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.DSH_MACOS_SIGNING_IDENTITY }}
+        run: pnpm --filter @deepseek-ai/dsh-desktop bundle -- --target aarch64-apple-darwin
+
+      - name: Sign, notarize, staple, and verify the app
+        env:
+          DSH_MACOS_APP: ${{ github.workspace }}/apps/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/macos/dsh-desktop.app
+          DSH_MACOS_DMG: ${{ github.workspace }}/apps/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/dsh-desktop_*.dmg
+          DSH_MACOS_ARCHIVE: ${{ github.workspace }}/apps/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/macos/dsh-desktop_*.app.tar.gz
+          MACOS_SIGNING_IDENTITY: ${{ secrets.DSH_MACOS_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.DSH_MACOS_APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.DSH_MACOS_APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.DSH_MACOS_APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          export DSH_MACOS_DMG="$(find "$(dirname "$DSH_MACOS_DMG")" -maxdepth 1 -name '*.dmg' -print -quit)"
+          export DSH_MACOS_ARCHIVE="$(find "$(dirname "$DSH_MACOS_ARCHIVE")" -maxdepth 1 -name '*.app.tar.gz' -print -quit)"
+          test -n "$DSH_MACOS_DMG"
+          test -n "$DSH_MACOS_ARCHIVE"
+          pnpm --filter @deepseek-ai/dsh-desktop exec node scripts/macos-sign-release.mjs
+
+      - name: Check and stage the signed macOS artifacts
+        run: |
+          pnpm --filter @deepseek-ai/dsh-desktop size-check -- --target aarch64-apple-darwin
+          node apps/desktop/scripts/release-artifacts.mjs --target aarch64-apple-darwin --output "$RUNNER_TEMP/dsh-desktop-artifacts"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dsh-desktop-macos-arm64-${{ needs.validate.outputs.version }}
+          path: ${{ runner.temp }}/dsh-desktop-artifacts/macos-arm64
+          if-no-files-found: error
+
+      - name: Remove the temporary signing keychain
+        if: always()
+        run: |
+          set +e
+          if [ -f "$RUNNER_TEMP/dsh-desktop-keychains.txt" ]; then
+            keychains=()
+            while IFS= read -r keychain; do
+              [ -n "$keychain" ] && keychains+=("$keychain")
+            done < "$RUNNER_TEMP/dsh-desktop-keychains.txt"
+            if [ "${#keychains[@]}" -gt 0 ]; then
+              security list-keychains -d user -s "${keychains[@]}"
+            fi
+          fi
+          keychain="${DSH_MACOS_KEYCHAIN:-$RUNNER_TEMP/dsh-desktop-signing.keychain-db}"
+          certificate="${DSH_MACOS_CERTIFICATE_FILE:-$RUNNER_TEMP/dsh-desktop-signing.p12}"
+          security delete-keychain "$keychain"
+          rm -f "$certificate" "$RUNNER_TEMP/dsh-desktop-keychains.txt"
+
   draft-release:
     name: draft release for the desktop version
     needs: [validate, build-windows, build-linux]
@@ -300,6 +430,44 @@ jobs:
             --title "dsh-desktop v${{ needs.validate.outputs.version }}" \
             --notes-file release-notes.md
           gh release upload "${{ needs.validate.outputs.tag }}" \
-            dist/windows-x64/* dist/linux-x64/* latest.json SHA256SUMS --clobber
+          dist/windows-x64/* dist/linux-x64/* latest.json SHA256SUMS --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  attach-macos-signed:
+    name: attach signed macOS artifacts to the draft
+    if: needs.build-macos-signed.result == 'success' && needs.draft-release.result == 'success'
+    needs: [validate, draft-release, build-macos-signed]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate.outputs.tag }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dsh-desktop-windows-x64-${{ needs.validate.outputs.version }}
+          path: dist/windows-x64
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dsh-desktop-linux-x64-${{ needs.validate.outputs.version }}
+          path: dist/linux-x64
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dsh-desktop-macos-arm64-${{ needs.validate.outputs.version }}
+          path: dist/macos-arm64
+
+      - name: Verify and hash the complete staged inventory
+        run: |
+          node apps/desktop/scripts/release-artifacts.mjs verify --version "${{ needs.validate.outputs.version }}" --output dist
+          find dist -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+
+      - name: Rebuild the updater manifest with macOS
+        run: node apps/desktop/scripts/updater-manifest.mjs "${{ needs.validate.outputs.version }}" "${{ needs.validate.outputs.tag }}" dist
+
+      - name: Upload signed macOS artifacts and refreshed metadata
+        run: gh release upload "${{ needs.validate.outputs.tag }}" dist/macos-arm64/* latest.json SHA256SUMS --clobber
         env:
           GH_TOKEN: ${{ github.token }}
