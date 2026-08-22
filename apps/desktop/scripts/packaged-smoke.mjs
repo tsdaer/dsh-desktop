@@ -1,8 +1,8 @@
-// Launch a Linux package under a temporary DSH_HOME and verify the packaged
+// Launch a Linux or macOS package under a temporary DSH_HOME and verify the packaged
 // shell reaches its runtime readiness line before the process tree is stopped.
 // The smoke intentionally runs the installed entry point, not `cargo run` or
 // the source CLI, so resource lookup and the target Node sidecar are included.
-import { existsSync, mkdtempSync, rmSync, statSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, mkdirSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -18,18 +18,51 @@ import { resolveTargetFromArgs } from './target-spec.mjs';
  */
 export function parseArguments(argv) {
   const target = resolveTargetFromArgs(argv);
-  if (target.productTarget !== 'linux-x64') {
-    throw new Error(`packaged smoke currently supports Linux x64 only: ${target.rustTriple}`);
+  if (target.productTarget !== 'linux-x64' && target.productTarget !== 'macos-arm64') {
+    throw new Error(`packaged smoke supports Linux x64 and macOS arm64 only: ${target.rustTriple}`);
   }
   const artifactIndex = argv.indexOf('--artifact');
   const artifact = artifactIndex < 0 ? undefined : argv[artifactIndex + 1];
   if (!artifact || artifact.startsWith('-')) throw new Error('--artifact requires a package path');
   const installDeb = argv.includes('--install-deb');
-  const expectedSuffix = installDeb ? '.deb' : '.AppImage';
+  const installDmg = argv.includes('--install-dmg');
+  if (installDeb && installDmg) throw new Error('--install-deb and --install-dmg are mutually exclusive');
+  if (target.productTarget === 'linux-x64' && installDmg) {
+    throw new Error('--install-dmg is only available for macOS arm64');
+  }
+  if (target.productTarget === 'macos-arm64' && installDeb) {
+    throw new Error('--install-deb is only available for Linux x64');
+  }
+  const expectedSuffix = target.productTarget === 'linux-x64'
+    ? (installDeb ? '.deb' : '.AppImage')
+    : (installDmg ? '.dmg' : '.app');
   if (!artifact.endsWith(expectedSuffix)) {
     throw new Error(`expected a ${expectedSuffix} artifact: ${artifact}`);
   }
-  return { target, artifact: resolve(artifact), installDeb };
+  return { target, artifact: resolve(artifact), installDeb, installDmg };
+}
+
+/**
+ * Resolve the executable inside an unpacked package or app bundle.
+ *
+ * @param {string} root - Extracted package root or `.app` directory.
+ * @param {{readonly productTarget: string}} target - Resolved desktop target.
+ * @returns {string} Packaged shell executable path.
+ */
+export function packagedExecutable(root, target) {
+  if (target.productTarget === 'linux-x64') return join(root, 'usr', 'bin', 'dsh-desktop');
+  return join(root, 'Contents', 'MacOS', 'dsh-desktop');
+}
+
+/**
+ * Return the target-specific command used to mount a macOS dmg.
+ *
+ * @param {string} artifact - Dmg path.
+ * @param {string} mountPoint - Empty directory used as the mount point.
+ * @returns {readonly string[]} hdiutil arguments.
+ */
+export function dmgMountArguments(artifact, mountPoint) {
+  return ['attach', '-nobrowse', '-readonly', '-mountpoint', mountPoint, artifact];
 }
 
 /**
@@ -163,6 +196,7 @@ async function main() {
   }
   const home = mkdtempSync(join(tmpdir(), 'dsh-desktop-packaged-smoke-'));
   let installed;
+  let mountedDmg;
   let smokeCompleted = false;
   try {
     let executable;
@@ -170,10 +204,22 @@ async function main() {
       installed = packageName(options.artifact);
       run('sudo', ['dpkg', '--install', options.artifact], { stdio: 'inherit' });
       executable = installedDebExecutable(installed);
+    } else if (options.installDmg) {
+      mountedDmg = join(home, 'dmg-mount');
+      mkdirSync(mountedDmg);
+      run('hdiutil', dmgMountArguments(options.artifact, mountedDmg), { stdio: 'inherit' });
+      const app = join(mountedDmg, 'dsh-desktop.app');
+      if (!existsSync(app)) throw new Error(`mounted dmg has no dsh-desktop.app: ${app}`);
+      const copiedApp = join(home, 'installed', 'dsh-desktop.app');
+      mkdirSync(dirname(copiedApp), { recursive: true });
+      cpSync(app, copiedApp, { recursive: true });
+      run('hdiutil', ['detach', mountedDmg], { stdio: 'inherit' });
+      mountedDmg = undefined;
+      executable = packagedExecutable(copiedApp, options.target);
     } else {
       const extracted = join(home, 'squashfs-root');
       run(options.artifact, ['--appimage-extract'], { cwd: home, stdio: 'ignore' });
-      executable = join(extracted, 'usr', 'bin', 'dsh-desktop');
+      executable = packagedExecutable(extracted, options.target);
       if (!existsSync(executable)) {
         throw new Error(`extracted AppImage has no executable: ${executable}`);
       }
@@ -186,6 +232,9 @@ async function main() {
     console.log(`[packaged-smoke] ready at ${url}`);
     smokeCompleted = true;
   } finally {
+    if (mountedDmg !== undefined) {
+      run('hdiutil', ['detach', mountedDmg, '-force'], { stdio: 'inherit' });
+    }
     if (installed !== undefined) {
       run('sudo', ['dpkg', '--purge', installed], { stdio: 'inherit' });
     }

@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { join } from 'node:path';
 
-import { descendantPids, parseArguments } from './packaged-smoke.mjs';
+import { descendantPids, dmgMountArguments, packagedExecutable, parseArguments } from './packaged-smoke.mjs';
 
-test('requires a Linux AppImage or deb artifact for the packaged smoke', () => {
+test('requires a target-native package artifact for the packaged smoke', () => {
   assert.equal(parseArguments([
     '--target', 'x86_64-unknown-linux-gnu', '--artifact', 'dist/dsh.AppImage',
   ]).installDeb, false);
@@ -12,11 +13,44 @@ test('requires a Linux AppImage or deb artifact for the packaged smoke', () => {
   ]).installDeb, true);
   assert.throws(
     () => parseArguments(['--target', 'x86_64-pc-windows-msvc', '--artifact', 'dsh.exe']),
-    /Linux x64 only/,
+    /Linux x64 and macOS arm64 only/,
   );
   assert.throws(
     () => parseArguments(['--target', 'x86_64-unknown-linux-gnu', '--artifact', 'dsh.deb']),
     /expected a \.AppImage artifact/,
+  );
+  assert.equal(parseArguments([
+    '--target', 'aarch64-apple-darwin', '--artifact', 'dist/dsh-desktop.app',
+  ]).installDmg, false);
+  assert.equal(parseArguments([
+    '--target', 'aarch64-apple-darwin', '--artifact', 'dist/dsh-desktop.dmg', '--install-dmg',
+  ]).installDmg, true);
+  assert.throws(
+    () => parseArguments([
+      '--target', 'aarch64-apple-darwin', '--artifact', 'dist/dsh.deb', '--install-deb',
+    ]),
+    /only available for Linux x64/,
+  );
+  assert.throws(
+    () => parseArguments([
+      '--target', 'aarch64-apple-darwin', '--artifact', 'dist/dsh.dmg', '--install-deb', '--install-dmg',
+    ]),
+    /mutually exclusive/,
+  );
+});
+
+test('resolves the executable inside Linux packages and macOS app bundles', () => {
+  assert.equal(
+    packagedExecutable('/tmp/squashfs-root', { productTarget: 'linux-x64' }),
+    join('/tmp/squashfs-root', 'usr', 'bin', 'dsh-desktop'),
+  );
+  assert.equal(
+    packagedExecutable('/tmp/dsh-desktop.app', { productTarget: 'macos-arm64' }),
+    join('/tmp/dsh-desktop.app', 'Contents', 'MacOS', 'dsh-desktop'),
+  );
+  assert.deepEqual(
+    dmgMountArguments('/tmp/dsh.dmg', '/tmp/mount'),
+    ['attach', '-nobrowse', '-readonly', '-mountpoint', '/tmp/mount', '/tmp/dsh.dmg'],
   );
 });
 

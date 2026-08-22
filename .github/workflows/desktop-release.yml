@@ -227,6 +227,20 @@ jobs:
       - name: Check the macOS experimental artifact size
         run: pnpm --filter @deepseek-ai/dsh-desktop size-report -- --check --target aarch64-apple-darwin --experimental
 
+      - name: Smoke-test the unsigned macOS app bundle
+        run: |
+          APP="$(find apps/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/macos -maxdepth 1 -name '*.app' -print -quit)"
+          test -n "$APP"
+          pnpm --filter @deepseek-ai/dsh-desktop packaged-smoke -- \
+            --target aarch64-apple-darwin --artifact "$APP"
+
+      - name: Smoke-test the unsigned macOS dmg
+        run: |
+          DMG="$(find apps/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg -maxdepth 1 -name '*.dmg' -print -quit)"
+          test -n "$DMG"
+          pnpm --filter @deepseek-ai/dsh-desktop packaged-smoke -- \
+            --target aarch64-apple-darwin --artifact "$DMG" --install-dmg
+
       - uses: actions/upload-artifact@v4
         with:
           name: dsh-desktop-macos-arm64-experimental-${{ needs.validate.outputs.version }}
@@ -339,6 +353,20 @@ jobs:
         run: |
           pnpm --filter @deepseek-ai/dsh-desktop size-check -- --target aarch64-apple-darwin
           node apps/desktop/scripts/release-artifacts.mjs --target aarch64-apple-darwin --output "$RUNNER_TEMP/dsh-desktop-artifacts"
+
+      - name: Smoke-test the signed macOS app bundle
+        run: |
+          APP="$(find apps/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/macos -maxdepth 1 -name '*.app' -print -quit)"
+          test -n "$APP"
+          pnpm --filter @deepseek-ai/dsh-desktop packaged-smoke -- \
+            --target aarch64-apple-darwin --artifact "$APP"
+
+      - name: Smoke-test the signed macOS dmg
+        run: |
+          DMG="$(find apps/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg -maxdepth 1 -name '*.dmg' -print -quit)"
+          test -n "$DMG"
+          pnpm --filter @deepseek-ai/dsh-desktop packaged-smoke -- \
+            --target aarch64-apple-darwin --artifact "$DMG" --install-dmg
 
       - uses: actions/upload-artifact@v4
         with:

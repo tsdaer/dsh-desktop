@@ -63,6 +63,8 @@ dev 启动器把 DSH_CLI 设为构建出的 apps/cli/lib/bin.js;DSH_NODE 默认�
 
 Linux 发布 runner 会通过 `pnpm --filter @deepseek-ai/dsh-desktop linux-baseline -- --target x86_64-unknown-linux-gnu` 记录 glibc、GTK、WebKitGTK 和打包工具版本。该命令记录构建环境,不证明对更旧发行版的兼容性。
 
+目标原生安装包启动冒烟可通过 `pnpm --filter @deepseek-ai/dsh-desktop packaged-smoke -- --target <triple> --artifact <path>` 运行。Linux 接受 AppImage,或带 `--install-deb` 的 deb;macOS 接受 app bundle,或带 `--install-dmg` 的 dmg。冒烟检查会启动打包后的可执行文件,等待运行时就绪 URL,确认受管理的子进程退出,并检查移除安装包后临时 `DSH_HOME` 仍然存在。它要求在目标 runner 上运行,不替代终端、更新器、最低发行版和 GUI 证据。
+
 安装器是自包含的:它随附壳程序、按目标命名的 Node sidecar(Tauri externalBin)和 resources/runtime/ 下的烘焙运行时。源码运行时目录按 Rust target triple 区分,目标解析器会在暂存文件前拒绝不支持的目标。首次启动时壳子把桥接包拷入 profile(运行时没有 npm),为内置包修复 profile 回退目录,并导航到所服务的 UI。profile 安装的 bundle 仍从 profile 自己的 node_modules 解析。
 
 macOS arm64 另有一个未签名的仅构建命令:`pnpm --filter @deepseek-ai/dsh-desktop bundle -- --target aarch64-apple-darwin --experimental`。它生成 app 和 dmg,但不生成 updater 构件;该结果只能作为编译与打包证据,不能作为受支持的下载或更新渠道。签名并公证 macOS 发布版本需要产品持有的 Developer ID 与 updater 凭据。

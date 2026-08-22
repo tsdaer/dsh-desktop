@@ -460,6 +460,9 @@ describe('Desktop release workflow', () => {
     expect(macosJson).toContain('--experimental')
     expect(macosJson).toContain('size-report')
     expect(macosJson).toContain('dsh-desktop-macos-arm64-experimental')
+    expect(macosJson).toContain('packaged-smoke')
+    expect(macosJson).toContain('--artifact')
+    expect(macosJson).toContain('--install-dmg')
     expect(macosJson).not.toContain('TAURI_SIGNING_PRIVATE_KEY')
     expect(signedMacos['if']).toBe("vars.DSH_DESKTOP_MACOS_RELEASE == 'true'")
     expect(signedMacos['runs-on']).toBe('macos-14')
@@ -471,6 +474,8 @@ describe('Desktop release workflow', () => {
     expect(signedMacosJson).toContain('security list-keychains')
     expect(signedMacosJson).toContain('always()')
     expect(signedMacosJson).toContain('release-artifacts.mjs')
+    expect(signedMacosJson).toContain('packaged-smoke')
+    expect(signedMacosJson).toContain('--install-dmg')
 
     expect(draft.needs).toEqual(['validate', 'build-windows', 'build-linux'])
     expect(draftJson).toContain('actions/download-artifact@v4')
