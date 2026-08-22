@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 import {
   descendantPids,
   dmgMountArguments,
   managedProcessPids,
+  packagedRuntime,
   packagedExecutable,
   parseArguments,
   parseProcessSnapshot,
@@ -13,8 +16,8 @@ import {
 
 test('requires a target-native package artifact for the packaged smoke', () => {
   assert.equal(parseArguments([
-    '--target', 'x86_64-unknown-linux-gnu', '--artifact', 'dist/dsh.AppImage',
-  ]).installDeb, false);
+    '--target', 'x86_64-unknown-linux-gnu', '--artifact', 'dist/dsh.AppImage', '--terminal-smoke',
+  ]).terminalSmoke, true);
   assert.equal(parseArguments([
     '--target', 'x86_64-unknown-linux-gnu', '--artifact', 'dist/dsh.deb', '--install-deb',
   ]).installDeb, true);
@@ -90,4 +93,34 @@ test('keeps command lines so re-parented sidecars remain observable', () => {
     [...managedProcessPids(processes, 10, 'node-x86_64-unknown-linux-gnu')].sort((a, b) => a - b),
     [10, 20],
   );
+});
+
+test('locates exactly one target sidecar and runtime inside an extracted package', () => {
+  const root = join(tmpdir(), `dsh-packaged-runtime-${process.pid}-${Date.now()}`);
+  try {
+    const runtime = join(root, 'usr', 'lib', 'dsh-desktop', 'runtime');
+    mkdirSync(join(runtime, 'lib'), { recursive: true });
+    mkdirSync(join(root, 'usr', 'lib', 'dsh-desktop', 'binaries'), { recursive: true });
+    writeFileSync(join(runtime, 'lib', 'bin.js'), '');
+    const sidecar = join(root, 'usr', 'lib', 'dsh-desktop', 'binaries', 'node-x86_64-unknown-linux-gnu');
+    writeFileSync(sidecar, '');
+    assert.deepEqual(
+      packagedRuntime(root, { sidecarBasename: 'node-x86_64-unknown-linux-gnu' }),
+      { sidecar, runtime },
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('rejects a package without the target sidecar', () => {
+  const root = join(tmpdir(), `dsh-packaged-runtime-invalid-${process.pid}-${Date.now()}`);
+  try {
+    assert.throws(
+      () => packagedRuntime(root, { sidecarBasename: 'node-x86_64-unknown-linux-gnu' }),
+      /expected one packaged sidecar/,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });

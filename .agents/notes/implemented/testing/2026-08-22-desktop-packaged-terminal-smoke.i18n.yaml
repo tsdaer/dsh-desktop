@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-08-22-desktop-packaged-terminal-smoke.md
+2026-08-22-desktop-packaged-terminal-smoke.md: c5b7b8e5576d441a8cc826cba62cfc3de0c72eb1
+2026-08-22-desktop-packaged-terminal-smoke.zh.md: bdc14d7c8f8e54ea3423ea89dffe3b37685cab05

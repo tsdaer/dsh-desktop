@@ -173,7 +173,8 @@ jobs:
           test -n "$APPIMAGE"
           xvfb-run --auto-servernum --server-args='-screen 0 1280x800x24' \
             pnpm --filter @deepseek-ai/dsh-desktop packaged-smoke -- \
-              --target x86_64-unknown-linux-gnu --artifact "$APPIMAGE"
+              --target x86_64-unknown-linux-gnu --artifact "$APPIMAGE" \
+              --terminal-smoke
 
       - name: Smoke-test install and removal of the deb package
         run: |
@@ -181,7 +182,8 @@ jobs:
           test -n "$DEB"
           xvfb-run --auto-servernum --server-args='-screen 0 1280x800x24' \
             pnpm --filter @deepseek-ai/dsh-desktop packaged-smoke -- \
-              --target x86_64-unknown-linux-gnu --artifact "$DEB" --install-deb
+              --target x86_64-unknown-linux-gnu --artifact "$DEB" --install-deb \
+              --terminal-smoke
 
       - uses: actions/upload-artifact@v4
         with:
@@ -232,14 +234,16 @@ jobs:
           APP="$(find apps/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/macos -maxdepth 1 -name '*.app' -print -quit)"
           test -n "$APP"
           pnpm --filter @deepseek-ai/dsh-desktop packaged-smoke -- \
-            --target aarch64-apple-darwin --artifact "$APP"
+            --target aarch64-apple-darwin --artifact "$APP" \
+            --terminal-smoke
 
       - name: Smoke-test the unsigned macOS dmg
         run: |
           DMG="$(find apps/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg -maxdepth 1 -name '*.dmg' -print -quit)"
           test -n "$DMG"
           pnpm --filter @deepseek-ai/dsh-desktop packaged-smoke -- \
-            --target aarch64-apple-darwin --artifact "$DMG" --install-dmg
+            --target aarch64-apple-darwin --artifact "$DMG" --install-dmg \
+            --terminal-smoke
 
       - uses: actions/upload-artifact@v4
         with:
@@ -359,14 +363,16 @@ jobs:
           APP="$(find apps/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/macos -maxdepth 1 -name '*.app' -print -quit)"
           test -n "$APP"
           pnpm --filter @deepseek-ai/dsh-desktop packaged-smoke -- \
-            --target aarch64-apple-darwin --artifact "$APP"
+            --target aarch64-apple-darwin --artifact "$APP" \
+            --terminal-smoke
 
       - name: Smoke-test the signed macOS dmg
         run: |
           DMG="$(find apps/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg -maxdepth 1 -name '*.dmg' -print -quit)"
           test -n "$DMG"
           pnpm --filter @deepseek-ai/dsh-desktop packaged-smoke -- \
-            --target aarch64-apple-darwin --artifact "$DMG" --install-dmg
+            --target aarch64-apple-darwin --artifact "$DMG" --install-dmg \
+            --terminal-smoke
 
       - uses: actions/upload-artifact@v4
         with:

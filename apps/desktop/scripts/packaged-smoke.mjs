@@ -2,7 +2,7 @@
 // shell reaches its runtime readiness line before the process tree is stopped.
 // The smoke intentionally runs the installed entry point, not `cargo run` or
 // the source CLI, so resource lookup and the target Node sidecar are included.
-import { cpSync, existsSync, mkdtempSync, mkdirSync, rmSync, statSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -14,7 +14,7 @@ import { resolveTargetFromArgs } from './target-spec.mjs';
  * Parse the Linux packaged-smoke options.
  *
  * @param {readonly string[]} argv Arguments after the script name.
- * @returns {{target: Readonly<object>, artifact: string, installDeb: boolean}}
+ * @returns {{target: Readonly<object>, artifact: string, installDeb: boolean, installDmg: boolean, terminalSmoke: boolean}}
  */
 export function parseArguments(argv) {
   const target = resolveTargetFromArgs(argv);
@@ -26,6 +26,7 @@ export function parseArguments(argv) {
   if (!artifact || artifact.startsWith('-')) throw new Error('--artifact requires a package path');
   const installDeb = argv.includes('--install-deb');
   const installDmg = argv.includes('--install-dmg');
+  const terminalSmoke = argv.includes('--terminal-smoke');
   if (installDeb && installDmg) throw new Error('--install-deb and --install-dmg are mutually exclusive');
   if (target.productTarget === 'linux-x64' && installDmg) {
     throw new Error('--install-dmg is only available for macOS arm64');
@@ -39,7 +40,7 @@ export function parseArguments(argv) {
   if (!artifact.endsWith(expectedSuffix)) {
     throw new Error(`expected a ${expectedSuffix} artifact: ${artifact}`);
   }
-  return { target, artifact: resolve(artifact), installDeb, installDmg };
+  return { target, artifact: resolve(artifact), installDeb, installDmg, terminalSmoke };
 }
 
 /**
@@ -124,6 +125,40 @@ export function managedProcessPids(processes, rootPid, sidecarBasename) {
   return managed;
 }
 
+/**
+ * Locate the target sidecar and deployed CLI from one extracted package root.
+ * Symlinks are ignored so the smoke cannot inspect files outside the package.
+ *
+ * @param {string} root - Extracted AppImage, deb, or app bundle root.
+ * @param {{readonly sidecarBasename: string}} target - Target specification.
+ * @returns {{sidecar: string, runtime: string}}
+ */
+export function packagedRuntime(root, target) {
+  const sidecars = [];
+  const runtimes = [];
+  const stack = [root];
+  while (stack.length > 0) {
+    const directory = stack.pop();
+    let entries;
+    try { entries = readdirSync(directory, { withFileTypes: true }); } catch { continue; }
+    for (const entry of entries) {
+      if (entry.isSymbolicLink()) continue;
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(path);
+      } else if (entry.isFile()) {
+        if (entry.name === target.sidecarBasename) sidecars.push(path);
+        if (entry.name === 'bin.js' && dirname(path).endsWith(`${join('lib')}`)) {
+          runtimes.push(dirname(dirname(path)));
+        }
+      }
+    }
+  }
+  if (sidecars.length !== 1) throw new Error(`expected one packaged sidecar ${target.sidecarBasename}, found ${sidecars.length}`);
+  if (runtimes.length !== 1) throw new Error(`expected one packaged runtime lib/bin.js, found ${runtimes.length}`);
+  return { sidecar: sidecars[0], runtime: runtimes[0] };
+}
+
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, { encoding: 'utf8', ...options });
   if (result.error) throw result.error;
@@ -181,6 +216,49 @@ async function waitForManagedProcesses(child, sidecarBasename, timeoutMs = 10_00
   if (remaining.size > 0) {
     throw new Error(`packaged app left managed processes after shutdown: ${[...remaining].join(', ')}`);
   }
+}
+
+const TERMINAL_SMOKE_MARKER = 'dsh-desktop-terminal-smoke';
+const TERMINAL_SMOKE_SCRIPT = [
+  "const pty = require('node-pty');",
+  "const shell = process.platform === 'win32' ? 'cmd.exe' : '/bin/sh';",
+  "const args = process.platform === 'win32' ? ['/d', '/s', '/c', process.argv[1]] : ['-lc', process.argv[1]];",
+  "const child = pty.spawn(shell, args, { name: 'xterm-color', cols: 80, rows: 24, cwd: process.cwd(), env: { PATH: process.env.PATH || '', HOME: process.env.HOME || '', TERM: 'xterm-256color' } });",
+  `let output = ''; let finished = false; const done = code => { if (finished) return; finished = true; clearTimeout(timer); try { child.kill(); } catch {} process.stdout.write(output); process.exitCode = code; };`,
+  `child.onData(data => { output += data; if (output.includes(${JSON.stringify(TERMINAL_SMOKE_MARKER)})) done(0); });`,
+  'const timer = setTimeout(() => done(1), 10000);',
+].join('');
+
+/**
+ * Execute one fixed command through the packaged runtime's node-pty module.
+ * The sidecar and runtime are both resolved from the installed artifact.
+ *
+ * @param {string} packageRoot - Extracted package root.
+ * @param {Readonly<{sidecarBasename: string}>} target - Target specification.
+ * @returns {Promise<string>} Captured PTY output.
+ */
+export async function runTerminalSmoke(packageRoot, target) {
+  const { sidecar, runtime } = packagedRuntime(packageRoot, target);
+  const child = spawn(sidecar, ['-e', TERMINAL_SMOKE_SCRIPT, `printf ${TERMINAL_SMOKE_MARKER}`], {
+    cwd: runtime,
+    env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '', DSH_HOME: process.env.DSH_HOME ?? runtime },
+    detached: true,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let output = '';
+  child.stdout.on('data', chunk => { output += String(chunk); });
+  child.stderr.on('data', chunk => { output += String(chunk); });
+  try {
+    await waitForExit(child, 15_000);
+  } catch (error) {
+    stopProcessTree(child, 'SIGKILL');
+    await waitForExit(child, 2_000).catch(() => {});
+    throw error;
+  }
+  if (child.exitCode !== 0 || !output.includes(TERMINAL_SMOKE_MARKER)) {
+    throw new Error(`packaged terminal command failed (exit=${child.exitCode})\n${output}`);
+  }
+  return output;
 }
 
 async function launch(command, args, env, sidecarBasename) {
@@ -255,8 +333,12 @@ async function main() {
   let smokeCompleted = false;
   try {
     let executable;
+    let packageRoot;
     if (options.installDeb) {
       installed = packageName(options.artifact);
+      packageRoot = join(home, 'deb-root');
+      mkdirSync(packageRoot);
+      run('dpkg-deb', ['--extract', options.artifact, packageRoot]);
       run('sudo', ['dpkg', '--install', options.artifact], { stdio: 'inherit' });
       executable = installedDebExecutable(installed);
     } else if (options.installDmg) {
@@ -271,10 +353,12 @@ async function main() {
       run('hdiutil', ['detach', mountedDmg], { stdio: 'inherit' });
       mountedDmg = undefined;
       executable = packagedExecutable(copiedApp, options.target);
+      packageRoot = copiedApp;
     } else {
       const extracted = join(home, 'squashfs-root');
       run(options.artifact, ['--appimage-extract'], { cwd: home, stdio: 'ignore' });
       executable = packagedExecutable(extracted, options.target);
+      packageRoot = extracted;
       if (!existsSync(executable)) {
         throw new Error(`extracted AppImage has no executable: ${executable}`);
       }
@@ -284,6 +368,11 @@ async function main() {
       APPIMAGE_EXTRACT_AND_RUN: '1',
       DSH_HOME: home,
     }, options.target.sidecarBasename);
+    if (options.terminalSmoke) {
+      if (packageRoot === undefined) throw new Error('packaged terminal smoke has no package root');
+      const output = await runTerminalSmoke(packageRoot, options.target);
+      console.log(`[packaged-smoke] terminal output: ${output.trim()}`);
+    }
     console.log(`[packaged-smoke] ready at ${url}`);
     smokeCompleted = true;
   } finally {

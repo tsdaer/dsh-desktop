@@ -1,0 +1,33 @@
+# Agent Note: Desktop packaged terminal smoke
+
+Status: implemented
+
+English | [English](2026-08-22-desktop-packaged-terminal-smoke.md)
+
+## Problem
+
+桌面安装包可以成功启动，但目标运行时仍可能缺少终端功能依赖的原生 PTY 模块，或无法加载该模块。宿主机上的终端测试不会检查 AppImage、deb 或 macOS 应用包中实际暂存的资源。
+
+## Decision
+
+Linux 和 macOS 的打包冒烟会从安装包解出或暂存资源，启动已打包的桌面可执行文件，等待就绪 URL，然后从同一个安装包根目录解析且只允许一个按目标命名的 Node sidecar 和一个 `lib/bin.js` 运行时。sidecar 使用该运行时的 `node-pty` 模块执行固定的 `printf` 命令，要求 PTY 输出包含标记，等待探针进程退出，并保留现有桌面进程树清理检查。
+
+deb 路径在安装同一个构件并启动应用的同时，使用私有的 `dpkg-deb --extract` 目录检查资源。macOS dmg 路径会先复制挂载的应用，再启动复制品。资源发现会忽略符号链接；缺少或重复的 sidecar 和运行时都会使冒烟失败。
+
+这项检查证明目标原生安装包携带了可用的 PTY 字节并能清理。它不声称浏览器会话调用了面向模型的终端工具；GUI 和更新器证据仍属于已安装产品的验收范围。
+
+## Alternatives considered
+
+**使用宿主 Node 执行终端命令。** 放弃，因为宿主可执行文件和原生模块可能不同于安装器携带的字节。
+
+**为冒烟增加专用桌面 RPC 命令。** 放弃，因为测试专用命令会扩展产品协议，也可能与面向模型的终端能力混淆。
+
+**在每个脚本测试中都要求完整 GUI 终端流程。** 放弃，因为 GUI 交互和原生安装包安装需要目标 runner；确定性的资源检查适合本地与结构测试。
+
+## Consequences
+
+Linux AppImage/deb 和 macOS app/dmg 工作流冒烟现在会在打包启动后执行目标 sidecar 和 PTY addon。冒烟不拥有用户数据并会删除临时解包目录；deb 卸载仍会在删除临时 home 之前执行。渲染终端 UI、更新器安装和最低发行版兼容性仍需要目标 runner 证据。
+
+## Testing
+
+`apps/desktop/scripts/packaged-smoke.spec.mjs` 固定目标参数解析、安装包资源的唯一发现、缺少 sidecar 时的拒绝、进程树观察和安装包可执行文件路径。桌面发布工作流会对 Linux AppImage/deb 以及 macOS app/dmg 构件传入 `--terminal-smoke`。
