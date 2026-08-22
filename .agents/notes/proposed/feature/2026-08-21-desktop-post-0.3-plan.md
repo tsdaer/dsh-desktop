@@ -42,6 +42,8 @@ Add `apps/desktop/scripts/evidence-server.mjs`: one command that creates a scrat
 
 Correct `operating-constraints.md` in the same phase. It must tell an agent how to determine which runtime is live — inspect the running process's executable path and its spawned Node command line — instead of asserting that the serving runtime is built from the working directory. Both topologies occur, and only the measurement distinguishes them.
 
+Phase 2 is complete: the evidence command builds the standalone bridge packages, creates the scratch profile, registers the selected Workspace, probes `/dsh-bridge/config`, and prints the serving URL. A live browser run mounted the Worktree panel; the shipped decision is recorded in [the implemented evidence-server note](../../implemented/feature/2026-08-21-desktop-evidence-server.md).
+
 ### Phase 3: Source Control writes
 
 [Read-only decorations](../../implemented/feature/2026-08-19-desktop-worktree-source-control.md) ship today. Add staging, unstaging, discarding, committing with a message, and viewing a file's diff, through the same bounded Host adapter that owns the fixed Git argv, environment, output cap, cancellation, and canonical-root checks. The browser continues to send a Workspace id and a Workspace-relative path, never argv.

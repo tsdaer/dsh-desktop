@@ -42,6 +42,8 @@ Status: proposed
 
 同一阶段修正 `operating-constraints.md`。它必须告诉 agent 如何判定哪个运行时是活的 —— 检查运行中进程的可执行文件路径及其派生的 Node 命令行 —— 而不是断言服务中的运行时是由工作目录构建的。两种拓扑都会出现，且只有实测能区分。
 
+阶段 2 已完成：证据命令会构建独立桥接包、创建临时 profile、注册所选 Workspace、探测 `/dsh-bridge/config` 并打印服务 URL。真实浏览器运行已挂载 Worktree 面板；已交付决策记录在[已实现的证据服务器记录](../../implemented/feature/2026-08-21-desktop-evidence-server.md)中。
+
 ### 阶段 3：源代码管理写操作
 
 [只读装饰](../../implemented/feature/2026-08-19-desktop-worktree-source-control.md)今天已交付。新增暂存、取消暂存、丢弃、带消息提交，以及查看单文件 diff，全部经由同一个有界 Host 适配器完成 —— 它持有固定 Git argv、环境、输出上限、取消与规范根校验。浏览器继续只发送 Workspace id 与 Workspace 相对路径，绝不发送 argv。
