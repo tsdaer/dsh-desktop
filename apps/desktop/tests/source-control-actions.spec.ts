@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Readable, Writable } from 'node:stream'
+import { Readable } from 'node:stream'
 import {
   buildGitDiscardCommand,
   buildGitStageCommand,
@@ -17,9 +17,8 @@ import {
   runSourceControlMutation,
   sourceControlOperationAllowed,
   type SourceControlActionConfig,
-  type SourceControlEntry,
 } from '../bridge/src/source-control-actions.ts'
-import type { SourceControlListing } from '../bridge/src/source-control.ts'
+import type { SourceControlEntry, SourceControlListing } from '../bridge/src/source-control.ts'
 
 const config: SourceControlActionConfig = {
   sourceControlMaxEntries: 256,
@@ -117,7 +116,9 @@ describe('desktop Source Control write request vocabulary', () => {
       { kind: 'cacheinfo', mode: '100644', blob: 'fedcba9876543210fedcba9876543210fedcba98', path: 'renamed.ts' },
       { kind: 'remove', path: 'old.ts' },
     ])
-    expect(buildIndexOpCommand(ops[0] as { kind: 'cacheinfo' })).toEqual([
+    const firstOp = ops[0]
+    if (firstOp === undefined || firstOp.kind !== 'cacheinfo') throw new Error('expected a cacheinfo operation')
+    expect(buildIndexOpCommand(firstOp)).toEqual([
       'git', '--no-pager', 'update-index', '--add', '--cacheinfo', '100644,0123456789abcdef0123456789abcdef01234567,a.ts',
     ])
     expect(buildIndexOpCommand({ kind: 'remove', path: 'gone.ts' })).toEqual(['git', '--no-pager', 'update-index', '--force-remove', '--', 'gone.ts'])
@@ -156,20 +157,24 @@ function errorCode(fn: () => unknown): string {
 
 /** One request/response pair with Node's auto-destroy-after-end semantics. */
 function fakeExchange(body: string) {
-  const req = new Readable({ read() {} })
+  const req = Object.assign(new Readable({ read() {} }), {
+    url: '/dsh-bridge/worktree/source-control/stage',
+    method: 'POST',
+  })
   req.push(body)
   req.push(null)
-  req.url = '/dsh-bridge/worktree/source-control/stage'
-  req.method = 'POST'
   req.on('end', () => { req.destroy() })
   const chunks: string[] = []
-  const res = new Writable({ write(chunk, _encoding, callback) { chunks.push(String(chunk)); callback() } })
-  res.statusCode = 0
-  res.setHeader = () => {}
-  Object.defineProperty(res, 'writableEnded', { value: false, writable: true, configurable: true })
-  res.end = (chunk?: unknown) => {
-    if (chunk !== undefined) chunks.push(String(chunk))
-    res.writableEnded = true
+  const res = {
+    statusCode: 0,
+    setHeader: (..._args: readonly unknown[]) => {},
+    once: (_event: string, _listener: () => void) => undefined,
+    removeListener: (_event: string, _listener: () => void) => undefined,
+    writableEnded: false,
+    end: (chunk?: string) => {
+      if (chunk !== undefined) chunks.push(chunk)
+      res.writableEnded = true
+    },
   }
   return { req, res, chunks }
 }
@@ -205,7 +210,11 @@ function fakeHost(steps: readonly ScriptedStep[], options: FakeHostOptions = {})
       workspaceRegistry: { get: () => ({ path: 'J:/repo' }) },
       subprocess: {
         spawn: (spec: { argv: readonly string[]; cwd: string; env?: Record<string, string> }) => {
-          spawnCalls.push({ argv: spec.argv, cwd: spec.cwd, env: spec.env })
+          spawnCalls.push({
+            argv: spec.argv,
+            cwd: spec.cwd,
+            ...(spec.env === undefined ? {} : { env: spec.env }),
+          })
           const step = steps[next++]
           if (step === undefined) throw new Error('unexpected spawn')
           return {
@@ -321,12 +330,12 @@ describe('desktop Source Control mutation integration', () => {
     const calls = fake.spawnCalls
     expect(calls[2]?.argv).toEqual(['git', '--no-pager', 'rev-parse', '--verify', 'HEAD'])
     expect(calls[3]?.argv).toEqual(['git', '--no-pager', 'read-tree', 'HEAD'])
-    expect(calls[3]?.env).toMatchObject({ GIT_INDEX_FILE: expect.stringMatching(/dsh-git-index-/) })
+    expect(calls[3]?.env?.GIT_INDEX_FILE).toMatch(/dsh-git-index-/)
     expect(calls[4]?.argv).toEqual(['git', '--no-pager', 'ls-files', '-s', '--', 'a.ts'])
     expect(calls[5]?.argv).toEqual(['git', '--no-pager', 'update-index', '--add', '--cacheinfo', '100644,0123456789abcdef0123456789abcdef01234567,a.ts'])
-    expect(calls[5]?.env).toMatchObject({ GIT_INDEX_FILE: expect.stringMatching(/dsh-git-index-/) })
+    expect(calls[5]?.env?.GIT_INDEX_FILE).toMatch(/dsh-git-index-/)
     expect(calls[6]?.argv).toEqual(['git', '--no-pager', 'commit', '-m', 'phase three'])
-    expect(calls[6]?.env).toMatchObject({ GIT_INDEX_FILE: expect.stringMatching(/dsh-git-index-/) })
+    expect(calls[6]?.env?.GIT_INDEX_FILE).toMatch(/dsh-git-index-/)
     expect(calls[6]?.cwd).toBe('J:/repo')
   })
 
