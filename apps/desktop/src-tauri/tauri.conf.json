@@ -40,39 +40,22 @@
   },
   "bundle": {
     "active": true,
-    "targets": [
-      "nsis"
-    ],
     "createUpdaterArtifacts": true,
     "externalBin": [
       "binaries/node"
     ],
-    "resources": {
-      "../.runtime/x86_64-pc-windows-msvc/deploy/": "runtime"
-    },
     "icon": [
       "icons/icon.ico",
       "icons/icon.png",
       "icons/icon-512.png"
-    ],
-    "windows": {
-      "webviewInstallMode": {
-        "type": "embedBootstrapper"
-      },
-      "nsis": {
-        "installerHooks": "installer-hooks.nsh"
-      }
-    }
+    ]
   },
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEYxQjI0MUJDMEI5M0E4QkIKUldTN3FKTUx2RUd5OFhHN1BMa0padmxXdlBaMiszeE13c2lSL2psYVhtZGZPUFFOaXRtTTBIT1IK",
       "endpoints": [
         "https://github.com/tsdaer/dsh-desktop/releases/latest/download/latest.json"
-      ],
-      "windows": {
-        "installMode": "passive"
-      }
+      ]
     }
   }
 }

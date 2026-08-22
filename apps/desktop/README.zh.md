@@ -59,7 +59,7 @@ dev 启动器把 DSH_CLI 设为构建出的 apps/cli/lib/bin.js;DSH_NODE 默认�
 
     pnpm --filter @deepseek-ai/dsh-desktop bundle
 
-它会运行按目标选择的准备阶段:把版本从 package.json 同步进 tauri.conf.json、Cargo.toml 和 Cargo.lock(`scripts/sync-version.mjs`),从源码构建桥接包(`scripts/build-bridge.mjs`),运行目标脚本测试,拉取匹配的 Node sidecar(`scripts/fetch-node-sidecar.mjs`),使用该 sidecar 烘焙按目标划分的运行时(`scripts/bake-runtime.mjs`),再运行 `tauri build`(release profile 带 lto/strip)。可通过 `pnpm --filter @deepseek-ai/dsh-desktop bundle -- --target <triple>` 显式传入 Rust target;省略时脚本使用 `rustc -vV` 报告的宿主目标。Windows 发布产物位于 `src-tauri/target/release/bundle/nsis/`。版本只存在于 package.json,升级只需改那一处;`pnpm --filter @deepseek-ai/dsh-desktop version-check` 只校验同步结果是否一致而不写入,发布工作流会拒绝校验失败的标签。代理提示:首次打包会从 GitHub/nodejs.org 下载 NSIS 工具链和 Node sidecar;若机器需要代理,设置 HTTPS_PROXY/HTTP_PROXY。
+它会运行按目标选择的准备阶段:把版本从 package.json 同步进 tauri.conf.json、Cargo.toml 和 Cargo.lock(`scripts/sync-version.mjs`),从源码构建桥接包(`scripts/build-bridge.mjs`),运行目标脚本测试,拉取匹配的 Node sidecar(`scripts/fetch-node-sidecar.mjs`),使用该 sidecar 烘焙按目标划分的运行时(`scripts/bake-runtime.mjs`),再运行 `tauri build`(release profile 带 lto/strip)。可通过 `pnpm --filter @deepseek-ai/dsh-desktop bundle -- --target <triple>` 显式传入 Rust target;省略时脚本使用 `rustc -vV` 报告的宿主目标。命令会把 `src-tauri/tauri.<target>.conf.json` 下经过审查的目标层与公共配置合并,并在 Tauri 启动前校验生效的 bundle 类型和运行时资源。目标产物位于 `src-tauri/target/<triple>/release/bundle/`:Windows 使用 NSIS,Linux 使用 AppImage 和 deb,macOS 使用 app 和 dmg。原生运行时和打包证据必须在目标 runner 上取得。版本只存在于 package.json,升级只需改那一处;`pnpm --filter @deepseek-ai/dsh-desktop version-check` 只校验同步结果是否一致而不写入,发布工作流会拒绝校验失败的标签。代理提示:首次打包会从 GitHub/nodejs.org 下载目标工具链和 Node sidecar;若机器需要代理,设置 HTTPS_PROXY/HTTP_PROXY。
 
 安装器是自包含的:它随附壳程序、按目标命名的 Node sidecar(Tauri externalBin)和 resources/runtime/ 下的烘焙运行时。源码运行时目录按 Rust target triple 区分,目标解析器会在暂存文件前拒绝不支持的目标。首次启动时壳子把桥接包拷入 profile(运行时没有 npm),为内置包修复 profile 回退目录,并导航到所服务的 UI。profile 安装的 bundle 仍从 profile 自己的 node_modules 解析。
 
@@ -96,9 +96,9 @@ main.rs 的环境变量接线:DSH_CLI/DSH_NODE/DSH_BARE_MODULE_BASE/DSH_BRIDGE_T
 
 ## 自动更新
 
-主页面启动后,标题栏会检查已发布 GitHub Release 的 `latest.json`,并报告无更新、发现版本、下载进度、可安装或可恢复的分类失败。下载和安装分别需要用户确认;Windows 使用 Tauri 的被动安装模式,并在安装时重启应用。
+主页面启动后,标题栏会检查已发布 GitHub Release 的 `latest.json`,并报告无更新、发现版本、下载进度、可安装或可恢复的分类失败。`scripts/updater-manifest.mjs` 只接受每个目标已签名的主更新构件,缺少签名、目标重复、文件名异常或版本不匹配都会失败。下载和安装分别需要用户确认;Windows 使用 Tauri 的被动安装模式,并在安装时重启应用。
 
-更新器只接受与 `src-tauri/tauri.conf.json` 内置公钥匹配的分离签名构件。Draft Release 构件不是更新 endpoint;必须发布已验收的 Release,客户端才能发现它。标签门控工作流需要匹配的 GitHub Secret `TAURI_SIGNING_PRIVATE_KEY`,并以 CI 模式运行 Tauri;私钥不会存入仓库或应用。带密码的私钥可以配置 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`,无密码私钥不需要该 secret。
+更新器只接受与 `src-tauri/tauri.conf.json` 内置公钥匹配的分离签名构件。目标构件存在且签名有效时,清单使用 `windows-x86_64`、`linux-x86_64` 和 `darwin-aarch64` 平台行。Draft Release 构件不是更新 endpoint;必须发布已验收的 Release,客户端才能发现它。标签门控工作流需要匹配的 GitHub Secret `TAURI_SIGNING_PRIVATE_KEY`,并以 CI 模式运行 Tauri;私钥不会存入仓库或应用。带密码的私钥可以配置 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`,无密码私钥不需要该 secret。
 
 无边框主窗口在 setup 时重新加回 `WS_THICKFRAME`(不加 `WS_CAPTION`),由操作系统提供原生缩放边框与 Windows 11 贴靠布局弹出层,标题栏保持自绘。最大化图标从原生宿主读取窗口状态:Rust 在每次尺寸事件时推送 `dsh://maximize-change`,标题栏监听该事件,并保留轮询读取作为回退。
 

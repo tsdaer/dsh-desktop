@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-22-desktop-target-aware-bundles.md
+2026-08-22-desktop-target-aware-bundles.md: df32a07e2022d1d9e9f131aa6fec850beb5158f0
+2026-08-22-desktop-target-aware-bundles.zh.md: 7fea553be5e3219c8e8154bd620d2a0d748fdd48

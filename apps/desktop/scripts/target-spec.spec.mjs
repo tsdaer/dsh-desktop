@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { resolve } from 'node:path';
 
 import {
   SUPPORTED_TARGETS,
   assertSafeArchiveMember,
   extractionPath,
   nodeDistributionFiles,
+  artifactDirectoriesFor,
   resolveTarget,
 } from './target-spec.mjs';
 
@@ -20,8 +22,12 @@ const expected = {
     sidecarBasename: 'node-x86_64-pc-windows-msvc.exe',
     nativePlatformKey: 'win32-x64',
     bundleKinds: ['nsis'],
-    artifactDirectories: ['src-tauri/target/release/bundle/nsis'],
+    artifactDirectories: ['src-tauri/target/{rustTriple}/release/bundle/nsis'],
+    updaterPlatform: 'windows-x86_64',
+    updaterArtifactSuffix: '.exe',
+    updaterSignatureSuffix: '.exe.sig',
     updaterArtifactSuffixes: ['.exe', '.exe.sig'],
+    tauriConfig: 'src-tauri/tauri.windows-x64.conf.json',
     runtimeRelativeDir: '.runtime/x86_64-pc-windows-msvc/deploy',
     sizeBudgetMiB: 200,
   },
@@ -36,10 +42,14 @@ const expected = {
     nativePlatformKey: 'linux-x64',
     bundleKinds: ['appimage', 'deb'],
     artifactDirectories: [
-      'src-tauri/target/release/bundle/appimage',
-      'src-tauri/target/release/bundle/deb',
+      'src-tauri/target/{rustTriple}/release/bundle/appimage',
+      'src-tauri/target/{rustTriple}/release/bundle/deb',
     ],
+    updaterPlatform: 'linux-x86_64',
+    updaterArtifactSuffix: '.AppImage',
+    updaterSignatureSuffix: '.AppImage.sig',
     updaterArtifactSuffixes: ['.AppImage', '.AppImage.sig', '.deb', '.deb.sig'],
+    tauriConfig: 'src-tauri/tauri.linux-x64.conf.json',
     runtimeRelativeDir: '.runtime/x86_64-unknown-linux-gnu/deploy',
     sizeBudgetMiB: 220,
   },
@@ -54,10 +64,14 @@ const expected = {
     nativePlatformKey: 'darwin-arm64',
     bundleKinds: ['app', 'dmg'],
     artifactDirectories: [
-      'src-tauri/target/release/bundle/macos',
-      'src-tauri/target/release/bundle/dmg',
+      'src-tauri/target/{rustTriple}/release/bundle/macos',
+      'src-tauri/target/{rustTriple}/release/bundle/dmg',
     ],
+    updaterPlatform: 'darwin-aarch64',
+    updaterArtifactSuffix: '.app.tar.gz',
+    updaterSignatureSuffix: '.app.tar.gz.sig',
     updaterArtifactSuffixes: ['.app', '.app.tar.gz', '.app.tar.gz.sig', '.dmg', '.dmg.sig'],
+    tauriConfig: 'src-tauri/tauri.macos-arm64.conf.json',
     runtimeRelativeDir: '.runtime/aarch64-apple-darwin/deploy',
     sizeBudgetMiB: 220,
   },
@@ -95,6 +109,16 @@ test('renders versioned Node archive names and exact sidecar members', () => {
     sourceMember: 'node-v22.23.1-darwin-arm64/bin/node',
   });
   assert.throws(() => nodeDistributionFiles(resolveTarget('x86_64-pc-windows-msvc'), '../node'), /invalid DSH_NODE_VERSION/);
+});
+
+test('renders target output directories from the explicit Rust triple', () => {
+  assert.deepEqual(
+    artifactDirectoriesFor(resolveTarget('x86_64-unknown-linux-gnu'), 'C:/workspace/apps/desktop'),
+    [
+      'C:/workspace/apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage',
+      'C:/workspace/apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb',
+    ].map((path) => resolve(path)),
+  );
 });
 
 test('rejects archive members that could escape extraction', () => {

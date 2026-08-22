@@ -13,8 +13,12 @@ const TARGET_ROWS = [
     sidecarBasename: 'node-x86_64-pc-windows-msvc.exe',
     nativePlatformKey: 'win32-x64',
     bundleKinds: ['nsis'],
-    artifactDirectories: ['src-tauri/target/release/bundle/nsis'],
+    artifactDirectories: ['src-tauri/target/{rustTriple}/release/bundle/nsis'],
+    updaterPlatform: 'windows-x86_64',
+    updaterArtifactSuffix: '.exe',
+    updaterSignatureSuffix: '.exe.sig',
     updaterArtifactSuffixes: ['.exe', '.exe.sig'],
+    tauriConfig: 'src-tauri/tauri.windows-x64.conf.json',
     runtimeRelativeDir: '.runtime/x86_64-pc-windows-msvc/deploy',
     sizeBudgetMiB: 200,
   },
@@ -30,10 +34,14 @@ const TARGET_ROWS = [
     nativePlatformKey: 'linux-x64',
     bundleKinds: ['appimage', 'deb'],
     artifactDirectories: [
-      'src-tauri/target/release/bundle/appimage',
-      'src-tauri/target/release/bundle/deb',
+      'src-tauri/target/{rustTriple}/release/bundle/appimage',
+      'src-tauri/target/{rustTriple}/release/bundle/deb',
     ],
+    updaterPlatform: 'linux-x86_64',
+    updaterArtifactSuffix: '.AppImage',
+    updaterSignatureSuffix: '.AppImage.sig',
     updaterArtifactSuffixes: ['.AppImage', '.AppImage.sig', '.deb', '.deb.sig'],
+    tauriConfig: 'src-tauri/tauri.linux-x64.conf.json',
     runtimeRelativeDir: '.runtime/x86_64-unknown-linux-gnu/deploy',
     sizeBudgetMiB: 220,
   },
@@ -49,10 +57,14 @@ const TARGET_ROWS = [
     nativePlatformKey: 'darwin-arm64',
     bundleKinds: ['app', 'dmg'],
     artifactDirectories: [
-      'src-tauri/target/release/bundle/macos',
-      'src-tauri/target/release/bundle/dmg',
+      'src-tauri/target/{rustTriple}/release/bundle/macos',
+      'src-tauri/target/{rustTriple}/release/bundle/dmg',
     ],
+    updaterPlatform: 'darwin-aarch64',
+    updaterArtifactSuffix: '.app.tar.gz',
+    updaterSignatureSuffix: '.app.tar.gz.sig',
     updaterArtifactSuffixes: ['.app', '.app.tar.gz', '.app.tar.gz.sig', '.dmg', '.dmg.sig'],
+    tauriConfig: 'src-tauri/tauri.macos-arm64.conf.json',
     runtimeRelativeDir: '.runtime/aarch64-apple-darwin/deploy',
     sizeBudgetMiB: 220,
   },
@@ -79,7 +91,7 @@ const NODE_VERSION_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
  *
  * @param {string | undefined} requestedTriple
  * @param {{ detectHost?: () => string }} [options]
- * @returns {Readonly<{productTarget: string, rustTriple: string, nodePlatform: string, nodeArchitecture: string, nodeArchiveKind: string, nodeArchivePlatform: string, sidecarSourceMember: string, sidecarBasename: string, nativePlatformKey: string, bundleKinds: readonly string[], artifactDirectories: readonly string[], updaterArtifactSuffixes: readonly string[], runtimeRelativeDir: string, sizeBudgetMiB: number}>}
+ * @returns {Readonly<{productTarget: string, rustTriple: string, nodePlatform: string, nodeArchitecture: string, nodeArchiveKind: string, nodeArchivePlatform: string, sidecarSourceMember: string, sidecarBasename: string, nativePlatformKey: string, bundleKinds: readonly string[], artifactDirectories: readonly string[], updaterPlatform: string, updaterArtifactSuffix: string, updaterSignatureSuffix: string, updaterArtifactSuffixes: readonly string[], tauriConfig: string, runtimeRelativeDir: string, sizeBudgetMiB: number}>}
  */
 export function resolveTarget(requestedTriple, options = {}) {
   const triple = requestedTriple ?? (options.detectHost ?? detectHostRustTriple)();
@@ -107,6 +119,19 @@ export function resolveTargetFromArgs(argv) {
     throw new Error('--target requires a Rust target triple');
   }
   return resolveTarget(requested);
+}
+
+/**
+ * Resolve target-relative artifact directories beneath the desktop package.
+ *
+ * @param {Readonly<{artifactDirectories: readonly string[], rustTriple: string}>} target
+ * @param {string} desktopRoot
+ * @returns {string[]}
+ */
+export function artifactDirectoriesFor(target, desktopRoot) {
+  return target.artifactDirectories.map((directory) =>
+    resolvePath(desktopRoot, directory.replaceAll('{rustTriple}', target.rustTriple)),
+  );
 }
 
 /**

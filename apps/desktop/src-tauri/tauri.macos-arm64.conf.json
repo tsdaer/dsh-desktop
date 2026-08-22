@@ -1,0 +1,13 @@
+{
+  "bundle": {
+    "targets": ["app", "dmg"],
+    "resources": {
+      "../.runtime/aarch64-apple-darwin/deploy/": "runtime"
+    },
+    "macOS": {
+      "minimumSystemVersion": "13.0",
+      "entitlements": "entitlements.plist",
+      "hardenedRuntime": true
+    }
+  }
+}

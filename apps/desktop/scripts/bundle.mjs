@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { resolveTargetFromArgs } from './target-spec.mjs';
+import { effectiveTauriConfig, tauriBuildArgs } from './tauri-config.mjs';
 
 const desktopRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const args = process.argv.slice(2);
@@ -24,13 +25,20 @@ function run(command, commandArgs) {
 }
 
 run(node, ['scripts/sync-version.mjs']);
+effectiveTauriConfig(target, desktopRoot);
 run(node, ['scripts/gen-icons.mjs', '--check']);
 run(node, ['scripts/build-bridge.mjs']);
 run(pnpm, ['exec', 'tsc', '-p', 'tsconfig.json']);
 run(pnpm, ['exec', 'tsc', '-p', 'bridge-client/tsconfig.tests.json']);
 run(pnpm, ['exec', 'vitest', '--config', 'bridge-client/vitest.config.ts', 'run']);
-run(node, ['--test', 'scripts/target-spec.spec.mjs']);
-run(node, ['--test', 'scripts/fetch-node-sidecar.spec.mjs']);
+run(node, ['--test',
+  'scripts/target-spec.spec.mjs',
+  'scripts/fetch-node-sidecar.spec.mjs',
+  'scripts/runtime-native.spec.mjs',
+  'scripts/tauri-config.spec.mjs',
+  'scripts/size-report.spec.mjs',
+  'scripts/updater-manifest.spec.mjs',
+]);
 run(node, ['scripts/fetch-node-sidecar.mjs', '--target', target.rustTriple]);
 run(node, ['scripts/bake-runtime.mjs', '--target', target.rustTriple]);
-run(pnpm, ['exec', 'tauri', 'build', '--ci', '--target', target.rustTriple]);
+run(pnpm, ['exec', 'tauri', 'build', ...tauriBuildArgs(target, desktopRoot)]);

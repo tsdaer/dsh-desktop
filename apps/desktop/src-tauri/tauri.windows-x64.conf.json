@@ -1,0 +1,23 @@
+{
+  "bundle": {
+    "targets": ["nsis"],
+    "resources": {
+      "../.runtime/x86_64-pc-windows-msvc/deploy/": "runtime"
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
+      },
+      "nsis": {
+        "installerHooks": "installer-hooks.nsh"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}
