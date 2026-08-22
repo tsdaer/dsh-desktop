@@ -63,6 +63,8 @@ runs the target-aware preparation stages: sync the version from package.json int
 
 The installer is self-contained: it ships the shell executable, the target-named Node sidecar (Tauri externalBin), and the baked runtime under resources/runtime/. The source runtime directory is keyed by the Rust target triple, and the target resolver rejects unsupported rows before staging files. On first launch the shell copies the bridge packages into the profile (no npm exists at runtime), heals the profile fallback for built-in packages, and navigates to the served UI. Profile-installed bundles remain resolvable from the profile's own node_modules.
 
+macOS arm64 also has an unsigned build-only command: `pnpm --filter @deepseek-ai/dsh-desktop bundle -- --target aarch64-apple-darwin --experimental`. It produces an app and dmg without updater artifacts; the result is compilation and packaging evidence, not a supported download or update channel. A signed and notarized macOS release requires the product's Developer ID and updater credentials.
+
 ## Packaged runtime
 
 `scripts/bake-runtime.mjs` produces a self-contained, bootable runtime from the built workspace:
@@ -161,7 +163,7 @@ Registration is best-effort and logged on failure. Because the application write
 
 ## Test-version scope
 
-- Dev runs the repo-built CLI on the PATH 'node'; the packaged app carries its own target-named Node sidecar and baked runtime (see Bundle / Packaged runtime above). The tag-gated release workflow builds Windows x64 and Linux x64 draft artifacts from target-native jobs, but the supported updater and release package remain Windows x64 only until Linux native installation, update, uninstall, and packaged GUI evidence are complete; macOS arm64 remains at target-preparation stage.
+- Dev runs the repo-built CLI on the PATH 'node'; the packaged app carries its own target-named Node sidecar and baked runtime (see Bundle / Packaged runtime above). The tag-gated release workflow builds Windows x64 and Linux x64 draft artifacts from target-native jobs and uploads a separate unsigned macOS arm64 experimental bundle. The supported updater and release package remain Windows x64 only until Linux native installation, update, uninstall, and packaged GUI evidence are complete; the macOS bundle remains unsupported until signing, notarization, updater, installation, update, uninstall, and packaged GUI evidence are complete.
 - Icons derive from the DeepSeek fish logo (regenerate via `node scripts/gen-icons.mjs`); the tray reuses the bundled window icon.
 - Closing the window terminates the runtime process unless close-to-tray is enabled (see "Desktop settings, tray, and close behavior"); sessions persist on disk under $DSH_HOME.
 - The window binds nothing of its own: the runtime still serves only loopback (127.0.0.1) with no auth, matching 'dsh web' posture.

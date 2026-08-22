@@ -40,3 +40,18 @@ test('Tauri build arguments carry the same explicit target and config layer', ()
     resolve(desktopRoot, 'src-tauri/tauri.linux-x64.conf.json'),
   ]);
 });
+
+test('the macOS experimental layer disables updater artifacts without changing bundle targets', () => {
+  const target = resolveTarget('aarch64-apple-darwin');
+  const experimental = 'src-tauri/tauri.macos-arm64.experimental.conf.json';
+  const config = effectiveTauriConfig(target, desktopRoot, experimental);
+  assert.deepEqual(config.bundle.targets, ['app', 'dmg']);
+  assert.equal(config.bundle.createUpdaterArtifacts, false);
+  assert.deepEqual(tauriBuildArgs(target, desktopRoot, experimental), [
+    '--ci',
+    '--target',
+    'aarch64-apple-darwin',
+    '--config',
+    resolve(desktopRoot, experimental),
+  ]);
+});

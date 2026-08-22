@@ -43,11 +43,12 @@ function isRecord(value) {
  *
  * @param {Readonly<{tauriConfig: string}>} target
  * @param {string} desktopRoot
+ * @param {string} [targetConfig=target.tauriConfig] Reviewed overlay path.
  * @returns {{basePath: string, targetPath: string}}
  */
-export function tauriConfigPaths(target, desktopRoot) {
+export function tauriConfigPaths(target, desktopRoot, targetConfig = target.tauriConfig) {
   const basePath = resolve(desktopRoot, 'src-tauri/tauri.conf.json');
-  const targetPath = resolve(desktopRoot, target.tauriConfig);
+  const targetPath = resolve(desktopRoot, targetConfig);
   if (!existsSync(basePath)) throw new Error(`missing Tauri base config: ${basePath}`);
   if (!existsSync(targetPath)) throw new Error(`missing Tauri target config: ${targetPath}`);
   return { basePath, targetPath };
@@ -60,10 +61,11 @@ export function tauriConfigPaths(target, desktopRoot) {
  *
  * @param {Readonly<{bundleKinds: readonly string[], rustTriple: string, tauriConfig: string, updaterPlatform: string}>} target
  * @param {string} desktopRoot
+ * @param {string} [targetConfig=target.tauriConfig] Reviewed overlay path.
  * @returns {Readonly<Record<string, unknown>>}
  */
-export function effectiveTauriConfig(target, desktopRoot) {
-  const { basePath, targetPath } = tauriConfigPaths(target, desktopRoot);
+export function effectiveTauriConfig(target, desktopRoot, targetConfig = target.tauriConfig) {
+  const { basePath, targetPath } = tauriConfigPaths(target, desktopRoot, targetConfig);
   const config = mergeTauriConfig(readJson(basePath), readJson(targetPath));
   const bundle = isRecord(config.bundle) ? config.bundle : {};
   const plugins = isRecord(config.plugins) ? config.plugins : {};
@@ -94,10 +96,11 @@ export function effectiveTauriConfig(target, desktopRoot) {
  *
  * @param {Readonly<{rustTriple: string, tauriConfig: string}>} target
  * @param {string} desktopRoot
+ * @param {string} [targetConfig=target.tauriConfig] Reviewed overlay path.
  * @returns {string[]}
  */
-export function tauriBuildArgs(target, desktopRoot) {
-  return ['--ci', '--target', target.rustTriple, '--config', resolve(desktopRoot, target.tauriConfig)];
+export function tauriBuildArgs(target, desktopRoot, targetConfig = target.tauriConfig) {
+  return ['--ci', '--target', target.rustTriple, '--config', resolve(desktopRoot, targetConfig)];
 }
 
 /**

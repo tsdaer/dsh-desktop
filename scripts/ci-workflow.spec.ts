@@ -400,21 +400,23 @@ describe('Python release workflows', () => {
 })
 
 describe('Desktop release workflow', () => {
-  it('builds Windows and Linux artifacts from one validated tag without publishing a non-draft release', () => {
+  it('builds target-native Windows and Linux release artifacts plus a separate macOS experimental bundle', () => {
     const workflow = loadWorkflow('.github/workflows/desktop-release.yml')
     if (!isRecord(workflow.jobs)) throw new TypeError('desktop release workflow must define jobs')
 
     const validate = workflow.jobs.validate
     const windows = workflow.jobs['build-windows']
     const linux = workflow.jobs['build-linux']
+    const macos = workflow.jobs['build-macos-experimental']
     const draft = workflow.jobs['draft-release']
-    if (!isRecord(validate) || !isRecord(windows) || !isRecord(linux) || !isRecord(draft)) {
-      throw new TypeError('desktop release workflow must define validate, build-windows, build-linux, and draft-release jobs')
+    if (!isRecord(validate) || !isRecord(windows) || !isRecord(linux) || !isRecord(macos) || !isRecord(draft)) {
+      throw new TypeError('desktop release workflow must define validate, build-windows, build-linux, build-macos-experimental, and draft-release jobs')
     }
     const workflowJson = JSON.stringify(workflow)
     const validateJson = JSON.stringify(validate)
     const windowsJson = JSON.stringify(windows)
     const linuxJson = JSON.stringify(linux)
+    const macosJson = JSON.stringify(macos)
     const draftJson = JSON.stringify(draft)
 
     expect(workflow.on).toMatchObject({ push: { tags: ['v*'] }, workflow_dispatch: null })
@@ -440,6 +442,13 @@ describe('Desktop release workflow', () => {
     expect(linuxJson).toContain('packaged-smoke')
     expect(linuxJson).toContain('--install-deb')
 
+    expect(macos['runs-on']).toBe('macos-14')
+    expect(macosJson).toContain('aarch64-apple-darwin')
+    expect(macosJson).toContain('--experimental')
+    expect(macosJson).toContain('size-report')
+    expect(macosJson).toContain('dsh-desktop-macos-arm64-experimental')
+    expect(macosJson).not.toContain('TAURI_SIGNING_PRIVATE_KEY')
+
     expect(draft.needs).toEqual(['validate', 'build-windows', 'build-linux'])
     expect(draftJson).toContain('actions/download-artifact@v4')
     expect(draftJson).toContain('release-artifacts.mjs verify')
@@ -448,7 +457,8 @@ describe('Desktop release workflow', () => {
     expect(draftJson).toContain('--draft')
     expect(draftJson).toContain("steps.check.outputs.is_draft == 'true'")
     expect(draftJson).not.toContain("steps.check.outputs.is_draft == 'false'")
-    expect(workflowJson).not.toContain('macos-14')
+    expect(workflowJson).toContain('macos-14')
+    expect(draftJson).not.toContain('build-macos-experimental')
   })
 })
 

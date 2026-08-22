@@ -11,6 +11,13 @@ import { effectiveTauriConfig, tauriBuildArgs } from './tauri-config.mjs';
 const desktopRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const args = process.argv.slice(2);
 const target = resolveTargetFromArgs(args);
+const experimental = args.includes('--experimental');
+if (experimental && target.productTarget !== 'macos-arm64') {
+  throw new Error('--experimental is currently available only for the macOS arm64 build');
+}
+const targetConfig = experimental
+  ? 'src-tauri/tauri.macos-arm64.experimental.conf.json'
+  : target.tauriConfig;
 const node = process.execPath;
 const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 
@@ -25,7 +32,7 @@ function run(command, commandArgs) {
 }
 
 run(node, ['scripts/sync-version.mjs']);
-effectiveTauriConfig(target, desktopRoot);
+effectiveTauriConfig(target, desktopRoot, targetConfig);
 run(node, ['scripts/gen-icons.mjs', '--check']);
 run(node, ['scripts/build-bridge.mjs']);
 run(pnpm, ['exec', 'tsc', '-p', 'tsconfig.json']);
@@ -43,4 +50,4 @@ run(node, ['--test',
 ]);
 run(node, ['scripts/fetch-node-sidecar.mjs', '--target', target.rustTriple]);
 run(node, ['scripts/bake-runtime.mjs', '--target', target.rustTriple]);
-run(pnpm, ['exec', 'tauri', 'build', ...tauriBuildArgs(target, desktopRoot)]);
+run(pnpm, ['exec', 'tauri', 'build', ...tauriBuildArgs(target, desktopRoot, targetConfig)]);

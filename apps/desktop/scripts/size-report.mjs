@@ -60,18 +60,19 @@ function walkArtifactEntries(dir, entries) {
  *
  * @param {Readonly<{artifactDirectories: readonly string[], rustTriple: string, updaterArtifactSuffixes: readonly string[]}>} target
  * @param {string} desktopRoot
+ * @param {readonly string[]} [expectedSuffixes=target.updaterArtifactSuffixes] Artifact suffixes required for this inspection.
  * @returns {{directories: string[], entries: Array<{path: string, name: string, directory: boolean}>, missing: string[], compressedBytes: number}}
  */
-export function inspectArtifacts(target, desktopRoot) {
+export function inspectArtifacts(target, desktopRoot, expectedSuffixes = target.updaterArtifactSuffixes) {
   const directories = artifactDirectoriesFor(target, desktopRoot);
   const entries = [];
   for (const directory of directories) walkArtifactEntries(directory, entries);
-  const missing = target.updaterArtifactSuffixes.filter((suffix) =>
+  const missing = expectedSuffixes.filter((suffix) =>
     !entries.some((entry) => entry.name.endsWith(suffix)),
   );
   const compressedBytes = entries
     .filter((entry) => !entry.directory && !entry.name.endsWith('.sig') &&
-      target.updaterArtifactSuffixes.some((suffix) => suffix !== '.app' && !suffix.endsWith('.sig') && entry.name.endsWith(suffix)))
+      expectedSuffixes.some((suffix) => suffix !== '.app' && !suffix.endsWith('.sig') && entry.name.endsWith(suffix)))
     .reduce((total, entry) => total + statSync(entry.path).size, 0);
   return { directories, entries, missing, compressedBytes };
 }
@@ -79,9 +80,17 @@ export function inspectArtifacts(target, desktopRoot) {
 function main() {
   const args = process.argv.slice(2);
   const check = args.includes('--check');
+  const experimental = args.includes('--experimental');
   const target = resolveTargetFromArgs(args);
+  if (experimental && target.productTarget !== 'macos-arm64') {
+    console.error('[size-report] --experimental is currently available only for macOS arm64');
+    process.exit(1);
+  }
   const runtimeDir = resolve(here, '..', target.runtimeRelativeDir);
-  const artifactInfo = inspectArtifacts(target, resolve(here, '..'));
+  const expectedSuffixes = experimental
+    ? target.updaterArtifactSuffixes.filter((suffix) => suffix === '.app' || suffix === '.dmg')
+    : target.updaterArtifactSuffixes;
+  const artifactInfo = inspectArtifacts(target, resolve(here, '..'), expectedSuffixes);
   const budgetMiB = Number(process.env.DSH_RUNTIME_BUDGET_MB ?? target.sizeBudgetMiB);
 
   if (!existsSync(runtimeDir)) {

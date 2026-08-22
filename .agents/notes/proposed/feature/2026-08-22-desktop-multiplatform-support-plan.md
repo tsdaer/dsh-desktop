@@ -129,7 +129,9 @@ The runtime-bake path now requires the fetched target sidecar for profile initia
 
 The Linux release job now runs a target-native AppImage startup smoke and a deb install/start/purge smoke under `xvfb-run`. The smoke proves packaged readiness, managed-process cleanup, and temporary `DSH_HOME` retention; terminal interaction, updater installation, minimum-distribution coverage, and packaged GUI evidence remain open.
 
-Remaining work is target-native Linux terminal, update, minimum-baseline, and packaged GUI evidence; macOS native-runner compilation, release automation, signing/notarization, updater, installed-update smoke, documentation, and GUI evidence; plus final Windows regression evidence.
+The macOS arm64 release job now compiles an unsigned app and dmg on `macos-14` through a reviewed experimental configuration, omits updater artifacts, checks the build-only size inventory, and uploads the result separately from the draft Release. It does not establish macOS support or signing evidence.
+
+Remaining work is target-native Linux terminal, update, minimum-baseline, and packaged GUI evidence; macOS native packaged smoke, signing/notarization, updater, installed-update smoke, documentation, and GUI evidence; plus final Windows regression evidence.
 
 The release product remains Windows x64 only. Linux and macOS are not supported until their native runtime, Rust/Tauri shell, target configuration, release workflow, updater, installation, update, uninstall, and packaged GUI evidence satisfy the acceptance criteria below.
 

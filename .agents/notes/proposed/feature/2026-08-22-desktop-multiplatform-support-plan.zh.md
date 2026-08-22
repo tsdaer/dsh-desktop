@@ -129,7 +129,9 @@ Tauri updater 按平台和架构选择制品。从同一已校验工作流创建
 
 Linux 发布 job 现在会在 `xvfb-run` 下运行目标原生 AppImage 启动冒烟,以及 deb 安装/启动/清除冒烟。该冒烟检查证明打包后的就绪状态、受管理进程清理和临时 `DSH_HOME` 保留;终端交互、更新安装、最低发行版覆盖和打包 GUI 证据仍未完成。
 
-剩余工作包括目标原生 Linux 终端、更新、最低基线和打包 GUI 证据;macOS 原生 runner 编译、发布自动化、签名/公证、updater、已安装更新冒烟、文档和 GUI 证据;以及最终的 Windows 回归证据。
+macOS arm64 发布 job 现在会在 `macos-14` 上通过经过审查的实验性配置编译未签名 app 和 dmg,不生成 updater 构件,校验仅构建体积清单,并把结果与 draft Release 分开上传。它不构成 macOS 支持或签名证据。
+
+剩余工作包括目标原生 Linux 终端、更新、最低基线和打包 GUI 证据;macOS 原生安装版冒烟、签名/公证、updater、已安装更新冒烟、文档和 GUI 证据;以及最终的 Windows 回归证据。
 
 发布产品仍仅支持 Windows x64。Linux 与 macOS 需完成原生运行时、Rust/Tauri 壳子、目标配置、发布工作流、updater、安装、更新、卸载和打包 GUI 证据，并满足下方验收标准后，才能声明受支持。
 

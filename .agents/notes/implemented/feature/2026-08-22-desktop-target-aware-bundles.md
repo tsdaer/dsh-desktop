@@ -14,15 +14,15 @@ Target selection covered the sidecar and runtime, but Tauri still carried one NS
 
 `size-report.mjs` inspects the target runtime and every expected artifact suffix, reports runtime bytes separately from compressed installer bytes, and fails when the runtime budget, dependency leakage, or artifact inventory check fails. `release-artifacts.mjs` validates and stages direct bundle outputs under a product-target directory, and verifies the combined release inventory before hashing. `updater-manifest.mjs` maps signed primary updater artifacts to the target directories present in the release workspace, and rejects missing signatures, duplicate primary artifacts, unexpected names, empty signatures, and version mismatches.
 
-`.github/workflows/desktop-release.yml` validates the version, tag, changelog, and source commit once, then builds Windows x64 and Linux x64 on their native runners with separate sidecars and runtimes. The draft job downloads both staged inventories, records `SHA256SUMS`, and creates or refreshes only a draft Release. macOS is not included in the supported release inventory until its build, signing, notarization, and packaged evidence are complete.
+`.github/workflows/desktop-release.yml` validates the version, tag, changelog, and source commit once, then builds Windows x64 and Linux x64 on their native runners with separate sidecars and runtimes. A macOS arm64 job builds an unsigned app and dmg through the reviewed experimental layer without updater artifacts; it uploads that evidence separately and never feeds it to the release inventory. The draft job downloads the Windows and Linux staged inventories, records `SHA256SUMS`, and creates or refreshes only a draft Release.
 
 ## Testing
 
-Target specification, Tauri layer validation, artifact discovery, release staging, and updater inventory tests cover all three rows, missing and duplicate artifacts, wrong versions, unexpected names, staged target selection, and target-specific output paths. The CI workflow specification pins tag validation, native runner selection, signing input checks, staged inventory verification, hash generation, and draft-only publication. The existing sidecar and native-runtime tests run with these checks from the bundle command.
+Target specification, Tauri layer validation, artifact discovery, release staging, and updater inventory tests cover all three rows, missing and duplicate artifacts, wrong versions, unexpected names, staged target selection, target-specific output paths, and the unsigned macOS artifact mode. The CI workflow specification pins tag validation, native runner selection, the separate macOS experimental job, signing input checks for supported release targets, staged inventory verification, hash generation, and draft-only publication. The existing sidecar and native-runtime tests run with these checks from the bundle command.
 
 ## Consequences
 
-Local and CI commands must provide a native target runtime and use `--target <triple>` when switching platforms. The release workflow produces Windows and Linux draft inventories without sharing native runtime bytes, but Linux and macOS remain unsupported until their signing where applicable, installation, update, uninstall, and packaged GUI evidence are complete.
+Local and CI commands must provide a native target runtime and use `--target <triple>` when switching platforms. The release workflow produces Windows and Linux draft inventories without sharing native runtime bytes and keeps macOS build evidence separate. Linux and macOS remain unsupported until their signing where applicable, installation, update, uninstall, and packaged GUI evidence are complete.
 
 ## Alternatives considered
 

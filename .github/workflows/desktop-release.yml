@@ -185,6 +185,52 @@ jobs:
           path: ${{ runner.temp }}/dsh-desktop-artifacts/linux-x64
           if-no-files-found: error
 
+  build-macos-experimental:
+    name: build macOS arm64 unsigned experimental bundle
+    needs: validate
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate.outputs.tag }}
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - uses: pnpm/action-setup@v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install (immutable)
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the workspace (CLI + web frontend)
+        run: pnpm run build
+
+      - name: Bundle the unsigned macOS experimental artifact
+        run: pnpm --filter @deepseek-ai/dsh-desktop bundle -- --target aarch64-apple-darwin --experimental
+
+      - name: Check the macOS experimental artifact size
+        run: pnpm --filter @deepseek-ai/dsh-desktop size-report -- --check --target aarch64-apple-darwin --experimental
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dsh-desktop-macos-arm64-experimental-${{ needs.validate.outputs.version }}
+          path: |
+            apps/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/macos
+            apps/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg
+          if-no-files-found: error
+
   draft-release:
     name: draft release for the desktop version
     needs: [validate, build-windows, build-linux]

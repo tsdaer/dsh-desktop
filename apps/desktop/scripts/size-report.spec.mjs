@@ -47,3 +47,20 @@ test('reports a missing expected artifact instead of accepting a partial bundle'
     testFixture.cleanup();
   }
 });
+
+test('can inspect unsigned macOS build-only artifacts without weakening signed release checks', () => {
+  const testFixture = fixture();
+  try {
+    const target = resolveTarget('aarch64-apple-darwin');
+    mkdirSync(join(testFixture.root, 'src-tauri/target/aarch64-apple-darwin/release/bundle/macos/dsh-desktop.app'), { recursive: true });
+    testFixture.file('src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/dsh-desktop.dmg');
+    const result = inspectArtifacts(target, testFixture.root, ['.app', '.dmg']);
+    assert.deepEqual(result.missing, []);
+    assert.equal(result.compressedBytes, 'artifact'.length);
+    assert.deepEqual(inspectArtifacts(target, testFixture.root).missing, [
+      '.app.tar.gz', '.app.tar.gz.sig', '.dmg.sig',
+    ]);
+  } finally {
+    testFixture.cleanup();
+  }
+});
