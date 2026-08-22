@@ -125,13 +125,13 @@ Tauri updater 按平台和架构选择制品。从同一已校验工作流创建
 
 运行时烘焙路径现在要求使用已获取的目标 sidecar 完成 profile 初始化与 readiness 校验，终止校验进程树，且 bundle 命令先获取 sidecar 再烘焙。[目标原生运行时校验](../../implemented/feature/2026-08-22-desktop-target-native-runtime.md)会裁剪每个原生 `prebuilds` 目录；没有兼容预编译时接受目标 source build；存在时要求 `node-pty` 与 `koffi` 有可加载二进制；并在启动校验前拒绝可识别的其他平台原生文件。聚焦测试覆盖兼容预编译、source-build fallback、缺少目标二进制和跨平台文件。Rust 壳已经具备按目标命名的安装版 sidecar、禁止安装版使用环境 Node、把 WebView2 controller 与修复代码隔离到 Windows，以及使用平台中立的 `webview` 启动画面步骤。可移植 debug-mode 命令返回 `{ requested, applied, limitation }`；Linux 和 macOS 返回 `applied: false` 及明确的平台 webview 限制，bridge client 会记录该限制。工作包 3 仍需完成目标原生启动与 Linux 终端证据；工作包 4 仍需在各目标原生 runner 上编译并验证可移植壳行为。
 
-[按目标的 bundle 配置与 updater 构件清单](../../implemented/feature/2026-08-22-desktop-target-aware-bundles.md)现在把共享 Tauri 设置与经过审查的 Windows、Linux、macOS 配置层分开。bundle 编排会校验生效的目标层,目标输出目录包含 Rust triple,体积报告检查每个预期构件并单独报告压缩安装器字节数,updater 清单测试覆盖三个目标的已签名主构件。工作包 5 和工作包 6 中 Windows/Linux draft 构件暂存部分已实现;目标原生安装、更新、卸载和打包 GUI 证据仍未完成。
+[按目标的 bundle 配置与 updater 构件清单](../../implemented/feature/2026-08-22-desktop-target-aware-bundles.md)现在把共享 Tauri 设置与经过审查的 Windows、Linux、macOS 配置层分开。bundle 编排会校验生效的目标层,目标输出目录包含 Rust triple,体积报告检查每个预期构件并单独报告压缩安装器字节数,updater 清单生成会读取共享 Tauri updater 公钥,并在写入清单前校验每个主构件的 Minisign 文件签名和 trusted comment 签名。测试覆盖有效签名、构件被修改、公钥不匹配以及三个目标的已签名主构件。工作包 5、工作包 6 中 Windows/Linux draft 构件暂存部分以及工作包 7 的清单生成部分已实现;目标原生安装、更新、卸载和打包 GUI 证据仍未完成。
 
 Linux 发布 job 现在会在 `xvfb-run` 下运行目标原生 AppImage 启动冒烟,以及 deb 安装/启动/清除冒烟。该冒烟检查证明打包后的就绪状态、受管理进程清理和临时 `DSH_HOME` 保留;终端交互、更新安装、最低发行版覆盖和打包 GUI 证据仍未完成。
 
 macOS arm64 发布 job 现在会在 `macos-14` 上通过经过审查的实验性配置编译未签名 app 和 dmg,不生成 updater 构件,校验仅构建体积清单,并把结果与 draft Release 分开上传。它不构成 macOS 支持或签名证据。
 
-剩余工作包括目标原生 Linux 终端、更新、最低基线和打包 GUI 证据;macOS 原生安装版冒烟、签名/公证、updater、已安装更新冒烟、文档和 GUI 证据;以及最终的 Windows 回归证据。
+剩余工作包括目标原生 Linux 终端、已安装版本更新冒烟、最低基线和打包 GUI 证据;macOS 原生安装版冒烟、签名/公证、updater 构件发布、已安装版本更新冒烟、文档和 GUI 证据;以及最终的 Windows 回归证据。清单签名校验已经完成,但不能替代要求的已安装版本更新冒烟。
 
 发布产品仍仅支持 Windows x64。Linux 与 macOS 需完成原生运行时、Rust/Tauri 壳子、目标配置、发布工作流、updater、安装、更新、卸载和打包 GUI 证据，并满足下方验收标准后，才能声明受支持。
 

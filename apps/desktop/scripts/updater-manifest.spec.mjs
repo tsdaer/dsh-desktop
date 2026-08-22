@@ -1,11 +1,74 @@
 import assert from 'node:assert/strict';
+import { createHash, generateKeyPairSync, sign } from 'node:crypto';
 import test from 'node:test';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { SUPPORTED_TARGETS } from './target-spec.mjs';
-import { buildUpdaterManifest } from './updater-manifest.mjs';
+import { buildUpdaterManifest, verifyMinisignSignature } from './updater-manifest.mjs';
+
+const { privateKey, publicKey } = generateKeyPairSync('ed25519');
+const publicKeyBytes = publicKey.export({ format: 'der', type: 'spki' }).subarray(-32);
+const keyId = Buffer.from('fixtr001');
+function publicKeyText(rawKey) {
+  return Buffer.from([
+    'untrusted comment: minisign public key: fixture',
+    Buffer.concat([Buffer.from('Ed'), keyId, rawKey]).toString('base64'),
+  ].join('\n')).toString('base64');
+}
+const fixturePublicKey = publicKeyText(publicKeyBytes);
+
+function signatureFor(path) {
+  const artifact = readFileSync(path);
+  const digest = createHash('blake2b512').update(artifact).digest();
+  const fileSignature = sign(null, digest, privateKey);
+  const trustedComment = `timestamp:1\tfile:${path.split(/[\\/]/).pop()}`;
+  const globalSignature = sign(null, Buffer.concat([fileSignature, Buffer.from(trustedComment)]), privateKey);
+  const content = [
+    'untrusted comment: signature from fixture key',
+    Buffer.concat([Buffer.from('ED'), keyId, fileSignature]).toString('base64'),
+    `trusted comment: ${trustedComment}`,
+    globalSignature.toString('base64'),
+  ].join('\n');
+  return Buffer.from(content).toString('base64');
+}
+
+test('fixture signature matches its generated public key', () => {
+  const path = join(tmpdir(), `dsh-updater-signature-${process.pid}`);
+  writeFileSync(path, 'artifact');
+  try {
+    verifyMinisignSignature(readFileSync(path), signatureFor(path), fixturePublicKey, path);
+  } finally {
+    rmSync(path, { force: true });
+  }
+});
+
+test('rejects a changed artifact and a different updater public key', () => {
+  const path = join(tmpdir(), `dsh-updater-signature-${process.pid}`);
+  writeFileSync(path, 'artifact');
+  const signature = signatureFor(path);
+  const { publicKey: otherPublicKey } = generateKeyPairSync('ed25519');
+  try {
+    writeFileSync(path, 'changed');
+    assert.throws(
+      () => verifyMinisignSignature(readFileSync(path), signature, fixturePublicKey, path),
+      /signature verification failed/,
+    );
+    writeFileSync(path, 'artifact');
+    assert.throws(
+      () => verifyMinisignSignature(
+        readFileSync(path),
+        signature,
+        publicKeyText(otherPublicKey.export({ format: 'der', type: 'spki' }).subarray(-32)),
+        path,
+      ),
+      /signature verification failed/,
+    );
+  } finally {
+    rmSync(path, { force: true });
+  }
+});
 
 function fixture() {
   const root = resolve(tmpdir(), `dsh-updater-${process.pid}-${Date.now()}`);
@@ -24,8 +87,9 @@ function populate(root, version = '0.3.4') {
   for (const target of Object.values(SUPPORTED_TARGETS)) {
     const primaryDir = artifactDirectory(root, target);
     const primary = `dsh-desktop_${version}${target.updaterArtifactSuffix}`;
-    writeFileSync(join(primaryDir, primary), 'artifact');
-    writeFileSync(join(primaryDir, `${primary}.sig`), 'signature');
+    const primaryPath = join(primaryDir, primary);
+    writeFileSync(primaryPath, 'artifact');
+    writeFileSync(join(primaryDir, `${primary}.sig`), signatureFor(primaryPath));
     for (const suffix of target.updaterArtifactSuffixes) {
       if (suffix === target.updaterArtifactSuffix || suffix.endsWith('.sig')) continue;
       const path = join(artifactDirectory(root, target, target.artifactDirectories.length > 1 ? 1 : 0), `dsh-desktop_${version}${suffix}`);
@@ -39,9 +103,17 @@ test('generates one signed updater row for each supported target', async () => {
   const testFixture = fixture();
   try {
     populate(testFixture.root);
-    const manifest = await buildUpdaterManifest({ version: '0.3.4', tag: 'v0.3.4', desktopRoot: testFixture.root });
+    const manifest = await buildUpdaterManifest({
+      version: '0.3.4',
+      tag: 'v0.3.4',
+      desktopRoot: testFixture.root,
+      publicKey: fixturePublicKey,
+    });
     assert.deepEqual(Object.keys(manifest.platforms).sort(), ['darwin-aarch64', 'linux-x86_64', 'windows-x86_64']);
-    assert.equal(manifest.platforms['linux-x86_64'].signature, 'signature');
+    assert.equal(
+      manifest.platforms['linux-x86_64'].signature,
+      readFileSync(join(artifactDirectory(testFixture.root, SUPPORTED_TARGETS['x86_64-unknown-linux-gnu']), 'dsh-desktop_0.3.4.AppImage.sig'), 'utf8').trim(),
+    );
     assert.match(manifest.platforms['darwin-aarch64'].url, /dsh-desktop_0.3.4.app.tar.gz$/);
   } finally {
     testFixture.cleanup();
@@ -58,13 +130,15 @@ test('uses only the target directories present in a staged release', async () =>
       const directory = join(testFixture.root, target.productTarget);
       mkdirSync(directory, { recursive: true });
       const primary = `dsh-desktop_0.3.4${target.updaterArtifactSuffix}`;
-      writeFileSync(join(directory, primary), 'artifact');
-      writeFileSync(join(directory, `${primary}.sig`), 'signature');
+      const primaryPath = join(directory, primary);
+      writeFileSync(primaryPath, 'artifact');
+      writeFileSync(join(directory, `${primary}.sig`), signatureFor(primaryPath));
     }
     const manifest = await buildUpdaterManifest({
       version: '0.3.4',
       tag: 'v0.3.4',
       desktopRoot: testFixture.root,
+      publicKey: fixturePublicKey,
       targets: [
         SUPPORTED_TARGETS['x86_64-pc-windows-msvc'],
         SUPPORTED_TARGETS['x86_64-unknown-linux-gnu'],
@@ -121,7 +195,12 @@ test('rejects missing signatures, duplicate targets, wrong versions, and unexpec
       populate(testFixture.root);
       scenario.mutate(testFixture.root);
       await assert.rejects(
-        buildUpdaterManifest({ version: '0.3.4', tag: 'v0.3.4', desktopRoot: testFixture.root }),
+        buildUpdaterManifest({
+          version: '0.3.4',
+          tag: 'v0.3.4',
+          desktopRoot: testFixture.root,
+          publicKey: fixturePublicKey,
+        }),
         scenario.message,
       );
     } finally {
