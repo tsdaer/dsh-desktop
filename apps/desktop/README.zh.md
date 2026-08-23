@@ -183,7 +183,7 @@ dsh 设置页的 桌面设置 分区(由桥接 client 注册)有三行,都经桥
 
 ## 测试版范围
 
-- dev 用 PATH 上的 'node' 跑仓库构建出的 CLI;打包应用自带按目标命名的 Node sidecar 和烤出的运行时(见上文 打包 / 打包运行时)。标签门控的发布工作流由目标原生 job 构建 Windows x64 与 Linux x64 draft 构件,并另外上传未签名的 macOS arm64 实验性构件。Linux 原生安装、更新、卸载和打包 GUI 证据完成前,受支持的 updater 与发布安装包仍只有 Windows x64;macOS 还必须完成签名、公证、updater、安装、更新、卸载和打包 GUI 证据后才能受支持。
+- dev 用 PATH 上的 'node' 跑仓库构建出的 CLI;打包应用自带按目标命名的 Node sidecar 和烤出的运行时(见上文 打包 / 打包运行时)。标签门控的发布工作流由目标原生 job 构建 Windows x64 与 Linux x64 draft 构件,并把单独标记的未签名 macOS arm64 实验性 bundle 附加到同一个 draft Release。macOS 实验性构件不进入受支持的发布清单;Linux 原生安装、更新、卸载和打包 GUI 证据完成前,受支持的 updater 与发布安装包仍只有 Windows x64;macOS 还必须完成签名、公证、updater、安装、更新、卸载和打包 GUI 证据后才能受支持。
 - 图标源自 DeepSeek 鱼形 logo(用 `node scripts/gen-icons.mjs` 重新生成);托盘复用捆绑的窗口图标。
 - 关闭窗口即终止运行时进程,除非开启了关闭到托盘(见“桌面设置、托盘与关闭行为”);会话持久化在 $DSH_HOME 下的磁盘上。
 - 窗口自身不绑定任何东西:运行时仍只服务 loopback(127.0.0.1)且无鉴权,与 'dsh web' 的姿态一致。

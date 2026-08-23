@@ -74,7 +74,7 @@ describe('desktop release workflow', () => {
 
   it('checks out the validated commit for every release job that reads the source tree', () => {
     const workflow = loadWorkflow()
-    for (const name of ['build-windows', 'build-linux', 'build-macos-experimental', 'build-macos-signed', 'draft-release', 'attach-macos-signed']) {
+    for (const name of ['build-windows', 'build-linux', 'build-macos-experimental', 'build-macos-signed', 'draft-release', 'attach-macos-signed', 'attach-macos-experimental']) {
       const job = requiredJob(workflow, name)
       const steps: readonly unknown[] = Array.isArray(job.steps) ? job.steps : []
       const checkout = steps.find((step): step is Record<string, unknown> => isRecord(step) && step.uses === 'actions/checkout@v4')
@@ -85,11 +85,12 @@ describe('desktop release workflow', () => {
     }
   })
 
-  it('publishes only the validated Windows/Linux inventory and keeps signed macOS attachment opt-in', () => {
+  it('publishes the validated Windows/Linux inventory and separate experimental macOS assets', () => {
     const workflow = loadWorkflow()
     const draft = requiredJob(workflow, 'draft-release')
     const signed = requiredJob(workflow, 'build-macos-signed')
     const attach = requiredJob(workflow, 'attach-macos-signed')
+    const experimentalAttach = requiredJob(workflow, 'attach-macos-experimental')
 
     expect(draft.needs).toEqual(['validate', 'build-windows', 'build-linux'])
     expect(JSON.stringify(draft)).toContain('release-artifacts.mjs verify')
@@ -106,6 +107,12 @@ describe('desktop release workflow', () => {
     expect(JSON.stringify(signed)).toContain('always()')
     expect(attach.if).toContain("needs.build-macos-signed.result == 'success'")
     expect(JSON.stringify(attach)).toContain('updater-manifest.mjs')
+    expect(experimentalAttach.needs).toEqual(['validate', 'draft-release', 'build-macos-experimental'])
+    expect(experimentalAttach.if).toContain("needs.build-macos-experimental.result == 'success'")
+    expect(JSON.stringify(experimentalAttach)).toContain('dsh-desktop-macos-arm64-experimental')
+    expect(JSON.stringify(experimentalAttach)).toContain('tar -czf')
+    expect(JSON.stringify(experimentalAttach)).toContain('gh release upload')
+    expect(JSON.stringify(experimentalAttach)).not.toContain('updater-manifest.mjs')
   })
 })
 

@@ -400,7 +400,7 @@ describe('Python release workflows', () => {
 })
 
 describe('Desktop release workflow', () => {
-  it('builds target-native Windows and Linux artifacts plus opt-in signed macOS release artifacts', () => {
+  it('builds target-native Windows and Linux artifacts plus experimental and opt-in signed macOS artifacts', () => {
     const workflow = loadWorkflow('.github/workflows/desktop-release.yml')
     if (!isRecord(workflow.jobs)) throw new TypeError('desktop release workflow must define jobs')
 
@@ -411,6 +411,7 @@ describe('Desktop release workflow', () => {
     const signedMacos = workflow.jobs['build-macos-signed']
     const draft = workflow.jobs['draft-release']
     const attachMacos = workflow.jobs['attach-macos-signed']
+    const attachMacosExperimental = workflow.jobs['attach-macos-experimental']
     if (
       !isRecord(validate) ||
       !isRecord(windows) ||
@@ -418,9 +419,10 @@ describe('Desktop release workflow', () => {
       !isRecord(macos) ||
       !isRecord(signedMacos) ||
       !isRecord(draft) ||
-      !isRecord(attachMacos)
+      !isRecord(attachMacos) ||
+      !isRecord(attachMacosExperimental)
     ) {
-      throw new TypeError('desktop release workflow must define validation, target builds, and signed macOS attachment jobs')
+      throw new TypeError('desktop release workflow must define validation, target builds, and macOS attachment jobs')
     }
     const workflowJson = JSON.stringify(workflow)
     const validateJson = JSON.stringify(validate)
@@ -430,6 +432,7 @@ describe('Desktop release workflow', () => {
     const signedMacosJson = JSON.stringify(signedMacos)
     const draftJson = JSON.stringify(draft)
     const attachMacosJson = JSON.stringify(attachMacos)
+    const attachMacosExperimentalJson = JSON.stringify(attachMacosExperimental)
 
     expect(workflow.on).toMatchObject({ push: { tags: ['v*'] }, workflow_dispatch: null })
     expect(workflow).not.toHaveProperty('on.push.branches')
@@ -496,6 +499,11 @@ describe('Desktop release workflow', () => {
     expect(attachMacosJson).toContain('dsh-desktop-macos-arm64-')
     expect(attachMacosJson).toContain('updater-manifest.mjs')
     expect(attachMacosJson).toContain('latest.json')
+    expect(attachMacosExperimental['if']).toContain('needs.build-macos-experimental.result == \'success\'')
+    expect(attachMacosExperimentalJson).toContain('dsh-desktop-macos-arm64-experimental')
+    expect(attachMacosExperimentalJson).toContain('tar -czf')
+    expect(attachMacosExperimentalJson).toContain('gh release upload')
+    expect(attachMacosExperimentalJson).not.toContain('updater-manifest.mjs')
   })
 })
 

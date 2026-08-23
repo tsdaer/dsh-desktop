@@ -10,7 +10,7 @@ The macOS arm64 workflow produced an unsigned experimental app and dmg, while th
 
 ## Decision
 
-The existing macOS experimental job remains the default and never contributes artifacts to the supported release inventory. A signed macOS job runs only when the repository variable `DSH_DESKTOP_MACOS_RELEASE` is `true`; it requires the Developer ID certificate, signing identity, Apple notarization credentials, and Tauri updater private key. Missing inputs fail that opt-in job before publication.
+The existing macOS experimental job remains the default. After the Windows/Linux draft inventory exists, a separate attachment job adds its unsigned arm64 app archive and dmg to the same draft Release; these assets never enter the supported release inventory. A signed macOS job runs only when the repository variable `DSH_DESKTOP_MACOS_RELEASE` is `true`; it requires the Developer ID certificate, signing identity, Apple notarization credentials, and Tauri updater private key. Missing inputs fail that opt-in job before publication.
 
 The workflow imports the Developer ID certificate into a temporary keychain, saves the runner's existing keychain search list, and passes `APPLE_SIGNING_IDENTITY` to Tauri during bundle creation. Tauri therefore signs the app and nested native helpers before producing the updater archive. An always-run cleanup step restores the search list and removes the temporary keychain and certificate. `macos-sign-release.mjs` runs on macOS after bundling, verifies nested code and the complete app with `codesign`, submits the dmg to `notarytool`, staples the app and dmg, checks the app with `spctl`, then recreates the updater archive from the stapled app and signs that archive with the protected Tauri key. It does not re-sign the app after the updater archive exists.
 
@@ -18,11 +18,11 @@ When the signed job succeeds, a separate attachment job downloads all target inv
 
 ## Testing
 
-The macOS signing helper tests required-input failures and nested native-file discovery. The workflow specification pins the opt-in condition, native runner, signing command, target staging, draft-only attachment, and updater-manifest refresh. The repository has no Apple credentials or macOS runner in the local environment, so signing, notarization, Gatekeeper, installation, updater installation, and GUI evidence remain CI or release evidence.
+The macOS signing helper tests required-input failures and nested native-file discovery. The workflow specification pins the unsigned draft attachment, opt-in condition, native runner, signing command, target staging, draft-only attachment, and updater-manifest refresh. The repository has no Apple credentials or macOS runner in the local environment, so signing, notarization, Gatekeeper, installation, updater installation, and GUI evidence remain CI or release evidence.
 
 ## Consequences
 
-The macOS arm64 build remains experimental until the opt-in lane has completed native packaged startup, installation, update, uninstall, and GUI evidence. A signed macOS updater row can enter `latest.json` only through the staged signed inventory; the unsigned experimental artifact cannot enter that manifest.
+The macOS arm64 build remains experimental until the opt-in lane has completed native packaged startup, installation, update, uninstall, and GUI evidence. The draft Release exposes the unsigned app archive and dmg for build distribution, but a signed macOS updater row can enter `latest.json` only through the staged signed inventory; the unsigned experimental artifacts cannot enter that manifest.
 
 ## Alternatives considered
 

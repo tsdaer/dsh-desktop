@@ -10,7 +10,7 @@ macOS arm64 工作流只生成未签名的实验性 app 和 dmg,而正式发布�
 
 ## 决定
 
-现有 macOS experimental job 仍是默认路径,并且不会把构件放入正式发布清单。只有仓库变量 `DSH_DESKTOP_MACOS_RELEASE` 为 `true` 时才运行签名 macOS job;该 job 要求 Developer ID 证书、签名身份、Apple 公证凭据和 Tauri updater 私钥。缺少任一输入时,可选 job 会在发布前失败。
+现有 macOS experimental job 仍是默认路径。Windows/Linux draft 清单建立后,单独的 attachment job 会把未签名 arm64 app 压缩包和 dmg 添加到同一个 draft Release;这些构件不会进入受支持的发布清单。只有仓库变量 `DSH_DESKTOP_MACOS_RELEASE` 为 `true` 时才运行签名 macOS job;该 job 要求 Developer ID 证书、签名身份、Apple 公证凭据和 Tauri updater 私钥。缺少任一输入时,可选 job 会在发布前失败。
 
 工作流把 Developer ID 证书导入临时 keychain,保存 runner 原有的 keychain 搜索列表,并在 bundle 阶段把 `APPLE_SIGNING_IDENTITY` 传给 Tauri。因此 Tauri 会在生成 updater 压缩包之前签名 app 及其中的原生 helper。always-run cleanup 步骤恢复搜索列表并删除临时 keychain 和证书。`macos-sign-release.mjs` 在 bundle 之后于 macOS 上校验嵌套代码和完整 app 的 `codesign` 签名,使用 `notarytool` 提交 dmg,对 app 和 dmg 执行 staple,再用 `spctl` 检查 app,然后从已 staple 的 app 重新生成 updater 压缩包并使用受保护的 Tauri 私钥签名。它不会在 updater 压缩包生成后重新签名 app。
 
@@ -18,11 +18,11 @@ macOS arm64 工作流只生成未签名的实验性 app 和 dmg,而正式发布�
 
 ## 测试
 
-macOS 签名辅助脚本的测试覆盖必需输入缺失和嵌套原生文件发现。workflow specification 固定可选条件、原生 runner、签名命令、目标构件暂存、仅 draft attachment 和 updater manifest 刷新。本地环境没有 Apple 凭据或 macOS runner,因此签名、公证、Gatekeeper、安装、updater 安装和 GUI 证据仍需在 CI 或发布环境取得。
+macOS 签名辅助脚本的测试覆盖必需输入缺失和嵌套原生文件发现。workflow specification 固定未签名 draft attachment、可选条件、原生 runner、签名命令、目标构件暂存、仅 draft attachment 和 updater manifest 刷新。本地环境没有 Apple 凭据或 macOS runner,因此签名、公证、Gatekeeper、安装、updater 安装和 GUI 证据仍需在 CI 或发布环境取得。
 
 ## 结果
 
-macOS arm64 在完成原生打包启动、安装、更新、卸载和 GUI 证据之前仍是实验性目标。只有签名 job 暂存的构件可以进入 `latest.json`;未签名 experimental 构件不能进入该清单。
+macOS arm64 在完成原生打包启动、安装、更新、卸载和 GUI 证据之前仍是实验性目标。draft Release 会提供未签名 app 压缩包和 dmg 用于构建分发,但只有签名 job 暂存的构件可以进入 `latest.json`;未签名 experimental 构件不能进入该清单。
 
 ## 考虑过的方案
 

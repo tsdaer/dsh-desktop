@@ -602,3 +602,41 @@ jobs:
         run: gh release upload "${{ needs.validate.outputs.tag }}" dist/macos-arm64/* latest.json SHA256SUMS --clobber
         env:
           GH_TOKEN: ${{ github.token }}
+
+  attach-macos-experimental:
+    name: attach unsigned macOS experimental artifacts to the draft
+    if: needs.build-macos-experimental.result == 'success' && needs.draft-release.result == 'success'
+    needs: [validate, draft-release, build-macos-experimental]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate.outputs.commit }}
+
+      - name: Verify the validated source commit
+        run: test "$(git rev-parse HEAD)" = "${{ needs.validate.outputs.commit }}"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dsh-desktop-macos-arm64-experimental-${{ needs.validate.outputs.version }}
+          path: dist/macos-arm64-experimental
+
+      - name: Package the unsigned macOS app bundle for the Release
+        run: |
+          set -euo pipefail
+          app="$(find dist/macos-arm64-experimental -type d -name '*.app' -print -quit)"
+          test -n "$app"
+          tar -czf \
+            "dist/macos-arm64-experimental/dsh-desktop_${{ needs.validate.outputs.version }}_macos-arm64-experimental.app.tar.gz" \
+            -C "$(dirname "$app")" "$(basename "$app")"
+
+      - name: Upload unsigned macOS experimental artifacts
+        run: |
+          set -euo pipefail
+          dmg="$(find dist/macos-arm64-experimental -type f -name '*.dmg' -print -quit)"
+          test -n "$dmg"
+          gh release upload "${{ needs.validate.outputs.tag }}" \
+            "$dmg" \
+            dist/macos-arm64-experimental/*.app.tar.gz --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
