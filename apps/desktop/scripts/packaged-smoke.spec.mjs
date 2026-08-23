@@ -10,6 +10,7 @@ import {
   managedProcessPids,
   packagedRuntime,
   packagedExecutable,
+  observeUpdateVersion,
   resolveInstalledDebPackageRoot,
   parseArguments,
   parseProcessSnapshot,
@@ -23,6 +24,35 @@ test('requires a target-native package artifact for the packaged smoke', () => {
   assert.equal(parseArguments([
     '--target', 'x86_64-unknown-linux-gnu', '--artifact', 'dist/dsh.deb', '--install-deb',
   ]).installDeb, true);
+  assert.deepEqual(
+    parseArguments([
+      '--target', 'x86_64-unknown-linux-gnu', '--artifact', 'dist/dsh.AppImage',
+      '--update-smoke', '--expected-version', '0.3.5',
+    ]).expectedVersion,
+    '0.3.5',
+  );
+  assert.throws(
+    () => parseArguments([
+      '--target', 'x86_64-unknown-linux-gnu', '--artifact', 'dist/dsh.AppImage', '--update-smoke',
+    ]), /requires --expected-version/,
+  );
+  assert.throws(
+    () => parseArguments([
+      '--target', 'x86_64-unknown-linux-gnu', '--artifact', 'dist/dsh.AppImage', '--expected-version', '0.3.5',
+    ]), /requires --update-smoke/,
+  );
+  assert.deepEqual(observeUpdateVersion(false, '0.3.4', '0.3.5'), {
+    sawInitialVersion: true,
+    complete: false,
+  });
+  assert.deepEqual(observeUpdateVersion(true, '0.3.5', '0.3.5'), {
+    sawInitialVersion: true,
+    complete: true,
+  });
+  assert.deepEqual(observeUpdateVersion(false, '0.3.5', '0.3.5'), {
+    sawInitialVersion: false,
+    complete: false,
+  });
   assert.throws(
     () => parseArguments(['--target', 'x86_64-pc-windows-msvc', '--artifact', 'dsh.exe']),
     /requires --install-nsis/,

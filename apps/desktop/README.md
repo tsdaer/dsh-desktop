@@ -112,6 +112,8 @@ An update-smoke fixture may pass `--download-base-url <http(s)://host/path>` to 
 
 `pnpm --filter @deepseek-ai/dsh-desktop update-fixture -- --target <triple> --version <next-version> --artifact-root <staged-root>` validates the selected target's detached signature and serves its updater artifact plus a target-only `latest.json` from loopback. Build the version-N artifact with `bundle -- --updater-endpoint <printed-url>` before launching it; the fixture keeps running while the target runner performs the existing update confirmations. This helper does not approve, install, or claim the N-to-N+1 transition itself.
 
+The installed update smoke uses that target-native package with `--update-smoke --expected-version <next-version>`. It enables an explicit runner-only driver that clicks the existing updater control, accepts the two existing confirmation calls, records the version written by each packaged launch, waits for the N-to-N+1 restart, stops the restarted process, and then checks user-data retention. The version-N package must embed the fixture URL, and the next-version artifact must be signed for the same target. This driver is not enabled by a normal launch and does not replace target-runner evidence for GUI behavior or minimum-distribution compatibility.
+
 The frameless main window re-adds `WS_THICKFRAME` (without `WS_CAPTION`) at setup, so the OS provides native resize borders and the Windows 11 snap-layout flyout while the title bar stays custom. The maximize icon reads window state from the native host: Rust pushes `dsh://maximize-change` on every size event and the title bar listens for it, with the polling read kept as a fallback.
 
 ## Drag and drop

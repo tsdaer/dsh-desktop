@@ -2,7 +2,7 @@
 // shell reaches its runtime readiness line before the process tree is stopped.
 // The smoke intentionally runs the installed entry point, not `cargo run` or
 // the source CLI, so resource lookup and the target Node sidecar are included.
-import { cpSync, existsSync, mkdtempSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, posix as posixPath, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -14,7 +14,7 @@ import { resolveTargetFromArgs } from './target-spec.mjs';
  * Parse target-native packaged-smoke options.
  *
  * @param {readonly string[]} argv Arguments after the script name.
- * @returns {{target: Readonly<object>, artifact: string, installDeb: boolean, installDmg: boolean, installNsis: boolean, terminalSmoke: boolean}}
+ * @returns {{target: Readonly<object>, artifact: string, installDeb: boolean, installDmg: boolean, installNsis: boolean, terminalSmoke: boolean, updateSmoke: boolean, expectedVersion?: string}}
  */
 export function parseArguments(argv) {
   const target = resolveTargetFromArgs(argv);
@@ -25,6 +25,21 @@ export function parseArguments(argv) {
   const installDmg = argv.includes('--install-dmg');
   const installNsis = argv.includes('--install-nsis');
   const terminalSmoke = argv.includes('--terminal-smoke');
+  const updateSmoke = argv.includes('--update-smoke');
+  const expectedVersionIndex = argv.indexOf('--expected-version');
+  const expectedVersion = expectedVersionIndex < 0 ? undefined : argv[expectedVersionIndex + 1];
+  if (expectedVersionIndex >= 0 && (!expectedVersion || expectedVersion.startsWith('-'))) {
+    throw new Error('--expected-version requires a version');
+  }
+  if (updateSmoke && expectedVersion === undefined) {
+    throw new Error('--update-smoke requires --expected-version');
+  }
+  if (!updateSmoke && expectedVersion !== undefined) {
+    throw new Error('--expected-version requires --update-smoke');
+  }
+  if (expectedVersion !== undefined && !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(expectedVersion)) {
+    throw new Error(`invalid expected update version: ${expectedVersion}`);
+  }
   if ([installDeb, installDmg, installNsis].filter(Boolean).length > 1) {
     throw new Error('--install-deb, --install-dmg, and --install-nsis are mutually exclusive');
   }
@@ -48,7 +63,23 @@ export function parseArguments(argv) {
   if (!artifact.endsWith(expectedSuffix)) {
     throw new Error(`expected a ${expectedSuffix} artifact: ${artifact}`);
   }
-  return { target, artifact: resolve(artifact), installDeb, installDmg, installNsis, terminalSmoke };
+  return { target, artifact: resolve(artifact), installDeb, installDmg, installNsis, terminalSmoke, updateSmoke, expectedVersion };
+}
+
+/**
+ * Observe one version marker during an installed update smoke.
+ *
+ * @param {boolean} sawInitialVersion Whether a non-expected version was already observed.
+ * @param {string} observedVersion Version recorded by the current packaged launch.
+ * @param {string} expectedVersion Version that the update must install.
+ * @returns {{sawInitialVersion: boolean, complete: boolean}}
+ */
+export function observeUpdateVersion(sawInitialVersion, observedVersion, expectedVersion) {
+  const observedInitialVersion = sawInitialVersion || observedVersion !== expectedVersion;
+  return {
+    sawInitialVersion: observedInitialVersion,
+    complete: observedInitialVersion && observedVersion === expectedVersion,
+  };
 }
 
 /**
@@ -260,6 +291,26 @@ function stopProcessTree(child, signal = 'SIGTERM') {
   }
 }
 
+function stopProcessId(pid, signal = 'SIGTERM') {
+  if (process.platform === 'win32') {
+    const force = signal === 'SIGKILL' ? '/F' : undefined;
+    const result = spawnSync('taskkill.exe', [
+      '/PID', String(pid), '/T', ...(force === undefined ? [] : [force]),
+    ], { stdio: 'ignore' });
+    if (result.error) throw result.error;
+    return;
+  }
+  try {
+    process.kill(-pid, signal);
+  } catch {
+    try {
+      process.kill(pid, signal);
+    } catch {
+      // The process may have exited between the group and direct attempts.
+    }
+  }
+}
+
 async function waitForExit(child, timeoutMs = 10_000) {
   if (child.exitCode !== null) return;
   await new Promise((resolveExit, rejectExit) => {
@@ -281,6 +332,50 @@ async function waitForManagedProcesses(child, sidecarBasename, timeoutMs = 10_00
   const remaining = managedProcessPids(processSnapshot(), child.pid, sidecarBasename);
   if (remaining.size > 0) {
     throw new Error(`packaged app left managed processes after shutdown: ${[...remaining].join(', ')}`);
+  }
+}
+
+async function waitForUpdatedVersion(path, expectedVersion, timeoutMs = 180_000) {
+  const deadline = Date.now() + timeoutMs;
+  let sawInitialVersion = false;
+  while (Date.now() < deadline) {
+    if (existsSync(path)) {
+      const version = readFileSync(path, 'utf8').trim();
+      if (version.length > 0) {
+        const observation = observeUpdateVersion(sawInitialVersion, version, expectedVersion);
+        sawInitialVersion = observation.sawInitialVersion;
+        if (observation.complete) return;
+      }
+    }
+    await new Promise((resolveWait) => setTimeout(resolveWait, 250));
+  }
+  const observed = existsSync(path) ? readFileSync(path, 'utf8').trim() : '<missing>';
+  throw new Error(`installed update did not reach ${expectedVersion}; last recorded version: ${observed}`);
+}
+
+async function stopPackagedProcesses(executable, sidecarBasename, timeoutMs = 10_000) {
+  const executableNeedle = resolve(executable).replaceAll('\\', '/');
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const processes = processSnapshot();
+    const roots = processes.filter((process) => process.command
+      ?.replaceAll('\\', '/').includes(executableNeedle));
+    const managed = new Set();
+    for (const root of roots) {
+      for (const pid of managedProcessPids(processes, root.pid, sidecarBasename)) managed.add(pid);
+    }
+    for (const process of processes) {
+      if (process.command?.includes(sidecarBasename)) managed.add(process.pid);
+    }
+    if (managed.size === 0) return;
+    for (const pid of managed) stopProcessId(pid);
+    await new Promise((resolveWait) => setTimeout(resolveWait, 100));
+  }
+  const remaining = processSnapshot().filter((process) => process.command
+    ?.replaceAll('\\', '/').includes(executableNeedle));
+  if (remaining.length > 0) {
+    for (const process of remaining) stopProcessId(process.pid, 'SIGKILL');
+    throw new Error(`updated packaged app left processes after shutdown: ${remaining.map((process) => process.pid).join(', ')}`);
   }
 }
 
@@ -358,7 +453,7 @@ export function assertUserDataRetained(home, marker) {
   }
 }
 
-async function launch(command, args, env, sidecarBasename) {
+async function launch(command, args, env, sidecarBasename, { stopAfterReady = true } = {}) {
   const child = spawn(command, args, {
     env,
     cwd: dirname(command),
@@ -401,6 +496,7 @@ async function launch(command, args, env, sidecarBasename) {
     });
   });
   const url = await ready;
+  if (!stopAfterReady) return { url, child };
   stopProcessTree(child);
   try {
     await waitForExit(child);
@@ -416,7 +512,7 @@ async function launch(command, args, env, sidecarBasename) {
     await waitForManagedProcesses(child, sidecarBasename, 2_000).catch(() => {});
     throw error;
   }
-  return url;
+  return { url, child };
 }
 
 async function main() {
@@ -468,17 +564,27 @@ async function main() {
         throw new Error(`extracted AppImage has no executable: ${executable}`);
       }
     }
-    const url = await launch(executable, [], {
+    const updateResult = join(home, 'update-version.txt');
+    const launched = await launch(executable, [], {
       ...process.env,
       APPIMAGE_EXTRACT_AND_RUN: '1',
       DSH_HOME: home,
-    }, options.target.sidecarBasename);
+      ...(options.updateSmoke ? {
+        DSH_DESKTOP_UPDATE_SMOKE: '1',
+        DSH_DESKTOP_UPDATE_RESULT: updateResult,
+      } : {}),
+    }, options.target.sidecarBasename, { stopAfterReady: !options.updateSmoke });
     if (options.terminalSmoke) {
       if (packageRoot === undefined) throw new Error('packaged terminal smoke has no package root');
       const output = await runTerminalSmoke(packageRoot, options.target);
       console.log(`[packaged-smoke] terminal output: ${output.trim()}`);
     }
-    console.log(`[packaged-smoke] ready at ${url}`);
+    if (options.updateSmoke) {
+      await waitForUpdatedVersion(updateResult, options.expectedVersion);
+      await stopPackagedProcesses(executable, options.target.sidecarBasename);
+      console.log(`[packaged-smoke] updated to ${options.expectedVersion}`);
+    }
+    console.log(`[packaged-smoke] ready at ${launched.url}`);
     smokeCompleted = true;
   } finally {
     if (mountedDmg !== undefined) {

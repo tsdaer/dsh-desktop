@@ -613,13 +613,17 @@ fn reg_add(base: &str, args: &[&str]) -> std::io::Result<()> {
 }
 
 fn main() {
+    record_update_smoke_version();
     let titlebar_version = env!("CARGO_PKG_VERSION").to_owned();
     tauri::Builder::default()
         .on_page_load(move |webview, payload| {
             if webview.label() != "main" || payload.event() != PageLoadEvent::Finished {
                 return;
             }
-            let script = titlebar_script(&titlebar_version);
+            let mut script = titlebar_script(&titlebar_version);
+            if update_smoke_enabled() {
+                script.push_str(update_smoke_script());
+            }
             match webview.eval(&script) {
                 Ok(()) => println!("[dsh-desktop] title bar injected after page load"),
                 Err(err) => eprintln!("[dsh-desktop] title bar injection failed: {err}"),
@@ -682,6 +686,50 @@ fn main() {
                 }
             }
         });
+}
+
+/// Return whether the packaged update smoke driver was explicitly enabled.
+/// The driver is opt-in and only affects the page-load script when a target
+/// runner supplies its environment variable.
+fn update_smoke_enabled() -> bool {
+    std::env::var("DSH_DESKTOP_UPDATE_SMOKE").is_ok_and(|value| value == "1")
+}
+
+/// Record the version seen by a packaged update smoke. The path is supplied
+/// only by the smoke process; normal launches do not create this file.
+fn record_update_smoke_version() {
+    let Ok(path) = std::env::var("DSH_DESKTOP_UPDATE_RESULT") else {
+        return;
+    };
+    if let Err(error) = std::fs::write(&path, env!("CARGO_PKG_VERSION")) {
+        eprintln!("[dsh-desktop] failed to record update smoke version at {path}: {error}");
+    }
+}
+
+/// Drive the existing updater button and confirmation calls during a target
+/// runner smoke. It never runs in a normal launch and stops after the updated
+/// application reports no update.
+fn update_smoke_script() -> &'static str {
+    r#"
+(() => {
+  if (window.__DSH_UPDATE_SMOKE__) return;
+  window.__DSH_UPDATE_SMOKE__ = true;
+  window.confirm = (message) => {
+    console.log(`[dsh-desktop] update smoke confirmation: ${message}`);
+    return true;
+  };
+  const deadline = Date.now() + 180000;
+  const timer = window.setInterval(() => {
+    const button = document.getElementById('dsh-desktop-updater');
+    const state = button?.dataset.state;
+    if (state === 'available' || state === 'ready') {
+      button.click();
+    } else if (state === 'up-to-date' || Date.now() >= deadline) {
+      window.clearInterval(timer);
+    }
+  }, 100);
+})();
+"#
 }
 
 /// Ensure the bridge packages are present in the web profile and return the
@@ -1381,6 +1429,16 @@ mod tests {
         assert_eq!(packaged_node_basename(), "node-x86_64-unknown-linux-gnu");
         #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
         assert_eq!(packaged_node_basename(), "node-aarch64-apple-darwin");
+    }
+
+    #[test]
+    fn update_smoke_driver_uses_the_existing_confirmation_path() {
+        let script = update_smoke_script();
+        assert!(script.contains("window.confirm"));
+        assert!(script.contains("dsh-desktop-updater"));
+        assert!(script.contains("state === 'available'"));
+        assert!(script.contains("state === 'ready'"));
+        assert!(!script.contains("tauri"));
     }
 
     #[test]

@@ -112,6 +112,8 @@ main.rs 的环境变量接线:DSH_CLI/DSH_NODE/DSH_BARE_MODULE_BASE/DSH_BRIDGE_T
 
 `pnpm --filter @deepseek-ai/dsh-desktop update-fixture -- --target <triple> --version <next-version> --artifact-root <staged-root>` 会校验所选目标的分离签名,并通过 loopback 提供该目标的更新构件与只含当前目标的 `latest.json`。启动版本 N 前,用 `bundle -- --updater-endpoint <打印出的 URL>` 构建版本 N;fixture 会在目标 runner 执行现有更新确认期间持续运行。该辅助程序不会代替用户确认、执行安装,也不会单独声称 N 到 N+1 已完成。
 
+已安装更新冒烟可对这个目标原生安装包使用 `--update-smoke --expected-version <next-version>`。它只在本次 runner 调用中启用显式驱动器:点击现有更新器控件,接受现有的两次确认调用,记录每次打包启动写入的版本,等待 N 到 N+1 的重启,停止重启后的进程,然后检查用户数据是否保留。版本 N 安装包必须内嵌 fixture URL,下一版本构件必须是同一目标的已签名构件。普通启动不会启用该驱动器;它也不替代 GUI 行为或最低发行版兼容性的目标 runner 证据。
+
 无边框主窗口在 setup 时重新加回 `WS_THICKFRAME`(不加 `WS_CAPTION`),由操作系统提供原生缩放边框与 Windows 11 贴靠布局弹出层,标题栏保持自绘。最大化图标从原生宿主读取窗口状态:Rust 在每次尺寸事件时推送 `dsh://maximize-change`,标题栏监听该事件,并保留轮询读取作为回退。
 
 ## 拖放
