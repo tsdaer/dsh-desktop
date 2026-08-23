@@ -23,7 +23,8 @@ const SUPPORTED_NATIVE_PLATFORM_KEYS = new Set(
 );
 
 /**
- * Remove non-target children from every native `prebuilds` directory.
+ * Remove non-target children from native `prebuilds` directories and from the
+ * selected target's Koffi optional package.
  *
  * @param {string} root Runtime directory to mutate.
  * @param {{nativePlatformKey: string}} target Selected desktop target.
@@ -47,11 +48,19 @@ export function pruneNativeRuntime(root, target) {
       removePath(join(directory.path, entry.name));
     }
   });
+
+  const koffiPackageRoot = targetKoffiPackageRoot(root, target);
+  const currentKoffiDirectory = koffiNativeDirectory(target);
+  for (const entry of safeReadDir(koffiPackageRoot)) {
+    const path = join(koffiPackageRoot, entry.name);
+    if (!entry.isDirectory() || entry.name === currentKoffiDirectory || !hasNativeFile(path)) continue;
+    removePath(path);
+  }
 }
 
 /**
  * Check that the target runtime contains usable native dependencies and no
- * selected-row platform files for another OS or architecture.
+ * selected-row platform files or Koffi ABI directories for another target.
  *
  * @param {string} root Runtime directory to inspect.
  * @param {{nativePlatformKey: string, rustTriple: string}} target Selected desktop target.
@@ -78,10 +87,19 @@ export function validateNativeRuntime(root, target) {
   for (const packageName of ['node-pty', 'koffi']) {
     const packageRoot = findPackageRoot(root, packageName);
     const targetPackageRoot = packageName === 'koffi'
-      ? join(root, 'node_modules', '@koromix', `koffi-${target.nativePlatformKey}`)
+      ? join(targetKoffiPackageRoot(root, target), koffiNativeDirectory(target))
       : undefined;
     if (packageRoot && !hasNativeFile(packageRoot) && !hasNativeFile(targetPackageRoot)) {
       throw new Error(`native package has no loadable binary: ${packageRoot}`);
+    }
+  }
+
+  const koffiPackageRoot = targetKoffiPackageRoot(root, target);
+  const currentKoffiDirectory = koffiNativeDirectory(target);
+  for (const entry of safeReadDir(koffiPackageRoot)) {
+    const path = join(koffiPackageRoot, entry.name);
+    if (entry.isDirectory() && entry.name !== currentKoffiDirectory && hasNativeFile(path)) {
+      throw new Error(`foreign Koffi ABI ${entry.name} in runtime: ${path}`);
     }
   }
 
@@ -108,6 +126,14 @@ export function validateNativeRuntime(root, target) {
 function findPackageRoot(root, packageName) {
   const packageRoot = join(root, 'node_modules', packageName);
   return existsSync(packageRoot) ? packageRoot : undefined;
+}
+
+function targetKoffiPackageRoot(root, target) {
+  return join(root, 'node_modules', '@koromix', `koffi-${target.nativePlatformKey}`);
+}
+
+function koffiNativeDirectory(target) {
+  return target.nativePlatformKey.replaceAll('-', '_');
 }
 
 function hasNativeFile(root, excludedRoot) {

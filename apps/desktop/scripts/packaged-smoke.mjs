@@ -129,6 +129,18 @@ export function dmgInstallArguments(app, destination) {
 }
 
 /**
+ * Read the per-launch native splash log when packaged startup fails.
+ *
+ * @param {string} temporaryDirectory - Isolated native temp directory.
+ * @returns {string} Diagnostic suffix, or an empty string when no log exists.
+ */
+export function splashLogDiagnostics(temporaryDirectory) {
+  const path = join(temporaryDirectory, 'dsh-desktop-splash.log');
+  if (!existsSync(path)) return '';
+  return `\n[packaged-smoke] native splash log:\n${readFileSync(path, 'utf8')}`;
+}
+
+/**
  * Keep the NSIS uninstaller in its installation directory so the smoke waits
  * for the real process instead of the temporary self-copy.
  *
@@ -610,8 +622,11 @@ async function launch(command, args, env, sidecarPath, { stopAfterReady = true }
   const ready = new Promise((resolveReady, rejectReady) => {
     const timer = setTimeout(() => {
       stopProcessTree(child);
-      rejectReady(new Error(`packaged app did not reach readiness within 120s\n${output}`));
-    }, 120_000);
+      const diagnostics = env.DSH_PACKAGED_SMOKE_SPLASH_DIR === undefined
+        ? ''
+        : splashLogDiagnostics(env.DSH_PACKAGED_SMOKE_SPLASH_DIR);
+      rejectReady(new Error(`packaged app did not reach readiness within 130s\n${output}${diagnostics}`));
+    }, 130_000);
     const check = () => {
       const match = output.match(/\[dsh-desktop\] ready at (https?:\/\/[^\s\r\n]+)/);
       if (!match) return;
@@ -660,6 +675,7 @@ async function main() {
   const userDataMarker = join(home, 'desktop-smoke-user-data.marker');
   writeFileSync(userDataMarker, 'user-owned desktop smoke data\n', { encoding: 'utf8' });
   let installedDeb;
+  let installedDmg;
   let installedWindows;
   let mountedDmg;
   let runningChild;
@@ -687,8 +703,8 @@ async function main() {
       run('hdiutil', dmgMountArguments(options.artifact, mountedDmg), { stdio: 'inherit' });
       const app = join(mountedDmg, 'dsh-desktop.app');
       if (!existsSync(app)) throw new Error(`mounted dmg has no dsh-desktop.app: ${app}`);
-      const copiedApp = join(home, 'installed', 'dsh-desktop.app');
-      mkdirSync(dirname(copiedApp), { recursive: true });
+      installedDmg = mkdtempSync(join(tmpdir(), 'dsh-desktop-packaged-install-'));
+      const copiedApp = join(installedDmg, 'dsh-desktop.app');
       run('ditto', dmgInstallArguments(app, copiedApp), { stdio: 'inherit' });
       run('hdiutil', ['detach', mountedDmg], { stdio: 'inherit' });
       mountedDmg = undefined;
@@ -713,10 +729,16 @@ async function main() {
     }
     sidecarPath = runtimePaths.sidecar;
     const updateResult = join(home, 'update-version.txt');
+    const nativeTemp = join(home, 'native-tmp');
+    mkdirSync(nativeTemp);
     const launched = await launch(executable, [], {
       ...process.env,
       APPIMAGE_EXTRACT_AND_RUN: '1',
       DSH_HOME: home,
+      ...(options.target.productTarget === 'macos-arm64' ? {
+        DSH_PACKAGED_SMOKE_SPLASH_DIR: nativeTemp,
+        TMPDIR: nativeTemp,
+      } : {}),
       ...(options.updateSmoke ? {
         DSH_DESKTOP_UPDATE_SMOKE: '1',
         DSH_DESKTOP_UPDATE_RESULT: updateResult,
@@ -767,6 +789,7 @@ async function main() {
     if (installedDeb !== undefined) {
       run('sudo', ['dpkg', '--purge', installedDeb], { stdio: 'inherit' });
     }
+    if (installedDmg !== undefined) removeTemporaryHome(installedDmg);
     if (smokeCompleted) assertUserDataRetained(home, userDataMarker);
     removeTemporaryHome(home);
   }

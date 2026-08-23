@@ -78,12 +78,36 @@ test('accepts a target source build when no target prebuild is available', () =>
   }
 });
 
-test('accepts the target-specific Koffi optional package', () => {
+test('prunes the target-specific Koffi optional package to the selected ABI', () => {
   const testFixture = fixture();
   try {
     testFixture.file('node_modules/koffi/package.json');
     testFixture.file('node_modules/@koromix/koffi-linux-x64/linux_x64/koffi.node');
-    validateNativeRuntime(testFixture.root, resolveTarget('x86_64-unknown-linux-gnu'));
+    testFixture.file('node_modules/@koromix/koffi-linux-x64/musl_x64/koffi.node');
+    const target = resolveTarget('x86_64-unknown-linux-gnu');
+
+    pruneNativeRuntime(testFixture.root, target);
+    validateNativeRuntime(testFixture.root, target);
+
+    assert.deepEqual(
+      readdirSync(join(testFixture.root, 'node_modules/@koromix/koffi-linux-x64')),
+      ['linux_x64'],
+    );
+  } finally {
+    testFixture.cleanup();
+  }
+});
+
+test('rejects a foreign ABI inside the target-specific Koffi package', () => {
+  const testFixture = fixture();
+  try {
+    testFixture.file('node_modules/koffi/package.json');
+    testFixture.file('node_modules/@koromix/koffi-linux-x64/linux_x64/koffi.node');
+    testFixture.file('node_modules/@koromix/koffi-linux-x64/musl_x64/koffi.node');
+    assert.throws(
+      () => validateNativeRuntime(testFixture.root, resolveTarget('x86_64-unknown-linux-gnu')),
+      /foreign Koffi ABI musl_x64/,
+    );
   } finally {
     testFixture.cleanup();
   }

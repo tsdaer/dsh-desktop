@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -20,6 +20,7 @@ import {
   assertUserDataRetained,
   run,
   removeTemporaryHome,
+  splashLogDiagnostics,
   stopChildWithEscalation,
   terminalSmokeCommand,
 } from './packaged-smoke.mjs';
@@ -102,6 +103,20 @@ test('requires a target-native package artifact for the packaged smoke', () => {
     ]),
     /mutually exclusive/,
   );
+});
+
+test('reports an isolated native splash log after startup failure', () => {
+  const root = mkdtempSync(join(tmpdir(), 'dsh-splash-log-test-'));
+  try {
+    assert.equal(splashLogDiagnostics(root), '');
+    writeFileSync(join(root, 'dsh-desktop-splash.log'), 'boot: waiting\n');
+    assert.equal(
+      splashLogDiagnostics(root),
+      '\n[packaged-smoke] native splash log:\nboot: waiting\n',
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('accepts inherited stdio for installer commands', () => {

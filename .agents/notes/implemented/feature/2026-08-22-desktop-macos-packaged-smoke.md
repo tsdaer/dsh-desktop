@@ -10,13 +10,13 @@ An unsigned or signed macOS bundle can pass Tauri's build and code-signing check
 
 ## Decision
 
-`apps/desktop/scripts/packaged-smoke.mjs` accepts macOS arm64 app and dmg artifacts in addition to the Linux x64 package paths. An app artifact launches its `Contents/MacOS/dsh-desktop` executable directly. A dmg artifact is mounted read-only with `hdiutil`, installed into the smoke home with native `ditto --noqtn`, detached, and then launched from the installed app bundle. `ditto` preserves bundle metadata and resource forks; the CI installation omits quarantine metadata because quarantine belongs to the downloaded disk image. Both paths use a temporary `DSH_HOME`, require the packaged readiness URL, stop the detached process group, and verify that recorded runtime descendants exit.
+`apps/desktop/scripts/packaged-smoke.mjs` accepts macOS arm64 app and dmg artifacts in addition to the Linux x64 package paths. An app artifact launches its `Contents/MacOS/dsh-desktop` executable directly. A dmg artifact is mounted read-only with `hdiutil`, installed with native `ditto --noqtn` into a temporary installation root separate from `DSH_HOME`, detached, and then launched from the installed app bundle. The separate roots reproduce the `/Applications` and user-data relationship instead of placing the executable below its own data directory. `ditto` preserves bundle metadata and resource forks; the CI installation omits quarantine metadata because quarantine belongs to the downloaded disk image. Both paths use a temporary `DSH_HOME`, require the packaged readiness URL, stop the detached process group, and verify that recorded runtime descendants exit. macOS launches receive an isolated native temp directory, and a readiness timeout includes the splash log written there after allowing the shell's own boot deadline to expire.
 
 The unsigned experimental macOS job and the opt-in signed macOS job run the app-bundle smoke on their native runner after bundle creation. The smoke remains evidence of packaged startup only; it does not make unsigned artifacts releasable or establish macOS support before signing, update, uninstall, and GUI evidence are complete.
 
 ## Testing
 
-`apps/desktop/scripts/packaged-smoke.spec.mjs` covers macOS argument validation, app-bundle executable resolution, dmg mount and native installation arguments, and the existing Linux paths. The target-native macOS jobs invoke the same script against the generated app bundle.
+`apps/desktop/scripts/packaged-smoke.spec.mjs` covers macOS argument validation, app-bundle executable resolution, dmg mount and native installation arguments, isolated splash diagnostics, and the existing Linux paths. The target-native macOS jobs invoke the same script against the generated app bundle.
 
 ## Consequences
 

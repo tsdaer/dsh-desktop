@@ -10,7 +10,7 @@ English | [English](2026-08-22-desktop-target-native-runtime.md)
 
 ## 决定
 
-`apps/desktop/scripts/runtime-native.mjs` 负责原生运行时裁剪与校验。烘焙流程遍历每个 `prebuilds` 目录,有目标行的 `nativePlatformKey` 原生文件时予以保留,否则接受该目录旁边从源码构建的原生文件,并在检查生成的运行时前删除其他子目录。存在 `node-pty` 时,其包必须包含可加载的原生文件。Koffi 可以直接包含该文件,也可以把它放在目标专属的 `@koromix/koffi-<nativePlatformKey>` 可选包中;其他目标的可选包不能满足校验。所有随包提供的 `.node`、`.dll`、`.dylib`、`.so` 或 `.exe` 都会检查是否带有受支持的其他平台路径标识,以及其扩展名是否不可能在所选操作系统上运行。
+`apps/desktop/scripts/runtime-native.mjs` 负责原生运行时裁剪与校验。烘焙流程遍历每个 `prebuilds` 目录,有目标行的 `nativePlatformKey` 原生文件时予以保留,否则接受该目录旁边从源码构建的原生文件,并在检查生成的运行时前删除其他子目录。存在 `node-pty` 时,其包必须包含可加载的原生文件。Koffi 可以直接包含该文件,也可以把它放在目标专属的 `@koromix/koffi-<nativePlatformKey>` 可选包中;其他目标的可选包不能满足校验。目标专属 Koffi 包只保留从 `nativePlatformKey` 派生的下划线形式 ABI 目录;这样会在 linuxdeploy 扫描 ELF 依赖前,从 `linux-x64` glibc 运行时删除相邻的 `musl_x64`。校验会拒绝任何残留的外部 Koffi ABI 目录。所有随包提供的 `.node`、`.dll`、`.dylib`、`.so` 或 `.exe` 都会检查是否带有受支持的其他平台路径标识,以及其扩展名是否不可能在所选操作系统上运行。
 
 校验在目标专属裁剪之后、sidecar 启动冒烟之前执行。对于 `koffi.node` 这类不含平台信息的通用原生文件,校验器不会仅凭文件名推断兼容性;目标 runner 使用 sidecar 的启动冒烟仍是证明这些字节能在目标操作系统加载的依据。
 

@@ -4,6 +4,12 @@ dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a
 
 ## [未发布]
 
+## [0.3.12] - 2026-08-24
+
+### 修复
+
+- 目标自有桌面运行时会在打包前删除外部 Koffi ABI 目录,避免 Linux glibc AppImage 构建把随包提供的 musl addon 当作可部署的 ELF 依赖;macOS dmg 冒烟会在 `DSH_HOME` 外安装,并在超时时保留隔离的 splash 诊断。
+
 ## [0.3.11] - 2026-08-24
 
 ### 修复

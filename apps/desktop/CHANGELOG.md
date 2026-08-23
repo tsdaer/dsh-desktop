@@ -4,6 +4,12 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.12] - 2026-08-24
+
+### Fixed
+
+- Target-owned desktop runtimes remove foreign Koffi ABI directories before packaging, preventing the Linux glibc AppImage build from treating the bundled musl addon as a deployable ELF dependency; macOS dmg smokes install outside `DSH_HOME` and retain isolated splash diagnostics on timeout.
+
 ## [0.3.11] - 2026-08-24
 
 ### Fixed
