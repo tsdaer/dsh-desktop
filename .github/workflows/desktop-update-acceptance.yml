@@ -80,7 +80,7 @@ jobs:
           BASE_VERSION="$(git show "$BASE_REF:apps/desktop/package.json" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")"
           NEXT_VERSION="$(git show "$NEXT_REF:apps/desktop/package.json" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")"
           node - "$BASE_VERSION" "$NEXT_VERSION" <<'NODE'
-          const [base, next] = process.argv.slice(1);
+          const [base, next] = process.argv.slice(2);
           const parse = (value) => {
             const match = /^(\d+)\.(\d+)\.(\d+)/.exec(value);
             if (match === null) throw new Error(`invalid desktop version: ${value}`);

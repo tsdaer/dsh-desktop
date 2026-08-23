@@ -34,6 +34,7 @@ describe('desktop macOS update acceptance workflow', () => {
     expect(jobJson).toContain('git rev-parse --verify')
     expect(jobJson).toContain('BASE_COMMIT=')
     expect(jobJson).toContain('NEXT_COMMIT=')
+    expect(jobJson).toContain('process.argv.slice(2)')
     expect(stepRuns.some(run => run.includes('test "$(git rev-parse HEAD)" = "$BASE_COMMIT"'))).toBe(true)
     expect(stepRuns.some(run => run.includes('git checkout --detach "$NEXT_COMMIT"'))).toBe(true)
     expect(stepRuns.some(run => run.includes('test "$(git rev-parse HEAD)" = "$NEXT_COMMIT"'))).toBe(true)

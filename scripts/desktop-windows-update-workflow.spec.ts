@@ -5,13 +5,13 @@ import { describe, expect, it } from 'vitest'
 
 const root = resolve(import.meta.dirname, '..')
 
-describe('desktop update acceptance workflow', () => {
-  it('builds two immutable Linux tags and runs the signed target-native update smoke', () => {
+describe('desktop Windows update acceptance workflow', () => {
+  it('builds two immutable Windows tags and runs the signed target-native update smoke', () => {
     const workflow = loadWorkflow()
-    if (!isRecord(workflow.jobs) || !isRecord(workflow.jobs['linux-update'])) {
-      throw new TypeError('desktop update workflow must define linux-update')
+    if (!isRecord(workflow.jobs) || !isRecord(workflow.jobs['windows-update'])) {
+      throw new TypeError('desktop Windows update workflow must define windows-update')
     }
-    const job = workflow.jobs['linux-update']
+    const job = workflow.jobs['windows-update']
     const workflowJson = JSON.stringify(workflow)
     const jobJson = JSON.stringify(job)
     const stepRuns = Array.isArray(job.steps)
@@ -23,21 +23,19 @@ describe('desktop update acceptance workflow', () => {
     const inputs = isRecord(dispatch) ? dispatch.inputs : undefined
 
     expect(workflow.permissions).toEqual({ contents: 'read' })
-    expect(isRecord(inputs)).toBe(true)
     expect(inputs).toMatchObject({
       base_ref: { required: true, type: 'string' },
       next_ref: { required: true, type: 'string' },
-      port: { required: true, default: '4317', type: 'string' },
+      port: { required: true, default: '4319', type: 'string' },
     })
-    expect(job['runs-on']).toBe('ubuntu-24.04')
+    expect(job['runs-on']).toBe('windows-latest')
     expect(jobJson).toContain('git show-ref --verify')
     expect(jobJson).toContain('git rev-parse --verify')
     expect(jobJson).toContain('BASE_COMMIT=')
     expect(jobJson).toContain('NEXT_COMMIT=')
     expect(jobJson).toContain('process.argv.slice(2)')
-    expect(stepRuns.some(run => run.includes('test "$(git rev-parse HEAD)" = "$BASE_COMMIT"'))).toBe(true)
-    expect(stepRuns.some(run => run.includes('git checkout --detach "$NEXT_COMMIT"'))).toBe(true)
-    expect(stepRuns.some(run => run.includes('test "$(git rev-parse HEAD)" = "$NEXT_COMMIT"'))).toBe(true)
+    expect(stepRuns.some(run => run.includes('git checkout --detach $env:NEXT_COMMIT'))).toBe(true)
+    expect(jobJson).toContain('x86_64-pc-windows-msvc')
     expect(jobJson).toContain('bundle --')
     expect(jobJson).toContain('--updater-endpoint')
     expect(jobJson).toContain('release-artifacts.mjs')
@@ -45,18 +43,17 @@ describe('desktop update acceptance workflow', () => {
     expect(jobJson).toContain('update-smoke')
     expect(jobJson).toContain('--manifest')
     expect(jobJson).toContain('--terminal-smoke')
-    expect(jobJson).toContain('xvfb-run')
     expect(jobJson).toContain('TAURI_SIGNING_PRIVATE_KEY')
     expect(jobJson).toContain('actions/upload-artifact@v4')
-    expect(jobJson).not.toContain('gh release')
-    expect(workflowJson).not.toContain('windows-latest')
+    expect(workflowJson).not.toContain('gh release')
+    expect(workflowJson).not.toContain('ubuntu-24.04')
     expect(workflowJson).not.toContain('macos-14')
   })
 })
 
 function loadWorkflow(): Record<string, unknown> {
-  const workflow: unknown = yaml.load(readFileSync(resolve(root, '.github/workflows/desktop-update-acceptance.yml'), 'utf8'))
-  if (!isRecord(workflow)) throw new TypeError('desktop update workflow must define a workflow')
+  const workflow: unknown = yaml.load(readFileSync(resolve(root, '.github/workflows/desktop-windows-update-acceptance.yml'), 'utf8'))
+  if (!isRecord(workflow)) throw new TypeError('desktop Windows update workflow must define a workflow')
   return workflow
 }
 

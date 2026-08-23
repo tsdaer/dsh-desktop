@@ -151,11 +151,13 @@ Windows x64 发布 job 现在会在体积与构件检查后、上传前运行 [W
 
 [macOS 安装版更新验收 workflow](../../implemented/testing/2026-08-23-desktop-macos-installed-update-workflow.md) 现在接受两个标签引用和一个固定 loopback 端口,校验它们的提交快照,在 `macos-14` 上构建并签名两个 arm64 版本,为每个 app 和 dmg 完成公证与 staple,暂存已签名的下一版本清单,并带打包 PTY 探针调用目标原生更新 smoke。它只上传 smoke 日志并删除临时签名 keychain;使用产品所有的 Apple 与 updater 凭据执行仍是待取得的证据。
 
+[Windows 安装版更新验收 workflow](../../implemented/testing/2026-08-23-desktop-windows-installed-update-workflow.md) 现在接受两个标签引用和一个固定 loopback 端口,校验它们的提交快照,在 `windows-latest` 上构建并签名两个 x64 版本,暂存已签名的下一版本清单,并使用 NSIS 安装模式和打包 PTY 探针调用目标原生更新 smoke。它只上传 smoke 日志且不会修改 Release;原生执行仍是待取得的证据。
+
 桌面 release workflow 的每个读取源码 job 都 checkout `needs.validate.outputs.commit`,并在构建、暂存或附加构件前校验 `git rev-parse HEAD`。结构测试覆盖全部六个 job;这关闭了源码快照一致性缺口,但不增加目标原生运行时证据。[已校验 commit 记录](../../implemented/process/2026-08-23-desktop-release-uses-validated-commit.md)记录了该发布不变量。
 
 剩余工作包括目标原生 Linux 终端 UI／模型可见工作流、执行已安装版本更新验收 workflow、最低基线和打包 GUI 证据；macOS 已配置凭据执行签名 lane、公证／Gatekeeper 证据、已安装版本更新 runner 证据、受支持发布文档和 GUI 证据；以及 Windows runner 上执行已安装 Windows 安装包回归。更新冒烟驱动器、签名 lane 自动化、清单签名校验和打包 PTY 冒烟不能替代目标原生的已安装版本更新执行或用户可见的 GUI 证据。
 
-当前 Windows checkout 已通过 59 项桌面脚本测试、5 项桌面发布／更新 workflow 结构测试、命名的双语配对检查、Agent Note 格式校验和 `pnpm run lint`。`pnpm run doc-sync` 已通过全部 28 项门禁,包括文档构建。保留的本地 NSIS 构件已通过安装器阶段而不再触发继承 stdio 错误,但未到达 readiness,因此原生 Windows 打包证据仍未完成。
+当前 Windows checkout 已通过 59 项桌面脚本测试、7 项独立桌面发布／更新 workflow 结构测试、命名的双语配对检查、Agent Note 格式校验和 `pnpm run lint`。`pnpm run doc-sync` 已通过全部 28 项门禁,包括文档构建。保留的本地 NSIS 构件已通过安装器阶段而不再触发继承 stdio 错误,但未到达 readiness,因此原生 Windows 打包证据仍未完成。
 
 发布产品仍仅支持 Windows x64。Linux 与 macOS 需完成原生运行时、Rust/Tauri 壳子、目标配置、发布工作流、updater、安装、更新、卸载和打包 GUI 证据，并满足下方验收标准后，才能声明受支持。
 

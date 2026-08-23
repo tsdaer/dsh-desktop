@@ -1,0 +1,150 @@
+name: Desktop Windows update acceptance
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_ref:
+        description: Immutable tag containing the version-N package
+        required: true
+        type: string
+      next_ref:
+        description: Immutable tag containing the signed version-N+1 package
+        required: true
+        type: string
+      port:
+        description: Fixed loopback port embedded in the version-N package
+        required: true
+        default: '4319'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  windows-update:
+    name: Windows x64 installed update smoke
+    runs-on: windows-latest
+    env:
+      BASE_REF: ${{ inputs.base_ref }}
+      NEXT_REF: ${{ inputs.next_ref }}
+      UPDATE_PORT: ${{ inputs.port }}
+      DSH_TARGET: x86_64-pc-windows-msvc
+      DSH_UPDATE_ROOT: ${{ runner.temp }}/dsh-desktop-windows-update
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.base_ref }}
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - uses: pnpm/action-setup@v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Validate immutable version tags and update port
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:BASE_REF -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$') { throw "invalid base tag: $env:BASE_REF" }
+          if ($env:NEXT_REF -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$') { throw "invalid next tag: $env:NEXT_REF" }
+          git show-ref --verify --quiet "refs/tags/$env:BASE_REF"
+          if ($LASTEXITCODE -ne 0) { throw "base tag does not exist: $env:BASE_REF" }
+          git show-ref --verify --quiet "refs/tags/$env:NEXT_REF"
+          if ($LASTEXITCODE -ne 0) { throw "next tag does not exist: $env:NEXT_REF" }
+          $baseCommit = (git rev-parse --verify "${env:BASE_REF}^{commit}").Trim()
+          if ($LASTEXITCODE -ne 0) { throw "could not resolve base tag: $env:BASE_REF" }
+          $nextCommit = (git rev-parse --verify "${env:NEXT_REF}^{commit}").Trim()
+          if ($LASTEXITCODE -ne 0) { throw "could not resolve next tag: $env:NEXT_REF" }
+          if ([string]::IsNullOrWhiteSpace($baseCommit) -or [string]::IsNullOrWhiteSpace($nextCommit)) { throw 'tag commit resolution returned an empty value' }
+          if ((git rev-parse HEAD).Trim() -ne $baseCommit) { throw 'initial checkout does not match the base tag snapshot' }
+          $baseVersion = ((git show "${env:BASE_REF}:apps/desktop/package.json") | ConvertFrom-Json).version
+          $nextVersion = ((git show "${env:NEXT_REF}:apps/desktop/package.json") | ConvertFrom-Json).version
+          @'
+          const [base, next] = process.argv.slice(2);
+          const parse = value => {
+            const match = /^(\d+)\.(\d+)\.(\d+)/.exec(value);
+            if (match === null) throw new Error(`invalid desktop version: ${value}`);
+            return match.slice(1).map(Number);
+          };
+          const baseKey = parse(base);
+          const nextKey = parse(next);
+          const newer = nextKey.some((part, index) => part > baseKey[index]
+            && nextKey.slice(0, index).every((prefix, prefixIndex) => prefix === baseKey[prefixIndex]));
+          if (!newer) throw new Error(`next tag ${next} must be newer than base tag ${base}`);
+          '@ | node - $baseVersion $nextVersion
+          if ($LASTEXITCODE -ne 0) { throw 'next version must be newer than the base version' }
+          $port = 0
+          if (-not [int]::TryParse($env:UPDATE_PORT, [ref]$port) -or $port -lt 1 -or $port -gt 65535) { throw "invalid update port: $env:UPDATE_PORT" }
+          "BASE_VERSION=$baseVersion" | Add-Content $env:GITHUB_ENV
+          "NEXT_VERSION=$nextVersion" | Add-Content $env:GITHUB_ENV
+          "BASE_COMMIT=$baseCommit" | Add-Content $env:GITHUB_ENV
+          "NEXT_COMMIT=$nextCommit" | Add-Content $env:GITHUB_ENV
+          New-Item -ItemType Directory -Force "$env:DSH_UPDATE_ROOT\base", "$env:DSH_UPDATE_ROOT\next" | Out-Null
+
+      - name: Build version N with the loopback updater endpoint
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git rev-parse HEAD).Trim() -ne $env:BASE_COMMIT) { throw 'base build checkout does not match the validated snapshot' }
+          if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) { throw 'TAURI_SIGNING_PRIVATE_KEY is required for the update fixture' }
+          pnpm install --frozen-lockfile
+          pnpm run build
+          pnpm --filter @deepseek-ai/dsh-desktop bundle -- --target $env:DSH_TARGET --updater-endpoint "http://127.0.0.1:$env:UPDATE_PORT/latest.json"
+          $baseArtifact = Get-ChildItem "apps/desktop/src-tauri/target/$env:DSH_TARGET/release/bundle/nsis" -Filter '*.exe' | Select-Object -First 1
+          if ($null -eq $baseArtifact) { throw 'Windows NSIS installer was not produced for version N' }
+          $destination = Join-Path "$env:DSH_UPDATE_ROOT\base" $baseArtifact.Name
+          Copy-Item $baseArtifact.FullName $destination
+          "BASE_ARTIFACT=$destination" | Add-Content $env:GITHUB_ENV
+
+      - name: Checkout and build version N+1
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git restore --source=$env:BASE_COMMIT --staged --worktree .
+          git clean -ffdx
+          git checkout --detach $env:NEXT_COMMIT
+          if ((git rev-parse HEAD).Trim() -ne $env:NEXT_COMMIT) { throw 'next build checkout does not match the validated snapshot' }
+          pnpm install --frozen-lockfile
+          pnpm run build
+          pnpm --filter @deepseek-ai/dsh-desktop bundle -- --target $env:DSH_TARGET
+          node apps/desktop/scripts/release-artifacts.mjs --target $env:DSH_TARGET --output "$env:DSH_UPDATE_ROOT\next"
+          node apps/desktop/scripts/updater-manifest.mjs $env:NEXT_VERSION $env:NEXT_REF "$env:DSH_UPDATE_ROOT\next" --download-base-url "http://127.0.0.1:$env:UPDATE_PORT/artifacts"
+          Copy-Item latest.json "$env:DSH_UPDATE_ROOT\next\latest.json"
+
+      - name: Run the target-native installed update smoke
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          pnpm --filter @deepseek-ai/dsh-desktop update-smoke -- `
+            --target $env:DSH_TARGET `
+            --artifact $env:BASE_ARTIFACT `
+            --next-version $env:NEXT_VERSION `
+            --artifact-root "$env:DSH_UPDATE_ROOT\next" `
+            --manifest "$env:DSH_UPDATE_ROOT\next\latest.json" `
+            --port $env:UPDATE_PORT `
+            --terminal-smoke 2>&1 | Tee-Object "$env:DSH_UPDATE_ROOT\update-smoke.log"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dsh-desktop-windows-update-${{ inputs.base_ref }}-to-${{ inputs.next_ref }}
+          path: ${{ runner.temp }}/dsh-desktop-windows-update/update-smoke.log
+          if-no-files-found: ignore
