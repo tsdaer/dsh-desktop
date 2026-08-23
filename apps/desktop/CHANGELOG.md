@@ -4,6 +4,12 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.9] - 2026-08-23
+
+### Fixed
+
+- Reissues the cross-platform release-job fixes with a new immutable desktop release tag.
+
 ## [0.3.8] - 2026-08-23
 
 ### Fixed
