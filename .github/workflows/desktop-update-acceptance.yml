@@ -72,6 +72,11 @@ jobs:
           [[ "$NEXT_REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]
           git show-ref --verify --quiet "refs/tags/$BASE_REF"
           git show-ref --verify --quiet "refs/tags/$NEXT_REF"
+          BASE_COMMIT="$(git rev-parse --verify "${BASE_REF}^{commit}")"
+          NEXT_COMMIT="$(git rev-parse --verify "${NEXT_REF}^{commit}")"
+          test -n "$BASE_COMMIT"
+          test -n "$NEXT_COMMIT"
+          test "$(git rev-parse HEAD)" = "$BASE_COMMIT"
           BASE_VERSION="$(git show "$BASE_REF:apps/desktop/package.json" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")"
           NEXT_VERSION="$(git show "$NEXT_REF:apps/desktop/package.json" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")"
           node - "$BASE_VERSION" "$NEXT_VERSION" <<'NODE'
@@ -94,6 +99,8 @@ jobs:
           {
             echo "BASE_VERSION=$BASE_VERSION"
             echo "NEXT_VERSION=$NEXT_VERSION"
+            echo "BASE_COMMIT=$BASE_COMMIT"
+            echo "NEXT_COMMIT=$NEXT_COMMIT"
           } >> "$GITHUB_ENV"
           mkdir -p "$DSH_UPDATE_ROOT/base" "$DSH_UPDATE_ROOT/next"
 
@@ -103,6 +110,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$BASE_COMMIT"
           test -n "$TAURI_SIGNING_PRIVATE_KEY"
           pnpm install --frozen-lockfile
           pnpm run build
@@ -120,9 +128,10 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          git restore --source="$BASE_REF" --staged --worktree .
+          git restore --source="$BASE_COMMIT" --staged --worktree .
           git clean -ffdx
-          git checkout --detach "$NEXT_REF"
+          git checkout --detach "$NEXT_COMMIT"
+          test "$(git rev-parse HEAD)" = "$NEXT_COMMIT"
           pnpm install --frozen-lockfile
           pnpm run build
           pnpm --filter @deepseek-ai/dsh-desktop bundle -- --target "$DSH_TARGET"

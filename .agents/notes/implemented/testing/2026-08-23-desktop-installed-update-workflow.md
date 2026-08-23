@@ -10,7 +10,7 @@ The installed update smoke can coordinate a signed fixture and a packaged applic
 
 ## Decision
 
-`.github/workflows/desktop-update-acceptance.yml` is a manually dispatched Linux x64 acceptance workflow. It accepts two tag refs and a fixed loopback port, verifies both refs are immutable tags and that the second version is newer, builds version N with the loopback updater endpoint, builds and signs version N+1 on the same Ubuntu runner, stages the next-version updater inventory, and invokes `apps/desktop/scripts/update-smoke.mjs` under `xvfb-run` with the packaged terminal probe enabled.
+`.github/workflows/desktop-update-acceptance.yml` is a manually dispatched Linux x64 acceptance workflow. It accepts two tag refs and a fixed loopback port, resolves each tag to a commit before reading version data, verifies the initial checkout matches the base snapshot, and builds from those captured commits even if a tag ref moves during the run. It verifies that the second version is newer, builds version N with the loopback updater endpoint, builds and signs version N+1 on the same Ubuntu runner, stages the next-version updater inventory, and invokes `apps/desktop/scripts/update-smoke.mjs` under `xvfb-run` with the packaged terminal probe enabled.
 
 The workflow keeps the version-N AppImage outside the checkout while changing tags, stages version-N+1 artifacts under a separate temporary root, and passes the manifest path explicitly. It uploads the smoke log for failed or successful runs, uses read-only repository permissions, and never creates or mutates a GitHub Release.
 
@@ -26,7 +26,7 @@ This workflow records Linux target-runner update evidence without changing the s
 
 ## Consequences
 
-Maintainers can obtain repeatable Linux N-to-N+1 update evidence from two immutable tags without granting the workflow release-write permission. The workflow consumes updater signing secrets to create the next-version artifact, so it remains an explicit acceptance run rather than a pull-request check. A passing workflow run is evidence for the Linux update criterion only; it does not publish or support the platform by itself.
+Maintainers can obtain repeatable Linux N-to-N+1 update evidence from two captured tag snapshots without granting the workflow release-write permission. Moving either tag after validation cannot change the bytes built by that run; a missing or invalid tag fails before any build or staging action. The workflow consumes updater signing secrets to create the next-version artifact, so it remains an explicit acceptance run rather than a pull-request check. A passing workflow run is evidence for the Linux update criterion only; it does not publish or support the platform by itself.
 
 ## Testing
 

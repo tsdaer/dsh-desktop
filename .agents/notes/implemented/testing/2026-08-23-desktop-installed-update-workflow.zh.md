@@ -10,7 +10,7 @@ English | [English](2026-08-23-desktop-installed-update-workflow.md)
 
 ## Decision
 
-`.github/workflows/desktop-update-acceptance.yml` 是手动运行的 Linux x64 验收 workflow。它接受两个标签引用和一个固定 loopback 端口,校验两个引用都是不可变标签且第二个版本更新,使用 loopback updater endpoint 构建版本 N,在同一个 Ubuntu runner 上构建并签名版本 N+1,暂存下一版本 updater inventory,再在 `xvfb-run` 下启用打包终端探针调用 `apps/desktop/scripts/update-smoke.mjs`。
+`.github/workflows/desktop-update-acceptance.yml` 是手动运行的 Linux x64 验收 workflow。它接受两个标签引用和一个固定 loopback 端口,在读取版本数据前把每个标签解析为提交,校验初始 checkout 与版本 N 快照一致,即使标签引用在运行期间移动也始终从已捕获的提交构建。它校验第二个版本更新,使用 loopback updater endpoint 构建版本 N,在同一个 Ubuntu runner 上构建并签名版本 N+1,暂存下一版本 updater inventory,再在 `xvfb-run` 下启用打包终端探针调用 `apps/desktop/scripts/update-smoke.mjs`。
 
 workflow 在切换标签时把版本 N 的 AppImage 保存在 checkout 外,把版本 N+1 构件暂存到独立临时目录,并显式传入清单路径。它会在成功或失败时上传 smoke 日志,只使用只读仓库权限,不会创建或修改 GitHub Release。
 
@@ -26,7 +26,7 @@ workflow 在切换标签时把版本 N 的 AppImage 保存在 checkout 外,把�
 
 ## Consequences
 
-维护者可以从两个不可变标签获得可重复的 Linux N 到 N+1 更新证据,且 workflow 不需要 Release 写权限。workflow 需要 updater 签名 secret 生成下一版本构件,因此它是显式验收运行而不是 pull request 检查。workflow 通过只证明 Linux 更新验收项;它不会单独发布或支持该平台。
+维护者可以从两个已捕获的标签快照获得可重复的 Linux N 到 N+1 更新证据,且 workflow 不需要 Release 写权限。校验后移动任一标签不会改变本次运行构建的字节;缺失或无效标签会在任何构建或暂存动作前失败。workflow 需要 updater 签名 secret 生成下一版本构件,因此它是显式验收运行而不是 pull request 检查。workflow 通过只证明 Linux 更新验收项;它不会单独发布或支持该平台。
 
 ## Testing
 

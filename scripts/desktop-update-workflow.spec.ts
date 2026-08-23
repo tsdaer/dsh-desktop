@@ -14,6 +14,11 @@ describe('desktop update acceptance workflow', () => {
     const job = workflow.jobs['linux-update']
     const workflowJson = JSON.stringify(workflow)
     const jobJson = JSON.stringify(job)
+    const stepRuns = Array.isArray(job.steps)
+      ? job.steps
+        .filter((step): step is Record<string, unknown> & { run: string } => isRecord(step) && typeof step.run === 'string')
+        .map(step => step.run)
+      : []
     const dispatch = isRecord(workflow.on) ? workflow.on.workflow_dispatch : undefined
     const inputs = isRecord(dispatch) ? dispatch.inputs : undefined
 
@@ -26,7 +31,12 @@ describe('desktop update acceptance workflow', () => {
     })
     expect(job['runs-on']).toBe('ubuntu-24.04')
     expect(jobJson).toContain('git show-ref --verify')
-    expect(jobJson).toContain('git checkout --detach')
+    expect(jobJson).toContain('git rev-parse --verify')
+    expect(jobJson).toContain('BASE_COMMIT=')
+    expect(jobJson).toContain('NEXT_COMMIT=')
+    expect(stepRuns.some(run => run.includes('test "$(git rev-parse HEAD)" = "$BASE_COMMIT"'))).toBe(true)
+    expect(stepRuns.some(run => run.includes('git checkout --detach "$NEXT_COMMIT"'))).toBe(true)
+    expect(stepRuns.some(run => run.includes('test "$(git rev-parse HEAD)" = "$NEXT_COMMIT"'))).toBe(true)
     expect(jobJson).toContain('bundle --')
     expect(jobJson).toContain('--updater-endpoint')
     expect(jobJson).toContain('release-artifacts.mjs')
