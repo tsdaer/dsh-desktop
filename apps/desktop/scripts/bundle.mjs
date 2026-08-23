@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { packageManagerInvocation } from '../../../scripts/package-manager.ts';
 import { resolveTargetFromArgs } from './target-spec.mjs';
 import { effectiveTauriConfig, tauriBuildArgs, updaterEndpointConfig } from './tauri-config.mjs';
 
@@ -21,7 +22,6 @@ const targetConfig = experimental
   ? 'src-tauri/tauri.macos-arm64.experimental.conf.json'
   : target.tauriConfig;
 const node = process.execPath;
-const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 
 function run(command, commandArgs) {
   const result = spawnSync(command, commandArgs, {
@@ -31,6 +31,11 @@ function run(command, commandArgs) {
   });
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error(`${command} ${commandArgs.join(' ')} failed with exit code ${result.status}`);
+}
+
+function runPnpm(commandArgs) {
+  const invocation = packageManagerInvocation(commandArgs, 'desktop bundle');
+  run(invocation.command, invocation.args);
 }
 
 const endpointIndex = args.indexOf('--updater-endpoint');
@@ -51,9 +56,9 @@ try {
   effectiveTauriConfig(target, desktopRoot, targetConfig, overlayPath);
   run(node, ['scripts/gen-icons.mjs', '--check']);
   run(node, ['scripts/build-bridge.mjs']);
-  run(pnpm, ['exec', 'tsc', '-p', 'tsconfig.json']);
-  run(pnpm, ['exec', 'tsc', '-p', 'bridge-client/tsconfig.tests.json']);
-  run(pnpm, ['exec', 'vitest', '--config', 'bridge-client/vitest.config.ts', 'run']);
+  runPnpm(['exec', 'tsc', '-p', 'tsconfig.json']);
+  runPnpm(['exec', 'tsc', '-p', 'bridge-client/tsconfig.tests.json']);
+  runPnpm(['exec', 'vitest', '--config', 'bridge-client/vitest.config.ts', 'run']);
   run(node, ['--test',
     'scripts/target-spec.spec.mjs',
     'scripts/fetch-node-sidecar.spec.mjs',
@@ -70,7 +75,7 @@ try {
   ]);
   run(node, ['scripts/fetch-node-sidecar.mjs', '--target', target.rustTriple]);
   run(node, ['scripts/bake-runtime.mjs', '--target', target.rustTriple]);
-  run(pnpm, ['exec', 'tauri', 'build', ...tauriBuildArgs(target, desktopRoot, targetConfig, overlayPath)]);
+  runPnpm(['exec', 'tauri', 'build', ...tauriBuildArgs(target, desktopRoot, targetConfig, overlayPath)]);
 } finally {
   if (overlayDirectory !== undefined) rmSync(overlayDirectory, { recursive: true, force: true });
 }

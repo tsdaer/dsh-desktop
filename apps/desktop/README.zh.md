@@ -69,7 +69,7 @@ deb 冒烟会在安装前创建用户数据标记,并要求执行 package purge 
 
 仅限 Linux 的 `pnpm --filter @deepseek-ai/dsh-desktop native-ui-smoke -- --target x86_64-unknown-linux-gnu --artifact <deb> --screenshot <path>` 会安装 deb,针对已安装可执行文件启动 `tauri-driver`,还原已提交的无 key `navigation-panes` session,通过原生 WebKit WebView 打开它,校验 composer 与模型面对的终端卡片,并在 purge 安装包前截图。runner 需要 `webkit2gtk-driver`、`tauri-driver` 和 `xvfb` 等 X display;fixture 使用临时 plaintext session-persistence 覆盖,不能当作真实模型或最低发行版证据。
 
-安装器是自包含的:它随附壳程序、按目标命名的 Node sidecar(Tauri externalBin)和 resources/runtime/ 下的烘焙运行时。源码运行时目录按 Rust target triple 区分,目标解析器会在暂存文件前拒绝不支持的目标。首次启动时壳子把桥接包拷入 profile(运行时没有 npm),为内置包修复 profile 回退目录,并导航到所服务的 UI。profile 安装的 bundle 仍从 profile 自己的 node_modules 解析。
+安装器是自包含的:它随附壳程序、按目标命名的 Node sidecar(Tauri externalBin)和 resources/runtime/ 下的烘焙运行时。源码运行时目录位于 `src-tauri/runtime/<product-target>` 下,目标解析器会在暂存文件前拒绝不支持的目标。首次启动时壳子把桥接包拷入 profile(运行时没有 npm),为内置包修复 profile 回退目录,并导航到所服务的 UI。profile 安装的 bundle 仍从 profile 自己的 node_modules 解析。
 
 macOS arm64 另有一个未签名的仅构建命令:`pnpm --filter @deepseek-ai/dsh-desktop bundle -- --target aarch64-apple-darwin --experimental`。它生成 app 和 dmg,但不生成 updater 构件;该结果只能作为编译与打包证据,不能作为受支持的下载或更新渠道。签名并公证 macOS 发布版本需要产品持有的 Developer ID 与 updater 凭据。
 

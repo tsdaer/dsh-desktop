@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-21-nested-pnpm-native-entrypoint.md
-2026-08-21-nested-pnpm-native-entrypoint.md: cf4c8398b06ec9c57e60a04f60d6511e44a38d79
-2026-08-21-nested-pnpm-native-entrypoint.zh.md: 3ecf529fbeaa015cf23832858fec00ca968892e5
+2026-08-21-nested-pnpm-native-entrypoint.md: 8cdd880a09ad334ace6b3350e8d4c09cb7f2dbd9
+2026-08-21-nested-pnpm-native-entrypoint.zh.md: 01a85e67a11d57c6af951104601f5c974d5fd510

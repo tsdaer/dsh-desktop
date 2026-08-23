@@ -3,7 +3,7 @@
     "createUpdaterArtifacts": false,
     "targets": ["app", "dmg"],
     "resources": {
-      "../.runtime/aarch64-apple-darwin/deploy/": "runtime"
+      "runtime/macos-arm64/": "runtime"
     },
     "macOS": {
       "minimumSystemVersion": "13.0",

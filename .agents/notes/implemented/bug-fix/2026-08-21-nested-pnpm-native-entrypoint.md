@@ -6,7 +6,7 @@ English | [中文](2026-08-21-nested-pnpm-native-entrypoint.zh.md)
 
 ## Problem
 
-Every repository orchestrator that re-enters pnpm read `npm_execpath` and spawned `node <entrypoint>`: `scripts/run-gates.ts`, `scripts/build.ts`, `scripts/run-web-snapshots.ts`, and the coverage coordinator behind `scripts/run-coverage-partitions.ts`. That assumed `npm_execpath` always names a JavaScript file, which holds for an npm-installed pnpm and for `pnpm/action-setup` but not for the standalone pnpm install, whose `npm_execpath` is a native executable such as `pnpm.exe`.
+Repository orchestrators that re-enter pnpm must preserve the package-manager distribution that started them. The gate, build, Web snapshot, coverage, and desktop bundle coordinators run in environments where `npm_execpath` may name either a JavaScript file or a native executable. Assuming one form breaks the other: npm-installed pnpm and `pnpm/action-setup` expose a JavaScript entrypoint, while a standalone pnpm install exposes a native executable such as `pnpm.exe`.
 
 On a standalone install Node parsed the executable header as source, so every nested command died instantly with `SyntaxError: Invalid or unexpected token` on the `MZ` magic bytes. `pnpm run doc-sync` reported all 28 gates failing in under a second each and `pnpm run build` failed in `build:lib`, while each gate passed when invoked directly. The uniform, instant failures read like 28 unrelated defects rather than one unsupported package-manager installation.
 
@@ -14,7 +14,7 @@ On a standalone install Node parsed the executable header as source, so every ne
 
 `scripts/package-manager.ts` owns the rule as `packageManagerInvocation(args, context)`, returning the executable plus its complete argument list. A JavaScript entrypoint (`.js`, `.cjs`, `.mjs`) is handed to Node as before; anything else is spawned directly, which is what a native pnpm binary requires. Both forms stay shell-free, so the [scripts convention](../../../../scripts/AGENTS.md) holds on every host.
 
-All four call sites consume that one helper. `CoverageCommand` gained an explicit `command` field and `CoveragePartitionCoordinatorOptions` replaced `pnpmEntrypoint: string` with a `packageManager` invocation, because a coordinator command can no longer assume Node is the executable.
+The repository gate, build, Web snapshot, coverage, and desktop bundle coordinators consume that one helper. `CoverageCommand` has an explicit `command` field and `CoveragePartitionCoordinatorOptions` carries a `packageManager` invocation, because a coordinator command cannot assume Node is the executable. The plain-Node desktop bundle imports the same TypeScript source and never resolves a `pnpm.cmd` shim from `PATH`.
 
 ## Alternatives considered
 
@@ -25,9 +25,9 @@ All four call sites consume that one helper. `CoverageCommand` gained an explici
 
 ## Consequences
 
-Nested orchestration works on npm-installed, action-setup, and standalone pnpm. A future call site must go through the helper; reading `npm_execpath` directly reintroduces the same defect for the standalone install.
+Nested orchestration works on npm-installed, action-setup, and standalone pnpm. A future call site must go through the helper; reading `npm_execpath` directly reintroduces the same defect for the standalone install, while resolving `pnpm.cmd` from `PATH` cannot stay shell-free on Windows.
 
-The change does not alter CI behaviour, where the entrypoint stays a JavaScript file, so the failure was invisible to the platform matrix and only appeared on a developer machine.
+CI action-setup installations re-enter their JavaScript entrypoint through Node. Standalone installations spawn their native executable directly. Neither path invokes a platform shell.
 
 ## Verification
 

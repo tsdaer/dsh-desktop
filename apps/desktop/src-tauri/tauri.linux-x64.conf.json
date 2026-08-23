@@ -2,7 +2,7 @@
   "bundle": {
     "targets": ["appimage", "deb"],
     "resources": {
-      "../.runtime/x86_64-unknown-linux-gnu/deploy/": "runtime"
+      "runtime/linux-x64/": "runtime"
     },
     "linux": {
       "deb": {

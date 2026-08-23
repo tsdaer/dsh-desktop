@@ -77,7 +77,10 @@ export function validateNativeRuntime(root, target) {
 
   for (const packageName of ['node-pty', 'koffi']) {
     const packageRoot = findPackageRoot(root, packageName);
-    if (packageRoot && !hasNativeFile(packageRoot)) {
+    const targetPackageRoot = packageName === 'koffi'
+      ? join(root, 'node_modules', '@koromix', `koffi-${target.nativePlatformKey}`)
+      : undefined;
+    if (packageRoot && !hasNativeFile(packageRoot) && !hasNativeFile(targetPackageRoot)) {
       throw new Error(`native package has no loadable binary: ${packageRoot}`);
     }
   }

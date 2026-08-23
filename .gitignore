@@ -44,4 +44,5 @@ worktrees/
 .agents/worktrees/
 .typert-*/
 apps/desktop/.runtime/
+apps/desktop/src-tauri/runtime/
 apps/desktop/src-tauri/binaries/

@@ -10,13 +10,13 @@ The target-owned runtime directory could be selected correctly while its native 
 
 ## Decision
 
-`apps/desktop/scripts/runtime-native.mjs` owns native runtime pruning and validation. The bake walks every `prebuilds` directory, keeps a native file under the target row's `nativePlatformKey` when available, or accepts a source-built native file beside that directory, and removes the other children before inspecting the resulting runtime. When `node-pty` or `koffi` is present, each package must contain at least one loadable native file. Every shipped `.node`, `.dll`, `.dylib`, `.so`, or `.exe` is checked for a supported foreign-platform path key and for an extension that cannot run on the selected OS.
+`apps/desktop/scripts/runtime-native.mjs` owns native runtime pruning and validation. The bake walks every `prebuilds` directory, keeps a native file under the target row's `nativePlatformKey` when available, or accepts a source-built native file beside that directory, and removes the other children before inspecting the resulting runtime. When `node-pty` is present, its package must contain a loadable native file. Koffi may contain that file directly or in its target-specific `@koromix/koffi-<nativePlatformKey>` optional package; another target's optional package does not satisfy the check. Every shipped `.node`, `.dll`, `.dylib`, `.so`, or `.exe` is checked for a supported foreign-platform path key and for an extension that cannot run on the selected OS.
 
 The validator runs after target-specific pruning and before the sidecar boot smoke. It does not infer compatibility from a filename for generic native files such as `koffi.node`; the target runner's sidecar boot remains the evidence that those bytes load on the target operating system.
 
 ## Testing
 
-`apps/desktop/scripts/runtime-native.spec.mjs` verifies multi-package pruning, missing target prebuilds, and foreign native files. The target, sidecar, and native-runtime script tests pass together. Native Linux and macOS runner boot, packaged installation, and release evidence remain open before those targets can be listed as supported.
+`apps/desktop/scripts/runtime-native.spec.mjs` verifies multi-package pruning, missing target prebuilds, source builds, Koffi's target-specific optional-package layout, and foreign native files. The desktop bundle runs the target, sidecar, and native-runtime script tests together before fetching and booting the target sidecar.
 
 ## Consequences
 

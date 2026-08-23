@@ -10,7 +10,7 @@ English | [中文](2026-08-22-desktop-target-aware-bundles.md)
 
 ## Decision
 
-`apps/desktop/src-tauri/tauri.conf.json` 保存共享的壳子、资源、图标、外部 sidecar 和 updater 设置。每个支持的目标在 `apps/desktop/src-tauri/tauri.<target>.conf.json` 下增加一份经过审查的层;bundle 命令校验合并后的配置,并把该层与明确的 Rust target 一起传给 Tauri。runtime 输出目录包含 Rust triple,所以切换目标时不会复用其他目标的 bundle 目录。
+`apps/desktop/src-tauri/tauri.conf.json` 保存共享的壳子、资源、图标、外部 sidecar 和 updater 设置。每个支持的目标在 `apps/desktop/src-tauri/tauri.<target>.conf.json` 下增加一份经过审查的层;bundle 命令校验合并后的配置,并把该层与明确的 Rust target 一起传给 Tauri。runtime 输出目录在 `src-tauri/runtime/` 下使用目标行的产品键,因此切换目标时不会复用其他目标的 bundle 目录,Windows 资源路径也能保持在 NSIS 的长度限制内。
 
 `size-report.mjs` 检查目标 runtime 和每个预期构件后缀,把 runtime 字节数与压缩安装器字节数分开报告,并在 runtime 超预算、混入开发依赖或构件清单不完整时失败。`release-artifacts.mjs` 校验直接 bundle 输出并按产品目标目录暂存,在生成 hash 前校验合并后的发布清单。`updater-manifest.mjs` 把主更新构件映射到发布工作区实际存在的目标目录,从共享的 Tauri 配置读取 updater 公钥,并在写入清单前校验每个主构件的 Minisign 文件签名和 trusted comment 签名。它会拒绝缺少签名、主构件重复、文件名异常、空签名、签名无效和版本不匹配。
 

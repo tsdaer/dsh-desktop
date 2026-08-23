@@ -2,7 +2,7 @@
   "bundle": {
     "targets": ["nsis"],
     "resources": {
-      "../.runtime/x86_64-pc-windows-msvc/deploy/": "runtime"
+      "runtime/windows-x64/": "runtime"
     },
     "windows": {
       "webviewInstallMode": {

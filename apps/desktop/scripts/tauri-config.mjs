@@ -87,7 +87,7 @@ export function tauriConfigPaths(target, desktopRoot, targetConfig = target.taur
  * file. Tauri receives the same target layer through `--config` at bundle
  * time, so this check covers the configuration that the command will merge.
  *
- * @param {Readonly<{bundleKinds: readonly string[], rustTriple: string, tauriConfig: string, updaterPlatform: string}>} target
+ * @param {Readonly<{bundleKinds: readonly string[], runtimeRelativeDir: string, rustTriple: string, tauriConfig: string, updaterPlatform: string}>} target
  * @param {string} desktopRoot
  * @param {string} [targetConfig=target.tauriConfig] Reviewed overlay path.
  * @param {string} [extraConfigPath] Optional later config layer.
@@ -106,7 +106,11 @@ export function effectiveTauriConfig(target, desktopRoot, targetConfig = target.
     throw new Error(`Tauri bundle targets do not match ${target.rustTriple}`);
   }
   const resourceEntries = Object.entries(resources);
-  if (resourceEntries.length !== 1 || resourceEntries[0][1] !== 'runtime' || !resourceEntries[0][0].includes(target.rustTriple)) {
+  const expectedResource = target.runtimeRelativeDir
+    .replace(/^src-tauri[\\/]/u, '')
+    .replace(/[\\/]+$/u, '');
+  const configuredResource = resourceEntries[0]?.[0].replace(/[\\/]+$/u, '');
+  if (resourceEntries.length !== 1 || resourceEntries[0][1] !== 'runtime' || configuredResource !== expectedResource) {
     throw new Error(`Tauri resources must stage the target runtime as runtime for ${target.rustTriple}`);
   }
   if (JSON.stringify(bundle.externalBin) !== JSON.stringify(['binaries/node'])) {
@@ -150,10 +154,10 @@ export function targetArtifactDirectories(target, desktopRoot) {
 /**
  * Return the resource source path expected by the effective target config.
  *
- * @param {Readonly<{rustTriple: string}>} target
+ * @param {Readonly<{runtimeRelativeDir: string}>} target
  * @param {string} desktopRoot
  * @returns {string}
  */
 export function targetRuntimePath(target, desktopRoot) {
-  return join(desktopRoot, '.runtime', target.rustTriple, 'deploy');
+  return join(desktopRoot, target.runtimeRelativeDir);
 }

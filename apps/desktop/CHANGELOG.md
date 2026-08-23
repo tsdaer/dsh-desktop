@@ -4,6 +4,13 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.7] - 2026-08-23
+
+### Fixed
+
+- Desktop release preparation now runs consistently across Windows, Linux, and macOS: nested pnpm invocations stay shell-free, fixture paths are independent of the package working directory, POSIX permission tests update actual file modes, and Windows Node archives use argument-bound tar extraction.
+- Windows runtime validation accepts Koffi's target-specific optional package, and target-owned runtime source directories use short product keys so NSIS can package deeply nested dependencies without exceeding its path limit.
+
 ## [0.3.6] - 2026-08-23
 
 ### Fixed

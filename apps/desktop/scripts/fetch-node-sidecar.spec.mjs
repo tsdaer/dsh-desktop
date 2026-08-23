@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync, rmSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync, rmSync } from 'node:fs';
 import { Readable } from 'node:stream';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import {
   checksumForArchive,
   downloadFile,
+  extractArchive,
   fetchNodeSidecar,
   installFetchedSidecar,
   verifySha256,
@@ -94,6 +95,29 @@ test('follows redirects and rejects HTTP failures before creating a cache entry'
   rmSync(root, { recursive: true, force: true });
 });
 
+test('extracts a Windows zip through tar with argv-bound paths', () => {
+  const root = temporaryDirectory();
+  try {
+    const archivePath = join(root, 'node archive.zip');
+    const extractDir = join(root, 'extracted files');
+    const calls = [];
+    extractArchive(
+      archivePath,
+      extractDir,
+      { nodeArchiveKind: 'zip' },
+      'win32',
+      (command, args, options) => calls.push({ command, args, options }),
+    );
+    assert.deepEqual(calls, [{
+      command: 'tar',
+      args: ['-xf', archivePath, '-C', extractDir],
+      options: { stdio: 'inherit' },
+    }]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('verifies, installs, and records an exact POSIX sidecar name and mode', async () => {
   const root = temporaryDirectory();
   const destination = join(root, target.sidecarBasename);
@@ -109,7 +133,10 @@ test('verifies, installs, and records an exact POSIX sidecar name and mode', asy
     download: fixtureDownload(archiveBytes, `${digest}  node-v22.23.1-linux-x64.tar.xz\n`),
     extract: fixtureExtract('node binary'),
     readVersion: () => 'v22.23.1',
-    setExecutable: (filePath, mode) => executableModes.push({ filePath, mode }),
+    setExecutable: (filePath, mode) => {
+      executableModes.push({ filePath, mode });
+      chmodSync(filePath, mode);
+    },
     hostPlatform: 'linux',
   });
   assert.equal(result.cached, false);

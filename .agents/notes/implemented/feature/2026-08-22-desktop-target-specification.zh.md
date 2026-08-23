@@ -14,7 +14,7 @@ English | [中文](2026-08-22-desktop-target-specification.md)
 
 每一行目标规格负责 Node 发行版名称与压缩包类型、精确的 sidecar 源成员和目标文件名、原生平台键、bundle 类型、产物目录、更新器后缀、按目标区分的运行时目录和大小预算。sidecar 获取、运行时烘焙、大小报告和 bundle 编排都消费同一个不可变规格。压缩包成员在拼接到临时解压目录之前会先经过路径校验。
 
-Windows Tauri 资源路径现在指向按目标划分的运行时目录。bundle 命令把同一个解析出的目标传给所有准备步骤和 `tauri build`；这为后续按平台拆分 Tauri 配置及原生打包工作建立了目标选择接缝。本变更不会把 Linux 或 macOS 宣布为已发布支持平台，因为 Rust 壳、Tauri 配置、发布工作流和打包 smoke 证据仍需完成计划中的后续工作包。
+每份 Tauri 资源路径都指向 `src-tauri/runtime/<product-target>` 下由目标拥有的运行时目录。bundle 命令把同一个解析出的目标传给所有准备步骤和 `tauri build`,因此各平台的 Tauri 配置和原生打包使用同一次选择。
 
 ## Testing
 
@@ -24,10 +24,10 @@ Windows Tauri 资源路径现在指向按目标划分的运行时目录。bundle
 
 **在每个脚本中从 `process.platform` 推断产品目标。** 不采用，因为发布准备和原生打包必须共享一个显式目标，重复的宿主推断会让 sidecar、运行时和 bundle 逐渐不一致。
 
-**继续使用一个共享的 `.runtime/deploy` 目录。** 不采用，因为切换目标或运行矩阵任务时可能复用其他平台的原生字节。运行时目录按 Rust target triple 区分。
+**继续使用一个共享运行时目录。** 不采用,因为切换目标或运行矩阵任务时可能复用其他平台的原生字节。运行时目录按目标行的产品键区分。
 
 **在定义规格时顺带加入更多架构。** 不采用，因为计划要求先取得原生依赖和 runner 证据，再扩大受支持目标集合。
 
 ## Consequences
 
-Windows 本地 bundle 必须重新烘焙到 `.runtime/x86_64-pc-windows-msvc/deploy`；未限定目标的旧运行时目录已不再是配置的资源来源。目标解析器已经可供后续工作包使用，但每个平台仍需完成原生运行时、Rust、Tauri、发布、更新器、安装、以及打包 GUI 证据，才能列为受支持平台。
+Windows 本地 bundle 会重新烘焙到 `src-tauri/runtime/windows-x64`。较短的目标专属源路径让深层嵌套的运行时文件保持在 Windows NSIS 输入路径长度限制内,而打包后的 `resources/runtime` 目标不变。

@@ -104,26 +104,27 @@ async function downloadHttps(url, destinationPath, redirectCount, requestUrl) {
  * @param {string} extractDir
  * @param {Readonly<{nodeArchiveKind: string}>} target
  * @param {string} hostPlatform
+ * @param {typeof execFileSync} run
  * @returns {void}
  */
-export function extractArchive(archivePath, extractDir, target, hostPlatform = process.platform) {
+export function extractArchive(
+  archivePath,
+  extractDir,
+  target,
+  hostPlatform = process.platform,
+  run = execFileSync,
+) {
   mkdirSync(extractDir, { recursive: true });
   if (target.nodeArchiveKind === 'zip') {
     if (hostPlatform === 'win32') {
-      execFileSync('powershell', [
-        '-NoProfile',
-        '-Command',
-        'Expand-Archive -LiteralPath $args[0] -DestinationPath $args[1] -Force',
-        archivePath,
-        extractDir,
-      ], { stdio: 'inherit' });
+      run('tar', ['-xf', archivePath, '-C', extractDir], { stdio: 'inherit' });
     } else {
-      execFileSync('unzip', ['-q', archivePath, '-d', extractDir], { stdio: 'inherit' });
+      run('unzip', ['-q', archivePath, '-d', extractDir], { stdio: 'inherit' });
     }
     return;
   }
   const flag = target.nodeArchiveKind === 'tar.xz' ? '-xJf' : '-xzf';
-  execFileSync('tar', [flag, archivePath, '-C', extractDir], { stdio: 'inherit' });
+  run('tar', [flag, archivePath, '-C', extractDir], { stdio: 'inherit' });
 }
 
 /**

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import test from 'node:test';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -44,7 +45,8 @@ test('materializes the committed session fixture without path tokens', () => {
   try {
     const fixture = join(root, 'seed.jsonl');
     const home = join(root, 'home');
-    const source = readFileSync('apps/web/tests/snapshots/navigation-panes/seed.jsonl', 'utf8');
+    const sourceFixture = fileURLToPath(new URL('../../web/tests/snapshots/navigation-panes/seed.jsonl', import.meta.url));
+    const source = readFileSync(sourceFixture, 'utf8');
     writeFileSync(fixture, source, { encoding: 'utf8' });
     const materialized = materializeFixture(home, fixture);
     const stored = readFileSync(materialized.sessionPath, 'utf8');

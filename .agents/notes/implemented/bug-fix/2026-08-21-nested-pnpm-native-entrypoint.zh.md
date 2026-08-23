@@ -6,7 +6,7 @@ Status: implemented
 
 ## 问题
 
-仓库中每个重新进入 pnpm 的编排器都读取 `npm_execpath` 并 spawn `node <entrypoint>`:`scripts/run-gates.ts`、`scripts/build.ts`、`scripts/run-web-snapshots.ts`,以及 `scripts/run-coverage-partitions.ts` 背后的覆盖率协调器。这假定 `npm_execpath` 始终指向一个 JavaScript 文件;该假定对 npm 安装的 pnpm 和 `pnpm/action-setup` 成立,但对独立安装版 pnpm 不成立 —— 后者的 `npm_execpath` 是原生可执行文件,例如 `pnpm.exe`。
+仓库中重新进入 pnpm 的编排器必须保留启动自身的包管理器分发形式。质量门禁、构建、Web 快照、覆盖率和桌面打包协调器所在的环境中,`npm_execpath` 既可能指向 JavaScript 文件,也可能指向原生可执行文件。假定其中任一种形式都会破坏另一种:npm 安装的 pnpm 与 `pnpm/action-setup` 暴露 JavaScript 入口,而独立安装版 pnpm 暴露 `pnpm.exe` 等原生可执行文件。
 
 在独立安装版上,Node 会把可执行文件头当作源码解析,于是每个嵌套命令都在 `MZ` 魔数上立即以 `SyntaxError: Invalid or unexpected token` 失败。`pnpm run doc-sync` 报告 28 个门禁各在一秒内全部失败,`pnpm run build` 在 `build:lib` 阶段失败,而单独调用每个门禁都通过。这种整齐而瞬时的失败看起来像 28 个互不相关的缺陷,而不是一次不受支持的包管理器安装形式。
 
@@ -14,7 +14,7 @@ Status: implemented
 
 `scripts/package-manager.ts` 以 `packageManagerInvocation(args, context)` 独占这条规则,返回可执行文件及其完整参数列表。JavaScript 入口(`.js`、`.cjs`、`.mjs`)仍交给 Node;其他一律直接 spawn,这正是原生 pnpm 二进制所要求的。两种形式都不经过 shell,因此 [scripts 约定](../../../../scripts/AGENTS.md)在每个宿主上都成立。
 
-四个调用点统一消费该 helper。`CoverageCommand` 新增显式的 `command` 字段,`CoveragePartitionCoordinatorOptions` 把 `pnpmEntrypoint: string` 换成 `packageManager` 调用对象,因为协调器命令不能再假定可执行文件就是 Node。
+仓库的质量门禁、构建、Web 快照、覆盖率和桌面打包协调器统一消费该 helper。`CoverageCommand` 具有显式的 `command` 字段,`CoveragePartitionCoordinatorOptions` 携带 `packageManager` 调用对象,因为协调器命令不能假定可执行文件就是 Node。由普通 Node 启动的桌面打包脚本导入同一份 TypeScript 源码,绝不从 `PATH` 解析 `pnpm.cmd` 垫片。
 
 ## 备选方案
 
@@ -25,9 +25,9 @@ Status: implemented
 
 ## 后果
 
-嵌套编排在 npm 安装、action-setup 和独立安装三种 pnpm 上都可用。后续新增调用点必须走该 helper;直接读取 `npm_execpath` 会为独立安装版重新引入同一缺陷。
+嵌套编排在 npm 安装、action-setup 和独立安装三种 pnpm 上都可用。后续新增调用点必须走该 helper;直接读取 `npm_execpath` 会为独立安装版重新引入同一缺陷,而从 `PATH` 解析 `pnpm.cmd` 在 Windows 上无法保持不经过 shell。
 
-此改动不影响 CI 行为 —— 那里的入口始终是 JavaScript 文件,因此该缺陷对平台矩阵不可见,只在开发者机器上显现。
+CI 的 action-setup 安装会通过 Node 重新进入其 JavaScript 入口。独立安装版会直接 spawn 原生可执行文件。两条路径都不调用平台 shell。
 
 ## 验证
 

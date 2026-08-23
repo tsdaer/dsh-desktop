@@ -78,6 +78,31 @@ test('accepts a target source build when no target prebuild is available', () =>
   }
 });
 
+test('accepts the target-specific Koffi optional package', () => {
+  const testFixture = fixture();
+  try {
+    testFixture.file('node_modules/koffi/package.json');
+    testFixture.file('node_modules/@koromix/koffi-linux-x64/linux_x64/koffi.node');
+    validateNativeRuntime(testFixture.root, resolveTarget('x86_64-unknown-linux-gnu'));
+  } finally {
+    testFixture.cleanup();
+  }
+});
+
+test('rejects Koffi when only another target optional package is present', () => {
+  const testFixture = fixture();
+  try {
+    testFixture.file('node_modules/koffi/package.json');
+    testFixture.file('node_modules/@koromix/koffi-win32-x64/win32_x64/koffi.node');
+    assert.throws(
+      () => validateNativeRuntime(testFixture.root, resolveTarget('x86_64-unknown-linux-gnu')),
+      /native package has no loadable binary/,
+    );
+  } finally {
+    testFixture.cleanup();
+  }
+});
+
 test('rejects foreign platform native files after pruning', () => {
   const testFixture = fixture();
   try {
