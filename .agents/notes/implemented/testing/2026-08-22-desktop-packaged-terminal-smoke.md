@@ -14,6 +14,8 @@ The target-native packaged smoke extracts or stages the artifact, launches the i
 
 The deb path installs the artifact, queries its registered file list, and resolves the `/usr/bin` sidecar and resource runtime independently from that package-owned list. The macOS dmg path copies the mounted app before launching it, while a direct app artifact is launched through `Contents/MacOS/dsh-desktop` without treating the `.app` directory as an executable. Symlinks are ignored during extracted-package resource discovery, and missing or duplicate sidecars and runtimes fail the smoke.
 
+Release workflows resolve package artifacts from the checkout root before invoking a filtered pnpm script. The absolute argument remains valid after pnpm changes the child process working directory to `apps/desktop`.
+
 This check proves target-native packaged PTY bytes and disposal. It does not claim that a browser session invoked a model-facing terminal tool; that GUI and updater evidence remains an installed-product requirement.
 
 ## Alternatives considered
@@ -30,4 +32,4 @@ The Linux AppImage/deb and macOS app/dmg workflow smokes now exercise the target
 
 ## Testing
 
-`apps/desktop/scripts/packaged-smoke.spec.mjs` pins target argument parsing, exact package resource discovery, missing-sidecar rejection, shell-native marker commands, process-tree observation, and package executable paths. The desktop release workflow invokes `--terminal-smoke` for Windows NSIS, Linux AppImage/deb, and macOS app/dmg artifacts.
+`apps/desktop/scripts/packaged-smoke.spec.mjs` pins target argument parsing, exact package resource discovery, missing-sidecar rejection, shell-native marker commands, process-tree observation, and package executable paths. `scripts/desktop-release-workflow.spec.ts` requires checkout-root absolute artifact paths for all three Linux package probes. The desktop release workflow invokes `--terminal-smoke` for Windows NSIS, Linux AppImage/deb, and macOS app/dmg artifacts.

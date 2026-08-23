@@ -4,6 +4,12 @@ dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a
 
 ## [未发布]
 
+## [0.3.15] - 2026-08-24
+
+### 修复
+
+- Linux AppImage、deb 和原生 UI 冒烟会传入 checkout 根目录的绝对构件路径,避免带 filter 的 pnpm 脚本相对 `apps/desktop` 错误解析路径。
+
 ## [0.3.14] - 2026-08-24
 
 ### 修复

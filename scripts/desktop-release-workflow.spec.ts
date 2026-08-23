@@ -72,6 +72,7 @@ describe('desktop release workflow', () => {
     expect(JSON.stringify(linux)).toContain('apps/web/tests/navigation-panes.e2e.ts')
     expect(JSON.stringify(linux)).toContain('DSH_SNAPSHOT=replay')
     expect(JSON.stringify(linux)).toContain('Upload Linux terminal UI replay evidence')
+    expect(JSON.stringify(linux).match(/\$\(pwd\)\/apps\/desktop\/src-tauri\/target/g)).toHaveLength(3)
     expect(JSON.stringify(linux)).toContain('APPIMAGE_EXTRACT_AND_RUN')
     expect(JSON.stringify(linux)).toContain('NO_STRIP')
     expect(JSON.stringify(windows)).toContain('packaged-smoke')

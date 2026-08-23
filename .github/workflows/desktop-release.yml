@@ -194,7 +194,7 @@ jobs:
 
       - name: Smoke-test the packaged AppImage
         run: |
-          APPIMAGE="$(find apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage -maxdepth 1 -name '*.AppImage' -print -quit)"
+          APPIMAGE="$(find "$(pwd)/apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage" -maxdepth 1 -name '*.AppImage' -print -quit)"
           test -n "$APPIMAGE"
           xvfb-run --auto-servernum --server-args='-screen 0 1280x800x24' \
             pnpm --filter @deepseek-ai/dsh-desktop packaged-smoke -- \
@@ -205,7 +205,7 @@ jobs:
         env:
           DSH_PACKAGED_WEB_SMOKE_SCREENSHOT: ${{ runner.temp }}/dsh-desktop-packaged-web-smoke.png
         run: |
-          DEB="$(find apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb -maxdepth 1 -name '*.deb' -print -quit)"
+          DEB="$(find "$(pwd)/apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb" -maxdepth 1 -name '*.deb' -print -quit)"
           test -n "$DEB"
           xvfb-run --auto-servernum --server-args='-screen 0 1280x800x24' \
             pnpm --filter @deepseek-ai/dsh-desktop packaged-smoke -- \
@@ -228,7 +228,7 @@ jobs:
           DSH_NATIVE_UI_SCREENSHOT: ${{ runner.temp }}/dsh-desktop-native-ui.png
         run: |
           set -euo pipefail
-          DEB="$(find apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb -maxdepth 1 -name '*.deb' -print -quit)"
+          DEB="$(find "$(pwd)/apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb" -maxdepth 1 -name '*.deb' -print -quit)"
           test -n "$DEB"
           xvfb-run --auto-servernum --server-args='-screen 0 1680x1000x24' \
             pnpm --filter @deepseek-ai/dsh-desktop native-ui-smoke -- \

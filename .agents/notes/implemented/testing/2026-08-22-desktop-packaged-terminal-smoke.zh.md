@@ -14,6 +14,8 @@ Status: implemented
 
 deb 路径会安装构件,查询 package manager 注册的文件清单,并从该 package 自有清单中分别解析 `/usr/bin` sidecar 与资源运行时。macOS dmg 路径会先复制挂载的应用再启动复制品;直接传入 app 构件时则启动 `Contents/MacOS/dsh-desktop`,不会把 `.app` 目录当成可执行文件。解包资源发现会忽略符号链接;缺少或重复的 sidecar 和运行时都会使冒烟失败。
 
+发布 workflow 会先从 checkout 根目录解析 package 构件,再调用带 filter 的 pnpm 脚本。pnpm 把子进程工作目录切换到 `apps/desktop` 后,绝对参数仍然有效。
+
 这项检查证明目标原生安装包携带了可用的 PTY 字节并能清理。它不声称浏览器会话调用了面向模型的终端工具；GUI 和更新器证据仍属于已安装产品的验收范围。
 
 ## Alternatives considered
@@ -30,4 +32,4 @@ Linux AppImage/deb 和 macOS app/dmg 工作流冒烟现在会在打包启动后�
 
 ## Testing
 
-`apps/desktop/scripts/packaged-smoke.spec.mjs` 固定目标参数解析、安装包资源的唯一发现、缺少 sidecar 时的拒绝、适合平台 shell 的标记命令、进程树观察和安装包可执行文件路径。桌面发布工作流会对 Windows NSIS、Linux AppImage/deb 以及 macOS app/dmg 构件传入 `--terminal-smoke`。
+`apps/desktop/scripts/packaged-smoke.spec.mjs` 固定目标参数解析、安装包资源的唯一发现、缺少 sidecar 时的拒绝、适合平台 shell 的标记命令、进程树观察和安装包可执行文件路径。`scripts/desktop-release-workflow.spec.ts` 要求三项 Linux package 探针都使用 checkout 根目录的绝对构件路径。桌面发布工作流会对 Windows NSIS、Linux AppImage/deb 以及 macOS app/dmg 构件传入 `--terminal-smoke`。
