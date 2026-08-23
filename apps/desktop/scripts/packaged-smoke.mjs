@@ -4,7 +4,7 @@
 // the source CLI, so resource lookup and the target Node sidecar are included.
 import { cpSync, existsSync, mkdtempSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, posix as posixPath, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { spawn, spawnSync } from 'node:child_process';
 
@@ -178,12 +178,44 @@ function run(command, args, options = {}) {
 }
 
 function installedDebExecutable(packageName) {
-  const files = run('dpkg-query', ['-L', packageName]).split(/\r?\n/).filter(Boolean);
+  const files = installedDebFiles(packageName);
   const executable = files.find((file) => file.endsWith('/bin/dsh-desktop'));
   if (!executable || !existsSync(executable)) {
     throw new Error(`installed package ${packageName} has no executable at /bin/dsh-desktop`);
   }
   return executable;
+}
+
+function installedDebFiles(packageName) {
+  return run('dpkg-query', ['-L', packageName]).split(/\r?\n/).filter(Boolean);
+}
+
+/**
+ * Resolve the installed resource root from one deb package file listing.
+ *
+ * @param {readonly string[]} files Paths reported by `dpkg-query -L`.
+ * @param {{readonly sidecarBasename: string}} target Target sidecar identity.
+ * @returns {string} Installed directory containing the runtime and sidecar.
+ */
+export function resolveInstalledDebPackageRoot(files, target) {
+  const sidecars = files.filter((file) => posixPath.basename(file) === target.sidecarBasename);
+  const runtimes = files.filter((file) => file.endsWith('/lib/bin.js'));
+  if (sidecars.length !== 1) {
+    throw new Error(`expected one installed sidecar ${target.sidecarBasename}, found ${sidecars.length}`);
+  }
+  if (runtimes.length !== 1) {
+    throw new Error(`expected one installed runtime lib/bin.js, found ${runtimes.length}`);
+  }
+  const packageRoot = posixPath.dirname(posixPath.dirname(posixPath.dirname(runtimes[0])));
+  const sidecarRelative = posixPath.relative(packageRoot, sidecars[0]);
+  if (sidecarRelative === '' || sidecarRelative.startsWith('..') || sidecarRelative.startsWith('/')) {
+    throw new Error(`installed sidecar is outside the desktop resource root: ${sidecars[0]}`);
+  }
+  return packageRoot;
+}
+
+function installedDebPackageRoot(packageName, target) {
+  return resolveInstalledDebPackageRoot(installedDebFiles(packageName), target);
 }
 
 function packageName(artifact) {
@@ -411,11 +443,9 @@ async function main() {
       if (!existsSync(executable)) throw new Error(`NSIS install has no executable: ${executable}`);
     } else if (options.installDeb) {
       installedDeb = packageName(options.artifact);
-      packageRoot = join(home, 'deb-root');
-      mkdirSync(packageRoot);
-      run('dpkg-deb', ['--extract', options.artifact, packageRoot]);
       run('sudo', ['dpkg', '--install', options.artifact], { stdio: 'inherit' });
-      executable = installedDebExecutable(installed);
+      executable = installedDebExecutable(installedDeb);
+      packageRoot = installedDebPackageRoot(installedDeb, options.target);
     } else if (options.installDmg) {
       mountedDmg = join(home, 'dmg-mount');
       mkdirSync(mountedDmg);

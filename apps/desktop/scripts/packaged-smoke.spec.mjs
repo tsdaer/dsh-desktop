@@ -10,6 +10,7 @@ import {
   managedProcessPids,
   packagedRuntime,
   packagedExecutable,
+  resolveInstalledDebPackageRoot,
   parseArguments,
   parseProcessSnapshot,
   assertUserDataRetained,
@@ -123,6 +124,22 @@ test('locates exactly one target sidecar and runtime inside an extracted package
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test('resolves the runtime root from the files installed by a deb package', () => {
+  const root = resolveInstalledDebPackageRoot([
+    '/usr/bin/dsh-desktop',
+    '/usr/lib/dsh-desktop/binaries/node-x86_64-unknown-linux-gnu',
+    '/usr/lib/dsh-desktop/runtime/lib/bin.js',
+  ], { sidecarBasename: 'node-x86_64-unknown-linux-gnu' });
+  assert.equal(root, '/usr/lib/dsh-desktop');
+  assert.throws(
+    () => resolveInstalledDebPackageRoot([
+      '/usr/lib/dsh-desktop/runtime/lib/bin.js',
+      '/opt/node-x86_64-unknown-linux-gnu',
+    ], { sidecarBasename: 'node-x86_64-unknown-linux-gnu' }),
+    /outside the desktop resource root/,
+  );
 });
 
 test('requires user-owned data to survive package removal', () => {
