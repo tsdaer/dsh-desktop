@@ -4,6 +4,12 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.14] - 2026-08-24
+
+### Fixed
+
+- The Linux release job restores frozen development dependencies after production runtime baking so Playwright, packaged UI, native UI, and replay smoke tooling remain available.
+
 ## [0.3.13] - 2026-08-24
 
 ### Fixed

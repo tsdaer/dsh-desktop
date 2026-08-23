@@ -12,7 +12,7 @@ The installed-package smoke verified readiness and a target-runtime PTY command,
 
 `packaged-smoke.mjs` accepts Linux-only `--web-smoke`. While the installed package remains running, the check opens its readiness URL in Chromium, requires a successful document response, waits for the conversation composer and textarea to mount, validates the document title, and optionally writes a screenshot through `DSH_PACKAGED_WEB_SMOKE_SCREENSHOT`. The check closes Chromium and stops the packaged process tree before package removal.
 
-The Linux release job installs Chromium before package smokes and runs this check against the installed deb package together with the target-runtime PTY probe. Its screenshot is uploaded as evidence separate from the assembled Web replay, baseline record, and installable release assets.
+Production runtime baking removes the workspace's development dependencies. The Linux release job restores the frozen development install before installing Chromium and running this check against the installed deb package together with the target-runtime PTY probe. Its screenshot is uploaded as evidence separate from the assembled Web replay, baseline record, and installable release assets.
 
 This check exercises the installed package's shell, sidecar, runtime, HTTP server, and rendered Web UI through a separate Chromium process. Native Tauri WebView rendering, user-visible terminal interaction, update, minimum-distribution, and GUI evidence remain separate acceptance requirements.
 
@@ -30,4 +30,4 @@ Linux release artifacts now include a screenshot from a page served by the insta
 
 ## Testing
 
-`packaged-smoke.spec.mjs` covers parsing and rejects `--web-smoke` for macOS. `scripts/ci-workflow.spec.ts` requires the Linux release job to install Chromium, pass `--web-smoke`, and upload the screenshot. The target runner remains the evidence source for the actual package and browser execution.
+`packaged-smoke.spec.mjs` covers parsing and rejects `--web-smoke` for macOS. `scripts/desktop-release-workflow.spec.ts` requires the Linux release job to restore development dependencies before installing Chromium, pass `--web-smoke`, and upload the screenshot. The target runner remains the evidence source for the actual package and browser execution.

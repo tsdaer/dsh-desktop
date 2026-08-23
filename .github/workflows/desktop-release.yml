@@ -188,7 +188,9 @@ jobs:
           node apps/desktop/scripts/release-artifacts.mjs --target x86_64-unknown-linux-gnu --output "$RUNNER_TEMP/dsh-desktop-artifacts"
 
       - name: Install Chromium for packaged web UI smoke
-        run: pnpm --filter @deepseek-ai/dsh-web-frontend exec playwright install --with-deps chromium
+        run: |
+          pnpm install --frozen-lockfile --prod=false
+          pnpm --filter @deepseek-ai/dsh-web-frontend exec playwright install --with-deps chromium
 
       - name: Smoke-test the packaged AppImage
         run: |

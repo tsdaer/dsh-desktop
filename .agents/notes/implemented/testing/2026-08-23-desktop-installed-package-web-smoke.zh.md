@@ -12,7 +12,7 @@ Status: implemented
 
 `packaged-smoke.mjs` 接受仅限 Linux 的 `--web-smoke`。已安装包保持运行期间,检查会用 Chromium 打开它的就绪 URL,要求文档响应成功,等待 conversation composer 和 textarea 挂载,校验文档标题,并可通过 `DSH_PACKAGED_WEB_SMOKE_SCREENSHOT` 写出截图。检查会关闭 Chromium,并在移除安装包前停止已打包进程树。
 
-Linux release job 会在安装包冒烟前安装 Chromium,并对已安装的 deb 包运行这项检查以及目标运行时 PTY 探针。截图作为独立证据上传,与组装 Web 回放、基线记录和可安装发布资产分开。
+生产运行时烘焙会移除工作区的开发依赖。Linux release job 会先恢复锁定的开发依赖安装,再安装 Chromium,并对已安装的 deb 包运行这项检查以及目标运行时 PTY 探针。截图作为独立证据上传,与组装 Web 回放、基线记录和可安装发布资产分开。
 
 这项检查覆盖已安装包的 shell、sidecar、运行时、HTTP server 和渲染后的 Web UI,但使用独立的 Chromium 进程。原生 Tauri WebView 渲染、面向用户的终端交互、更新、最低发行版和 GUI 证据仍是独立的验收要求。
 
@@ -30,4 +30,4 @@ Linux 发布证据现在包含一张由已安装 deb 包提供的页面生成的
 
 ## Testing
 
-`packaged-smoke.spec.mjs` 覆盖参数解析,并拒绝 macOS 使用 `--web-smoke`。`scripts/ci-workflow.spec.ts` 要求 Linux release job 安装 Chromium、传入 `--web-smoke` 并上传截图。实际安装包和浏览器执行仍以目标 runner 为证据来源。
+`packaged-smoke.spec.mjs` 覆盖参数解析,并拒绝 macOS 使用 `--web-smoke`。`scripts/desktop-release-workflow.spec.ts` 要求 Linux release job 在安装 Chromium 前恢复开发依赖、传入 `--web-smoke` 并上传截图。实际安装包和浏览器执行仍以目标 runner 为证据来源。

@@ -58,9 +58,17 @@ describe('desktop release workflow', () => {
     expect(JSON.stringify(linux)).toContain('cargo install tauri-driver --locked')
     expect(JSON.stringify(linux)).toContain('native-ui-smoke')
     expect(JSON.stringify(linux)).toContain('Upload Linux native Tauri UI evidence')
-    expect(JSON.stringify(linux)).toContain(
+    const linuxSteps: readonly unknown[] = Array.isArray(linux.steps) ? linux.steps : []
+    const chromium = linuxSteps.find(step => isRecord(step) && step.name === 'Install Chromium for packaged web UI smoke')
+    if (!isRecord(chromium) || typeof chromium.run !== 'string') {
+      throw new TypeError('desktop Linux release must define the Chromium installation step')
+    }
+    const restoreDevDependencies = chromium.run.indexOf('pnpm install --frozen-lockfile --prod=false')
+    const installChromium = chromium.run.indexOf(
       'pnpm --filter @deepseek-ai/dsh-web-frontend exec playwright install --with-deps chromium',
     )
+    expect(restoreDevDependencies).toBeGreaterThanOrEqual(0)
+    expect(installChromium).toBeGreaterThan(restoreDevDependencies)
     expect(JSON.stringify(linux)).toContain('apps/web/tests/navigation-panes.e2e.ts')
     expect(JSON.stringify(linux)).toContain('DSH_SNAPSHOT=replay')
     expect(JSON.stringify(linux)).toContain('Upload Linux terminal UI replay evidence')

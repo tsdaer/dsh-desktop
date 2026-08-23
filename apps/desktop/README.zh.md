@@ -65,7 +65,7 @@ Linux 发布 runner 会通过 `pnpm --filter @deepseek-ai/dsh-desktop linux-base
 
 目标原生安装包启动冒烟可通过 `pnpm --filter @deepseek-ai/dsh-desktop packaged-smoke -- --target <triple> --artifact <path>` 运行。Windows 使用 `--install-nsis` 安装 NSIS 构件;Linux 接受 AppImage,或带 `--install-deb` 的 deb;macOS 接受 app bundle,或带 `--install-dmg` 的 dmg。dmg 路径使用与 `DSH_HOME` 分离的临时安装根目录,对应 `/Applications` 与用户数据之间的隔离;启动前会解析该根目录,避免 macOS 的 `/var` 别名成为 Tauri 拒绝的符号链接可执行文件祖先。启动超时会包含隔离的原生 splash 日志。冒烟检查会启动已安装的可执行文件,等待运行时就绪 URL,确认受管理的子进程退出,在带有 `--terminal-smoke` 时运行打包运行时的 PTY 探针,并检查移除安装包后临时 `DSH_HOME` 仍然存在。Linux 可加 `--web-smoke` 用 Chromium 打开已安装包提供的就绪 URL,要求 composer DOM 挂载并保留截图;这验证打包运行时与 HTTP UI,原生 Tauri WebView 证据仍需单独取得。它要求在目标 runner 上运行,不替代更新器、最低发行版和 GUI 证据。
 
-deb 冒烟会在安装前创建用户数据标记,并要求执行 package purge 后该标记仍然存在。这样可以验证安装包的卸载路径,同时不把一次性 smoke home 当成应用应拥有的数据。Linux release job 还会在 Chromium 下回放无 key 的 `navigation-panes` 浏览器场景,覆盖组装 Web profile 的模型面对的终端卡片和导航交互。这项回放与已安装包 smoke 分开,不代表已安装 GUI 证据;版本 N 到 N+1 的已安装更新仍需要目标原生验收 workflow。
+deb 冒烟会在安装前创建用户数据标记,并要求执行 package purge 后该标记仍然存在。这样可以验证安装包的卸载路径,同时不把一次性 smoke home 当成应用应拥有的数据。生产运行时烘焙会移除工作区的开发依赖,因此 Linux release job 会在安装 Chromium 以及运行安装包、原生 UI 和回放探针前恢复锁定的开发依赖安装。该 job 还会在 Chromium 下回放无 key 的 `navigation-panes` 浏览器场景,覆盖组装 Web profile 的模型面对的终端卡片和导航交互。这项回放与已安装包 smoke 分开,不代表已安装 GUI 证据;版本 N 到 N+1 的已安装更新仍需要目标原生验收 workflow。
 
 仅限 Linux 的 `pnpm --filter @deepseek-ai/dsh-desktop native-ui-smoke -- --target x86_64-unknown-linux-gnu --artifact <deb> --screenshot <path>` 会安装 deb,针对已安装可执行文件启动 `tauri-driver`,还原已提交的无 key `navigation-panes` session,通过原生 WebKit WebView 打开它,校验 composer 与模型面对的终端卡片,并在 purge 安装包前截图。runner 需要 `webkit2gtk-driver`、`tauri-driver` 和 `xvfb` 等 X display;fixture 使用临时 plaintext session-persistence 覆盖,不能当作真实模型或最低发行版证据。
 
