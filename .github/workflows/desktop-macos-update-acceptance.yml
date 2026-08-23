@@ -1,0 +1,237 @@
+name: Desktop macOS update acceptance
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_ref:
+        description: Immutable tag containing the signed version-N package
+        required: true
+        type: string
+      next_ref:
+        description: Immutable tag containing the signed version-N+1 package
+        required: true
+        type: string
+      port:
+        description: Fixed loopback port embedded in the version-N package
+        required: true
+        default: '4318'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  macos-update:
+    name: macOS arm64 installed update smoke
+    runs-on: macos-14
+    env:
+      BASE_REF: ${{ inputs.base_ref }}
+      NEXT_REF: ${{ inputs.next_ref }}
+      UPDATE_PORT: ${{ inputs.port }}
+      DSH_TARGET: aarch64-apple-darwin
+      DSH_UPDATE_ROOT: ${{ runner.temp }}/dsh-desktop-macos-update
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.base_ref }}
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - uses: pnpm/action-setup@v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Validate immutable version tags and update port
+        run: |
+          set -euo pipefail
+          [[ "$BASE_REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]
+          [[ "$NEXT_REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]
+          git show-ref --verify --quiet "refs/tags/$BASE_REF"
+          git show-ref --verify --quiet "refs/tags/$NEXT_REF"
+          BASE_COMMIT="$(git rev-parse --verify "${BASE_REF}^{commit}")"
+          NEXT_COMMIT="$(git rev-parse --verify "${NEXT_REF}^{commit}")"
+          test -n "$BASE_COMMIT"
+          test -n "$NEXT_COMMIT"
+          test "$(git rev-parse HEAD)" = "$BASE_COMMIT"
+          BASE_VERSION="$(git show "$BASE_REF:apps/desktop/package.json" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")"
+          NEXT_VERSION="$(git show "$NEXT_REF:apps/desktop/package.json" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")"
+          node - "$BASE_VERSION" "$NEXT_VERSION" <<'NODE'
+          const [base, next] = process.argv.slice(1);
+          const parse = (value) => {
+            const match = /^(\d+)\.(\d+)\.(\d+)/.exec(value);
+            if (match === null) throw new Error(`invalid desktop version: ${value}`);
+            return match.slice(1).map(Number);
+          };
+          const baseKey = parse(base);
+          const nextKey = parse(next);
+          const newer = nextKey.some((part, index) => part > baseKey[index]
+            && nextKey.slice(0, index).every((prefix, prefixIndex) => prefix === baseKey[prefixIndex]));
+          if (!newer) throw new Error(`next tag ${next} must be newer than base tag ${base}`);
+          NODE
+          if ! [[ "$UPDATE_PORT" =~ ^[0-9]+$ ]] || [ "$UPDATE_PORT" -lt 1 ] || [ "$UPDATE_PORT" -gt 65535 ]; then
+            echo "invalid update port: $UPDATE_PORT" >&2
+            exit 1
+          fi
+          {
+            echo "BASE_VERSION=$BASE_VERSION"
+            echo "NEXT_VERSION=$NEXT_VERSION"
+            echo "BASE_COMMIT=$BASE_COMMIT"
+            echo "NEXT_COMMIT=$NEXT_COMMIT"
+          } >> "$GITHUB_ENV"
+          mkdir -p "$DSH_UPDATE_ROOT/base" "$DSH_UPDATE_ROOT/next"
+
+      - name: Verify macOS signing inputs
+        env:
+          DSH_MACOS_CERTIFICATE_BASE64: ${{ secrets.DSH_MACOS_CERTIFICATE_BASE64 }}
+          DSH_MACOS_CERTIFICATE_PASSWORD: ${{ secrets.DSH_MACOS_CERTIFICATE_PASSWORD }}
+          DSH_MACOS_SIGNING_IDENTITY: ${{ secrets.DSH_MACOS_SIGNING_IDENTITY }}
+          DSH_MACOS_APPLE_ID: ${{ secrets.DSH_MACOS_APPLE_ID }}
+          DSH_MACOS_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.DSH_MACOS_APPLE_APP_SPECIFIC_PASSWORD }}
+          DSH_MACOS_APPLE_TEAM_ID: ${{ secrets.DSH_MACOS_APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DSH_MACOS_CERTIFICATE_BASE64"
+          test -n "$DSH_MACOS_CERTIFICATE_PASSWORD"
+          test -n "$DSH_MACOS_SIGNING_IDENTITY"
+          test -n "$DSH_MACOS_APPLE_ID"
+          test -n "$DSH_MACOS_APPLE_APP_SPECIFIC_PASSWORD"
+          test -n "$DSH_MACOS_APPLE_TEAM_ID"
+          test -n "$TAURI_SIGNING_PRIVATE_KEY"
+
+      - name: Import the Developer ID certificate into a temporary keychain
+        env:
+          DSH_MACOS_CERTIFICATE_BASE64: ${{ secrets.DSH_MACOS_CERTIFICATE_BASE64 }}
+          DSH_MACOS_CERTIFICATE_PASSWORD: ${{ secrets.DSH_MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          keychain="$RUNNER_TEMP/dsh-desktop-update-signing.keychain-db"
+          certificate="$RUNNER_TEMP/dsh-desktop-update-signing.p12"
+          keychain_password="$(openssl rand -hex 24)"
+          printf '%s' "$DSH_MACOS_CERTIFICATE_BASE64" | base64 -D > "$certificate"
+          security list-keychains -d user | sed 's/^[[:space:]]*//; s/"//g' | sed '/^$/d' > "$RUNNER_TEMP/dsh-desktop-update-keychains.txt"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$certificate" -k "$keychain" -P "$DSH_MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain"
+          security list-keychains -d user -s "$keychain"
+          {
+            echo "DSH_MACOS_KEYCHAIN=$keychain"
+            echo "DSH_MACOS_CERTIFICATE_FILE=$certificate"
+          } >> "$GITHUB_ENV"
+
+      - name: Build and sign version N with the loopback updater endpoint
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.DSH_MACOS_SIGNING_IDENTITY }}
+          DSH_MACOS_APPLE_ID: ${{ secrets.DSH_MACOS_APPLE_ID }}
+          DSH_MACOS_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.DSH_MACOS_APPLE_APP_SPECIFIC_PASSWORD }}
+          DSH_MACOS_APPLE_TEAM_ID: ${{ secrets.DSH_MACOS_APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$BASE_COMMIT"
+          pnpm install --frozen-lockfile
+          pnpm run build
+          pnpm --filter @deepseek-ai/dsh-desktop bundle -- \
+            --target "$DSH_TARGET" \
+            --updater-endpoint "http://127.0.0.1:${UPDATE_PORT}/latest.json"
+          export DSH_MACOS_APP="${GITHUB_WORKSPACE}/apps/desktop/src-tauri/target/${DSH_TARGET}/release/bundle/macos/dsh-desktop.app"
+          export DSH_MACOS_DMG="$(find "${GITHUB_WORKSPACE}/apps/desktop/src-tauri/target/${DSH_TARGET}/release/bundle/dmg" -maxdepth 1 -name '*.dmg' -print -quit)"
+          export DSH_MACOS_ARCHIVE="$(find "${GITHUB_WORKSPACE}/apps/desktop/src-tauri/target/${DSH_TARGET}/release/bundle/macos" -maxdepth 1 -name '*.app.tar.gz' -print -quit)"
+          export MACOS_SIGNING_IDENTITY="${APPLE_SIGNING_IDENTITY}"
+          export APPLE_ID="${DSH_MACOS_APPLE_ID}"
+          export APPLE_APP_SPECIFIC_PASSWORD="${DSH_MACOS_APPLE_APP_SPECIFIC_PASSWORD}"
+          export APPLE_TEAM_ID="${DSH_MACOS_APPLE_TEAM_ID}"
+          test -f "$DSH_MACOS_APP"
+          test -f "$DSH_MACOS_DMG"
+          test -f "$DSH_MACOS_ARCHIVE"
+          pnpm --filter @deepseek-ai/dsh-desktop exec node scripts/macos-sign-release.mjs
+          cp "$DSH_MACOS_DMG" "$DSH_UPDATE_ROOT/base/"
+          echo "BASE_ARTIFACT=$DSH_UPDATE_ROOT/base/$(basename "$DSH_MACOS_DMG")" >> "$GITHUB_ENV"
+
+      - name: Checkout and build version N+1
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.DSH_MACOS_SIGNING_IDENTITY }}
+          DSH_MACOS_APPLE_ID: ${{ secrets.DSH_MACOS_APPLE_ID }}
+          DSH_MACOS_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.DSH_MACOS_APPLE_APP_SPECIFIC_PASSWORD }}
+          DSH_MACOS_APPLE_TEAM_ID: ${{ secrets.DSH_MACOS_APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          git restore --source="$BASE_COMMIT" --staged --worktree .
+          git clean -ffdx
+          git checkout --detach "$NEXT_COMMIT"
+          test "$(git rev-parse HEAD)" = "$NEXT_COMMIT"
+          pnpm install --frozen-lockfile
+          pnpm run build
+          pnpm --filter @deepseek-ai/dsh-desktop bundle -- --target "$DSH_TARGET"
+          export DSH_MACOS_APP="${GITHUB_WORKSPACE}/apps/desktop/src-tauri/target/${DSH_TARGET}/release/bundle/macos/dsh-desktop.app"
+          export DSH_MACOS_DMG="$(find "${GITHUB_WORKSPACE}/apps/desktop/src-tauri/target/${DSH_TARGET}/release/bundle/dmg" -maxdepth 1 -name '*.dmg' -print -quit)"
+          export DSH_MACOS_ARCHIVE="$(find "${GITHUB_WORKSPACE}/apps/desktop/src-tauri/target/${DSH_TARGET}/release/bundle/macos" -maxdepth 1 -name '*.app.tar.gz' -print -quit)"
+          export MACOS_SIGNING_IDENTITY="${APPLE_SIGNING_IDENTITY}"
+          export APPLE_ID="${DSH_MACOS_APPLE_ID}"
+          export APPLE_APP_SPECIFIC_PASSWORD="${DSH_MACOS_APPLE_APP_SPECIFIC_PASSWORD}"
+          export APPLE_TEAM_ID="${DSH_MACOS_APPLE_TEAM_ID}"
+          test -f "$DSH_MACOS_APP"
+          test -f "$DSH_MACOS_DMG"
+          test -f "$DSH_MACOS_ARCHIVE"
+          pnpm --filter @deepseek-ai/dsh-desktop exec node scripts/macos-sign-release.mjs
+          node apps/desktop/scripts/release-artifacts.mjs \
+            --target "$DSH_TARGET" \
+            --output "$DSH_UPDATE_ROOT/next"
+          node apps/desktop/scripts/updater-manifest.mjs \
+            "$NEXT_VERSION" "$NEXT_REF" "$DSH_UPDATE_ROOT/next" \
+            --download-base-url "http://127.0.0.1:${UPDATE_PORT}/artifacts"
+          cp latest.json "$DSH_UPDATE_ROOT/next/latest.json"
+
+      - name: Run the target-native installed update smoke
+        run: |
+          set -euo pipefail
+          pnpm --filter @deepseek-ai/dsh-desktop update-smoke -- \
+            --target "$DSH_TARGET" \
+            --artifact "$BASE_ARTIFACT" \
+            --next-version "$NEXT_VERSION" \
+            --artifact-root "$DSH_UPDATE_ROOT/next" \
+            --manifest "$DSH_UPDATE_ROOT/next/latest.json" \
+            --port "$UPDATE_PORT" \
+            --terminal-smoke 2>&1 | tee "$DSH_UPDATE_ROOT/update-smoke.log"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dsh-desktop-macos-update-${{ inputs.base_ref }}-to-${{ inputs.next_ref }}
+          path: ${{ runner.temp }}/dsh-desktop-macos-update/update-smoke.log
+          if-no-files-found: ignore
+
+      - name: Remove the temporary signing keychain
+        if: always()
+        run: |
+          set +e
+          if [ -f "$RUNNER_TEMP/dsh-desktop-update-keychains.txt" ]; then
+            keychains=()
+            while IFS= read -r keychain; do
+              [ -n "$keychain" ] && keychains+=("$keychain")
+            done < "$RUNNER_TEMP/dsh-desktop-update-keychains.txt"
+            if [ "${#keychains[@]}" -gt 0 ]; then
+              security list-keychains -d user -s "${keychains[@]}"
+            fi
+          fi
+          keychain="${DSH_MACOS_KEYCHAIN:-$RUNNER_TEMP/dsh-desktop-update-signing.keychain-db}"
+          certificate="${DSH_MACOS_CERTIFICATE_FILE:-$RUNNER_TEMP/dsh-desktop-update-signing.p12}"
+          security delete-keychain "$keychain"
+          rm -f "$certificate" "$RUNNER_TEMP/dsh-desktop-update-keychains.txt"

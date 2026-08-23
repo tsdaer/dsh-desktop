@@ -118,6 +118,8 @@ The installed update smoke uses that target-native package with `--update-smoke 
 
 The target-native Linux N-to-N+1 check is available from the `Desktop Linux update acceptance` workflow. Provide two immutable tags and a fixed loopback port; the job builds version N with the fixture endpoint, builds and signs version N+1, stages its manifest, and runs the update smoke under `xvfb-run`. It uploads the smoke log but does not publish a release or mark Linux supported; minimum-distribution and packaged GUI evidence remain separate acceptance requirements.
 
+The target-native macOS N-to-N+1 check is available from the `Desktop macOS update acceptance` workflow. Provide two immutable tags and a fixed loopback port; the job signs, notarizes, staples, and verifies both arm64 versions on `macos-14`, then runs the update smoke against the signed dmg and uploads its log. It consumes Apple and Tauri signing secrets, publishes no Release, and does not mark macOS supported; the workflow remains evidence-only until it passes with packaged GUI and Gatekeeper evidence.
+
 The frameless main window re-adds `WS_THICKFRAME` (without `WS_CAPTION`) at setup, so the OS provides native resize borders and the Windows 11 snap-layout flyout while the title bar stays custom. The maximize icon reads window state from the native host: Rust pushes `dsh://maximize-change` on every size event and the title bar listens for it, with the polling read kept as a fallback.
 
 ## Drag and drop
