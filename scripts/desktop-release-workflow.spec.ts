@@ -54,6 +54,12 @@ describe('desktop release workflow', () => {
     expect(JSON.stringify(linux)).toContain('packaged-smoke')
     expect(JSON.stringify(linux)).toContain('--terminal-smoke')
     expect(JSON.stringify(linux)).toContain('--install-deb')
+    expect(JSON.stringify(linux)).toContain(
+      'pnpm --filter @deepseek-ai/dsh-web-frontend exec playwright install --with-deps chromium',
+    )
+    expect(JSON.stringify(linux)).toContain('apps/web/tests/navigation-panes.e2e.ts')
+    expect(JSON.stringify(linux)).toContain('DSH_SNAPSHOT=replay')
+    expect(JSON.stringify(linux)).toContain('Upload Linux terminal UI replay evidence')
     expect(JSON.stringify(windows)).toContain('packaged-smoke')
     expect(JSON.stringify(windows)).toContain('--install-nsis')
     expect(JSON.stringify(windows)).toContain('--terminal-smoke')

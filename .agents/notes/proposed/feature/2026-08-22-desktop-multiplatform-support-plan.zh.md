@@ -127,7 +127,7 @@ Tauri updater 按平台和架构选择制品。从同一已校验工作流创建
 
 [按目标的 bundle 配置与 updater 构件清单](../../implemented/feature/2026-08-22-desktop-target-aware-bundles.md)现在把共享 Tauri 设置与经过审查的 Windows、Linux、macOS 配置层分开。bundle 编排会校验生效的目标层,目标输出目录包含 Rust triple,体积报告检查每个预期构件并单独报告压缩安装器字节数,updater 清单生成会读取共享 Tauri updater 公钥,并在写入清单前校验每个主构件的 Minisign 文件签名和 trusted comment 签名。发布清单校验器现在接受 Tauri 未带版本号的 `dsh-desktop.app` 目录,同时继续校验 updater 归档、安装镜像和签名文件的版本号;[macOS app bundle 清单记录](../../implemented/bug-fix/2026-08-23-desktop-macos-app-bundle-inventory.md)记录了这项修正。测试覆盖有效签名、构件被修改、公钥不匹配、三个目标的已签名主构件以及 macOS 原生 app bundle 布局。工作包 5、工作包 6 中 Windows/Linux draft 构件暂存部分以及工作包 7 的清单生成部分已实现;目标原生安装、更新、卸载和打包 GUI 证据仍未完成。
 
-Linux 发布 job 现在会在 `xvfb-run` 下运行目标原生 AppImage 启动冒烟,以及 deb 安装/启动/清除冒烟。它还会调用[Linux 基线 preflight](../../implemented/feature/2026-08-22-desktop-linux-baseline-preflight.md),在安装前置依赖后记录 runner 的 glibc、GTK、WebKitGTK 和打包工具版本。该冒烟检查证明打包后的就绪状态、受管理进程清理和临时 `DSH_HOME` 保留;终端交互、更新安装、最低发行版覆盖和打包 GUI 证据仍未完成。preflight 记录构建环境,但不证明对更旧发行版的兼容性。
+Linux 发布 job 现在会在 `xvfb-run` 下运行目标原生 AppImage 启动冒烟,以及 deb 安装/启动/清除冒烟。它还会调用[Linux 基线 preflight](../../implemented/feature/2026-08-22-desktop-linux-baseline-preflight.md),在安装前置依赖后记录 runner 的 glibc、GTK、WebKitGTK 和打包工具版本。该冒烟检查证明打包后的就绪状态、受管理进程清理和临时 `DSH_HOME` 保留;已安装包终端 UI 交互、更新安装、最低发行版覆盖和打包 GUI 证据仍未完成。preflight 记录构建环境,但不证明对更旧发行版的兼容性。
 
 Linux 基线 preflight 接受 `--output <file>`,发布 job 会把包含 target、库和打包工具记录的文件作为独立于可安装发布清单、带版本号的证据 artifact 上传。[基线 artifact 记录](../../implemented/testing/2026-08-23-desktop-linux-baseline-artifact.md)记录了这项证据保留机制;它不会关闭最低发行版支持。
 
@@ -137,7 +137,9 @@ Linux 基线 preflight 接受 `--output <file>`,发布 job 会把包含 target�
 
 打包冒烟现在也接受 `--terminal-smoke`。启动 AppImage、deb、app 或 dmg 构件后,它会从构件中解析出且仅解析出一个目标 sidecar 和运行时,使用该运行时通过 `node-pty` 执行固定的 `printf` 探针,等待探针退出,并执行目标本地清理。Linux 和 macOS workflow job 都会调用这项检查。[桌面打包终端冒烟](../../implemented/testing/2026-08-22-desktop-packaged-terminal-smoke.md)记录了证据及其边界:它证明打包后的 PTY 字节和释放,不证明浏览器／模型可见的终端工作流。
 
-deb 安装冒烟会在安装后查询 package manager 文件清单,启动 `dpkg` 注册的可执行文件,并针对已安装的目标 sidecar 与 runtime 运行可选的终端探针。[Desktop deb 已安装 runtime 冒烟](../../implemented/bug-fix/2026-08-23-desktop-deb-installed-runtime-smoke.md)记录了这项路径选择修复;原生 Linux 安装、终端 UI、更新、卸载、基线和 GUI 证据仍未完成。
+Linux release job 现在还会安装 Chromium,并在 `xvfb-run` 下通过组装 Web profile 回放无 key 的 [`navigation-panes` 终端 UI 场景](../../implemented/testing/2026-08-23-desktop-linux-terminal-ui-replay.md)。该场景使用 standard preset 重建记录的 session,验证模型面对的终端卡片以及导航和剪贴板交互,并上传日志和失败截图。Windows 上 standard preset 选择 PowerShell,因此会跳过 Bash 专属断言。这只关闭组装 Web 的终端 UI 证据缺口,不建立已安装 Tauri WebView 行为、打包 GUI 证据或 Linux 支持声明。
+
+deb 安装冒烟会在安装后查询 package manager 文件清单,启动 `dpkg` 注册的可执行文件,并针对已安装的目标 sidecar 与 runtime 运行可选的终端探针。[Desktop deb 已安装 runtime 冒烟](../../implemented/bug-fix/2026-08-23-desktop-deb-installed-runtime-smoke.md)记录了这项路径选择修复;原生 Linux 安装、已安装包终端 UI、更新、卸载、基线和 GUI 证据仍未完成。
 
 macOS arm64 workflow 保留未签名 experimental job，并提供由 `DSH_DESKTOP_MACOS_RELEASE=true` 显式启用的签名发布 lane。该 lane 将 Developer ID 证书导入临时 keychain，在 bundle 和 updater 生成前把 `APPLE_SIGNING_IDENTITY` 传给 Tauri，使用 `codesign` 校验嵌套代码，使用 `notarytool` 提交 dmg，staple app 与 dmg，使用 `spctl` 检查 app，从已 staple 的 app 重建 updater archive，并使用受保护的 Tauri key 重新签名该 archive。始终执行的清理步骤会恢复 runner keychain 列表并删除临时密钥材料。单独的 attachment job 只会把已签名 macOS 清单以及刷新的 `latest.json`／`SHA256SUMS` 加入 draft Release；experimental 清单不会进入 manifest。该 lane 提供发布自动化，不构成 macOS 支持证据。
 
@@ -155,9 +157,9 @@ Windows x64 发布 job 现在会在体积与构件检查后、上传前运行 [W
 
 桌面 release workflow 的每个读取源码 job 都 checkout `needs.validate.outputs.commit`,并在构建、暂存或附加构件前校验 `git rev-parse HEAD`。结构测试覆盖全部六个 job;这关闭了源码快照一致性缺口,但不增加目标原生运行时证据。[已校验 commit 记录](../../implemented/process/2026-08-23-desktop-release-uses-validated-commit.md)记录了该发布不变量。
 
-剩余工作包括目标原生 Linux 终端 UI／模型可见工作流、执行已安装版本更新验收 workflow、最低基线和打包 GUI 证据；macOS 已配置凭据执行签名 lane、公证／Gatekeeper 证据、已安装版本更新 runner 证据、受支持发布文档和 GUI 证据；以及 Windows runner 上执行已安装 Windows 安装包回归。更新冒烟驱动器、签名 lane 自动化、清单签名校验和打包 PTY 冒烟不能替代目标原生的已安装版本更新执行或用户可见的 GUI 证据。
+剩余工作包括已安装 Tauri Linux 终端 UI／模型可见工作流、执行已安装版本更新验收 workflow、最低基线和打包 GUI 证据；macOS 已配置凭据执行签名 lane、公证／Gatekeeper 证据、已安装版本更新 runner 证据、受支持发布文档和 GUI 证据；以及 Windows runner 上执行已安装 Windows 安装包回归。更新冒烟驱动器、签名 lane 自动化、清单签名校验、打包 PTY 冒烟和组装 Web 回放不能替代目标原生的已安装版本更新执行或用户可见的 GUI 证据。
 
-当前 Windows checkout 已通过 59 项桌面脚本测试、6 项 Rust 单测、`cargo check --target x86_64-pc-windows-msvc`、7 项独立桌面发布／更新 workflow 结构测试、命名的双语配对检查、Agent Note 格式校验和 `pnpm run lint`。`pnpm run doc-sync` 已通过全部 28 项门禁,包括文档构建。这些检查不能替代目标原生已安装包证据;保留的本地 NSIS 构件已通过安装器阶段而不再触发继承 stdio 错误,但未到达 readiness。
+本工作包的聚焦验证已通过 22 项桌面脚本测试、6 项 Rust 单测和 7 项独立桌面发布／更新 workflow 结构测试。Windows Web 回放通过 5 项测试并跳过 3 项仅限 Linux Bash 的断言;命名的双语配对检查、Agent Note 格式校验、`pnpm run lint` 和 `pnpm run doc-sync` 也已通过,其中 doc-sync 通过全部 28 项门禁及文档构建。这些检查不能替代目标原生已安装包证据;保留的本地 NSIS 构件已通过安装器阶段而不再触发继承 stdio 错误,但未到达 readiness。
 
 发布产品仍仅支持 Windows x64。Linux 与 macOS 需完成原生运行时、Rust/Tauri 壳子、目标配置、发布工作流、updater、安装、更新、卸载和打包 GUI 证据，并满足下方验收标准后，才能声明受支持。
 

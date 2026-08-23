@@ -65,7 +65,7 @@ Linux 发布 runner 会通过 `pnpm --filter @deepseek-ai/dsh-desktop linux-base
 
 目标原生安装包启动冒烟可通过 `pnpm --filter @deepseek-ai/dsh-desktop packaged-smoke -- --target <triple> --artifact <path>` 运行。Windows 使用 `--install-nsis` 安装 NSIS 构件;Linux 接受 AppImage,或带 `--install-deb` 的 deb;macOS 接受 app bundle,或带 `--install-dmg` 的 dmg。冒烟检查会启动已安装的可执行文件,等待运行时就绪 URL,确认受管理的子进程退出,在带有 `--terminal-smoke` 时运行打包运行时的 PTY 探针,并检查移除安装包后临时 `DSH_HOME` 仍然存在。它要求在目标 runner 上运行,不替代更新器、最低发行版和 GUI 证据。
 
-deb 冒烟会在安装前创建用户数据标记,并要求执行 package purge 后该标记仍然存在。这样可以验证安装包的卸载路径,同时不把一次性 smoke home 当成应用应拥有的数据。版本 N 到 N+1 的已安装更新冒烟以及浏览器/模型面对的终端工作流仍需要目标原生发布证据;当前 workflow 不会从这项检查推导出这两项结论。
+deb 冒烟会在安装前创建用户数据标记,并要求执行 package purge 后该标记仍然存在。这样可以验证安装包的卸载路径,同时不把一次性 smoke home 当成应用应拥有的数据。Linux release job 还会在 Chromium 下回放无 key 的 `navigation-panes` 浏览器场景,覆盖组装 Web profile 的模型面对的终端卡片和导航交互。这项回放与已安装包 smoke 分开,不代表已安装 GUI 证据;版本 N 到 N+1 的已安装更新仍需要目标原生验收 workflow。
 
 安装器是自包含的:它随附壳程序、按目标命名的 Node sidecar(Tauri externalBin)和 resources/runtime/ 下的烘焙运行时。源码运行时目录按 Rust target triple 区分,目标解析器会在暂存文件前拒绝不支持的目标。首次启动时壳子把桥接包拷入 profile(运行时没有 npm),为内置包修复 profile 回退目录,并导航到所服务的 UI。profile 安装的 bundle 仍从 profile 自己的 node_modules 解析。
 

@@ -97,7 +97,9 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
       const raw = await readFile(SEED, 'utf8')
       expect(fixtureUserPrompts(raw), 'seed fixture must carry exactly the two drive prompts')
         .toEqual([PROMPT_TURN1, PROMPT_TURN2])
-      await seedSession(scaffold, raw, SEED_ID)
+      // The seed was produced by the standard agent composition; reconstruct
+      // it under that preset so the host can recompute Bash's terminal views.
+      await seedSession(scaffold, raw, SEED_ID, 'standard')
     }
     browser = await chromium.launch()
   }, 120_000)
@@ -397,7 +399,7 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
     await expect.poll(() => page.locator('tr[data-timeline-focus]').count(), { timeout: 10_000 }).toBe(0)
   }, 60_000)
 
-  it.skipIf(MODE === 'record')('bash and file-path rows leave the default details column closed', async () => {
+  it.skipIf(MODE === 'record' || process.platform === 'win32')('bash and file-path rows leave the default details column closed', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-navigation-details'))
     await ensureSeedOpen(page)
     const bashRow = page.locator('[data-sample="bash"]').first()
@@ -428,7 +430,7 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
     }
   }, 60_000)
 
-  it.skipIf(MODE === 'record')('renders the bash row as a terminal card in the real browser', async () => {
+  it.skipIf(MODE === 'record' || process.platform === 'win32')('renders the bash row as a terminal card in the real browser', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-navigation-terminal'))
     await ensureSeedOpen(page)
     // The card is expand-gated behind the whole-row toggle (the unified
