@@ -116,6 +116,8 @@ The installed update smoke uses that target-native package with `--update-smoke 
 
 `pnpm --filter @deepseek-ai/dsh-desktop update-smoke -- --target <triple> --artifact <version-N-package> --next-version <version-N+1> --artifact-root <staged-root> --port <fixed-loopback-port>` starts the signed fixture, invokes `packaged-smoke` without shell interpolation, and closes the fixture server on success or failure. Build version N with the same fixed `--updater-endpoint` before running this command; it does not build either version or claim evidence on a non-native runner.
 
+The target-native Linux N-to-N+1 check is available from the `Desktop Linux update acceptance` workflow. Provide two immutable tags and a fixed loopback port; the job builds version N with the fixture endpoint, builds and signs version N+1, stages its manifest, and runs the update smoke under `xvfb-run`. It uploads the smoke log but does not publish a release or mark Linux supported; minimum-distribution and packaged GUI evidence remain separate acceptance requirements.
+
 The frameless main window re-adds `WS_THICKFRAME` (without `WS_CAPTION`) at setup, so the OS provides native resize borders and the Windows 11 snap-layout flyout while the title bar stays custom. The maximize icon reads window state from the native host: Rust pushes `dsh://maximize-change` on every size event and the title bar listens for it, with the polling read kept as a fallback.
 
 ## Drag and drop

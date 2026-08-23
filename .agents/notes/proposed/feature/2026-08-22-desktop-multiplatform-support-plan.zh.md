@@ -147,9 +147,11 @@ Windows x64 发布 job 现在会在体积与构件检查后、上传前运行 [W
 
 更新器清单生成器现在接受 `--download-base-url` 用于受控更新 fixture,`bundle` 接受 `--updater-endpoint`,并通过临时 Tauri 配置层把 runner 本地 endpoint 写入构件；`update-fixture` 会校验所选下一版本构件,并通过 loopback 提供只含当前目标的带签名清单与构件。这些选项都会校验 endpoint,不会改变生产 GitHub URL；[受控清单 URL 记录](../../implemented/testing/2026-08-22-desktop-update-smoke-manifest-base.md)、[端点注入记录](../../implemented/testing/2026-08-22-desktop-update-smoke-endpoint-injection.md)和[更新 fixture server 记录](../../implemented/testing/2026-08-22-desktop-update-fixture-server.md)记录这些机制。[已安装更新冒烟](../../implemented/testing/2026-08-23-desktop-installed-update-smoke.md)现在会在传入 `--update-smoke --expected-version <next-version>` 时驱动现有更新器控件和确认调用,记录重启前后的版本转换,停止重启后的安装包进程,检查用户数据保留,并提供固定端口协调器供目标原生执行。使用版本 N 安装包和已签名版本 N+1 构件的目标原生执行仍未完成。
 
-剩余工作包括目标原生 Linux 终端 UI／模型可见工作流、已安装版本更新 runner 证据、最低基线和打包 GUI 证据；macOS 已配置凭据执行签名 lane、公证／Gatekeeper 证据、已安装版本更新 runner 证据、受支持发布文档和 GUI 证据；以及 Windows runner 上执行已安装 Windows 安装包回归。更新冒烟驱动器、签名 lane 自动化、清单签名校验和打包 PTY 冒烟不能替代目标原生的已安装版本更新执行或用户可见的 GUI 证据。
+[Linux 安装版更新验收 workflow](../../implemented/testing/2026-08-23-desktop-installed-update-workflow.md) 现在接受两个不可变标签,使用固定 loopback endpoint 构建版本 N,在同一个 `ubuntu-24.04` runner 上构建并签名版本 N+1,并带打包 PTY 探针调用目标原生更新 smoke。它会上传 smoke 日志而不修改 Release;实际 workflow 执行仍是待取得的证据。
 
-当前 Windows checkout 已通过桌面脚本测试(53 项)、桌面前端测试(58 项)、Tauri Rust 测试(6 项)、桌面发布 workflow 结构测试、命名的双语配对检查和 Agent Note 格式校验。`pnpm run doc-sync` 已通过全部 28 项门禁,包括文档构建。
+剩余工作包括目标原生 Linux 终端 UI／模型可见工作流、执行已安装版本更新验收 workflow、最低基线和打包 GUI 证据；macOS 已配置凭据执行签名 lane、公证／Gatekeeper 证据、已安装版本更新 runner 证据、受支持发布文档和 GUI 证据；以及 Windows runner 上执行已安装 Windows 安装包回归。更新冒烟驱动器、签名 lane 自动化、清单签名校验和打包 PTY 冒烟不能替代目标原生的已安装版本更新执行或用户可见的 GUI 证据。
+
+当前 Windows checkout 已通过 57 项桌面脚本测试、4 项桌面发布／更新 workflow 结构测试、命名的双语配对检查和 Agent Note 格式校验。`pnpm run doc-sync` 已通过全部 28 项门禁,包括文档构建。
 
 发布产品仍仅支持 Windows x64。Linux 与 macOS 需完成原生运行时、Rust/Tauri 壳子、目标配置、发布工作流、updater、安装、更新、卸载和打包 GUI 证据，并满足下方验收标准后，才能声明受支持。
 

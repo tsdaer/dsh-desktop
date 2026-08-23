@@ -1,0 +1,155 @@
+name: Desktop Linux update acceptance
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_ref:
+        description: Immutable tag containing the version-N package
+        required: true
+        type: string
+      next_ref:
+        description: Immutable tag containing the signed version-N+1 package
+        required: true
+        type: string
+      port:
+        description: Fixed loopback port embedded in the version-N package
+        required: true
+        default: '4317'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  linux-update:
+    name: Linux x64 installed update smoke
+    runs-on: ubuntu-24.04
+    env:
+      BASE_REF: ${{ inputs.base_ref }}
+      NEXT_REF: ${{ inputs.next_ref }}
+      UPDATE_PORT: ${{ inputs.port }}
+      DSH_TARGET: x86_64-unknown-linux-gnu
+      DSH_UPDATE_ROOT: ${{ runner.temp }}/dsh-desktop-update
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.base_ref }}
+          fetch-depth: 0
+
+      - name: Install Linux desktop prerequisites
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes \
+            build-essential \
+            file \
+            libayatana-appindicator3-dev \
+            libgtk-3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            patchelf \
+            xdg-utils \
+            xvfb
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - uses: pnpm/action-setup@v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Validate immutable version tags and update port
+        run: |
+          set -euo pipefail
+          [[ "$BASE_REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]
+          [[ "$NEXT_REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]
+          git show-ref --verify --quiet "refs/tags/$BASE_REF"
+          git show-ref --verify --quiet "refs/tags/$NEXT_REF"
+          BASE_VERSION="$(git show "$BASE_REF:apps/desktop/package.json" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")"
+          NEXT_VERSION="$(git show "$NEXT_REF:apps/desktop/package.json" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")"
+          node - "$BASE_VERSION" "$NEXT_VERSION" <<'NODE'
+          const [base, next] = process.argv.slice(1);
+          const parse = (value) => {
+            const match = /^(\d+)\.(\d+)\.(\d+)/.exec(value);
+            if (match === null) throw new Error(`invalid desktop version: ${value}`);
+            return match.slice(1).map(Number);
+          };
+          const baseKey = parse(base);
+          const nextKey = parse(next);
+          const newer = nextKey.some((part, index) => part > baseKey[index]
+            && nextKey.slice(0, index).every((prefix, prefixIndex) => prefix === baseKey[prefixIndex]));
+          if (!newer) throw new Error(`next tag ${next} must be newer than base tag ${base}`);
+          NODE
+          if ! [[ "$UPDATE_PORT" =~ ^[0-9]+$ ]] || [ "$UPDATE_PORT" -lt 1 ] || [ "$UPDATE_PORT" -gt 65535 ]; then
+            echo "invalid update port: $UPDATE_PORT" >&2
+            exit 1
+          fi
+          {
+            echo "BASE_VERSION=$BASE_VERSION"
+            echo "NEXT_VERSION=$NEXT_VERSION"
+          } >> "$GITHUB_ENV"
+          mkdir -p "$DSH_UPDATE_ROOT/base" "$DSH_UPDATE_ROOT/next"
+
+      - name: Build version N with the loopback updater endpoint
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$TAURI_SIGNING_PRIVATE_KEY"
+          pnpm install --frozen-lockfile
+          pnpm run build
+          pnpm --filter @deepseek-ai/dsh-desktop bundle -- \
+            --target "$DSH_TARGET" \
+            --updater-endpoint "http://127.0.0.1:${UPDATE_PORT}/latest.json"
+          BASE_ARTIFACT="$(find "apps/desktop/src-tauri/target/$DSH_TARGET/release/bundle/appimage" -maxdepth 1 -name '*.AppImage' -print -quit)"
+          test -n "$BASE_ARTIFACT"
+          cp "$BASE_ARTIFACT" "$DSH_UPDATE_ROOT/base/"
+          echo "BASE_ARTIFACT=$DSH_UPDATE_ROOT/base/$(basename "$BASE_ARTIFACT")" >> "$GITHUB_ENV"
+
+      - name: Checkout and build version N+1
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          git restore --source="$BASE_REF" --staged --worktree .
+          git clean -ffdx
+          git checkout --detach "$NEXT_REF"
+          pnpm install --frozen-lockfile
+          pnpm run build
+          pnpm --filter @deepseek-ai/dsh-desktop bundle -- --target "$DSH_TARGET"
+          node apps/desktop/scripts/release-artifacts.mjs \
+            --target "$DSH_TARGET" \
+            --output "$DSH_UPDATE_ROOT/next"
+          node apps/desktop/scripts/updater-manifest.mjs \
+            "$NEXT_VERSION" "$NEXT_REF" "$DSH_UPDATE_ROOT/next" \
+            --download-base-url "http://127.0.0.1:${UPDATE_PORT}/artifacts"
+          cp latest.json "$DSH_UPDATE_ROOT/next/latest.json"
+
+      - name: Run the target-native installed update smoke
+        run: |
+          set -euo pipefail
+          xvfb-run --auto-servernum --server-args='-screen 0 1280x800x24' \
+            pnpm --filter @deepseek-ai/dsh-desktop update-smoke -- \
+              --target "$DSH_TARGET" \
+              --artifact "$BASE_ARTIFACT" \
+              --next-version "$NEXT_VERSION" \
+              --artifact-root "$DSH_UPDATE_ROOT/next" \
+              --manifest "$DSH_UPDATE_ROOT/next/latest.json" \
+              --port "$UPDATE_PORT" \
+              --terminal-smoke 2>&1 | tee "$DSH_UPDATE_ROOT/update-smoke.log"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dsh-desktop-linux-update-${{ inputs.base_ref }}-to-${{ inputs.next_ref }}
+          path: ${{ runner.temp }}/dsh-desktop-update/update-smoke.log
+          if-no-files-found: ignore

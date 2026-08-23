@@ -116,6 +116,8 @@ main.rs 的环境变量接线:DSH_CLI/DSH_NODE/DSH_BARE_MODULE_BASE/DSH_BRIDGE_T
 
 `pnpm --filter @deepseek-ai/dsh-desktop update-smoke -- --target <triple> --artifact <version-N-package> --next-version <version-N+1> --artifact-root <staged-root> --port <fixed-loopback-port>` 会启动已签名 fixture,不经过 shell 拼接地调用 `packaged-smoke`,并在成功或失败时关闭 fixture server。运行前要用相同的固定 `--updater-endpoint` 构建版本 N;该命令不构建任一版本,也不把非目标原生 runner 的结果视为证据。
 
+目标原生 Linux N 到 N+1 检查可从 `Desktop Linux update acceptance` 工作流手动运行。提供两个不可变标签和一个固定 loopback 端口;job 会使用 fixture endpoint 构建版本 N,构建并签名版本 N+1,暂存其清单,再在 `xvfb-run` 下运行更新 smoke。它会上传 smoke 日志,但不会发布 Release 或把 Linux 标记为受支持;最低发行版和打包 GUI 证据仍是独立的验收要求。
+
 无边框主窗口在 setup 时重新加回 `WS_THICKFRAME`(不加 `WS_CAPTION`),由操作系统提供原生缩放边框与 Windows 11 贴靠布局弹出层,标题栏保持自绘。最大化图标从原生宿主读取窗口状态:Rust 在每次尺寸事件时推送 `dsh://maximize-change`,标题栏监听该事件,并保留轮询读取作为回退。
 
 ## 拖放
