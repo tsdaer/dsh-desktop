@@ -89,7 +89,7 @@ interface TauriWebviewApi {
 interface TauriLike {
   event?: TauriEventApi
   core?: {
-    invoke(command: string, args?: Record<string, unknown>): Promise<unknown>
+    invoke<T = unknown>(command: string, args?: Record<string, unknown>): Promise<T>
   }
   webview?: TauriWebviewApi
 }

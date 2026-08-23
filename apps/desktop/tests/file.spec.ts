@@ -90,7 +90,7 @@ describe('desktop file view vocabulary', () => {
 
   it('maps a non-regular or absent target to the file error', async () => {
     const host = fakeHost(text('x'))
-    host.fs.stat.mockResolvedValue({ type: 'directory', version: 'v' as never })
+    host.fs.stat.mockResolvedValue({ type: 'directory', size: 0, version: 'v' as never })
     await expect(readFileView(host as never, workspaceId, 'dir', new AbortController().signal, CONFIG))
       .rejects.toMatchObject({ code: 'file-not-file' })
     const absent = fakeHost(text('x'))

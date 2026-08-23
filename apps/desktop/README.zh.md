@@ -138,7 +138,7 @@ OS 文件拖放由壳子经 Tauri 的拖放处理器接管(`onDragDropEvent`,默
 
 ## 壳桥接
 
-壳子把 dsh-desktop-bridge 包以纯目录拷贝的方式装进 web profile —— dev 模式从本仓库拷贝(apps/desktop/bridge、apps/desktop/bridge-client 与 vendored schemastery),打包模式从运行时拷贝 —— 并在每次启动时挂载 bridge/cordis.patch.yml。桥接包不是 pnpm workspace 成员,因此每条桌面流程都先经 scripts/build-bridge.mjs 从源码构建(npm 的 `dev`/`build`/`bake`/`bundle` 脚本已接入);dev 模式每次启动重新拷贝,重建的桥接总能到达 profile;打包模式的每次启动同样会把 profile 副本与运行时重新对齐。(全程不经过 npm install:已发布的 @deepseek-ai 清单带有 workspace: 协议,而 npm 的 peer 自动安装无法解析。)
+壳子把 dsh-desktop-bridge 包以纯目录拷贝的方式装进 web profile —— dev 模式从本仓库拷贝(apps/desktop/bridge、apps/desktop/bridge-client 与 vendored schemastery),打包模式从运行时拷贝 —— 并在每次启动时挂载 bridge/cordis.patch.yml。桥接包是 pnpm workspace 成员,但仍在普通 workspace 构建 glob 之外,因此每条桌面流程都先经 scripts/build-bridge.mjs 从源码构建(npm 的 `dev`/`build`/`bake`/`bundle` 脚本已接入);dev 模式每次启动重新拷贝,重建的桥接总能到达 profile;打包模式的每次启动同样会把 profile 副本与运行时重新对齐。运行时不执行 npm install:已发布的 @deepseek-ai 清单带有 workspace: 协议,npm 无法解析。
 
 桥接 host 路由(/dsh-bridge 之下):
 

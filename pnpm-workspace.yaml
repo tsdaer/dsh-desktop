@@ -7,6 +7,10 @@ packages:
   - native/landlock-run/packages/*
   # Product assemblies over the package tier; apps/cli owns the `dsh` bin.
   - apps/*
+  # Desktop bridge packages are source-built before desktop packaging and use
+  # workspace dependencies for shared client primitives and host plugins.
+  - apps/desktop/bridge
+  - apps/desktop/bridge-client
   - website
   # The runnable demo leaves join as ONE workspace member: examples/package.json
   # declares the union of every leaf's cordis.yml plugins as workspace:*, so a

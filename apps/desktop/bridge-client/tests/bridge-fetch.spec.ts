@@ -3,7 +3,6 @@
 // attached to every bridge request; without a token the plain fetch passes through.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { bridgeFetch, bridgeToken } from '../src/client/bridge-fetch.ts'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -17,35 +16,35 @@ describe('bridge fetch token', () => {
 
   it('attaches the bearer token from the page URL to every request', async () => {
     vi.stubGlobal('location', { search: '?dsh_token=abc123' })
-    const fetchMock = vi.fn(async () => new Response('ok'))
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response('ok'))
     vi.stubGlobal('fetch', fetchMock)
     const mod = await import('../src/client/bridge-fetch.ts')
     await mod.bridgeFetch('/dsh-bridge/config')
     expect(fetchMock).toHaveBeenCalledTimes(1)
-    const [input, init] = fetchMock.mock.calls[0]
-    const headers = new Headers(init.headers)
+    const [, init] = fetchMock.mock.calls[0]!
+    const headers = new Headers(init!.headers)
     expect(headers.get('authorization')).toBe('Bearer abc123')
   })
 
   it('merges the token into existing request headers', async () => {
     vi.stubGlobal('location', { search: '?dsh_token=xyz' })
-    const fetchMock = vi.fn(async () => new Response('ok'))
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response('ok'))
     vi.stubGlobal('fetch', fetchMock)
     const mod = await import('../src/client/bridge-fetch.ts')
     await mod.bridgeFetch('/dsh-bridge/policy', { headers: { 'content-type': 'application/json' } })
-    const [, init] = fetchMock.mock.calls[0]
-    const headers = new Headers(init.headers)
+    const [, init] = fetchMock.mock.calls[0]!
+    const headers = new Headers(init!.headers)
     expect(headers.get('authorization')).toBe('Bearer xyz')
     expect(headers.get('content-type')).toBe('application/json')
   })
 
   it('passes through unchanged when the URL carries no token', async () => {
     vi.stubGlobal('location', { search: '' })
-    const fetchMock = vi.fn(async () => new Response('ok'))
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response('ok'))
     vi.stubGlobal('fetch', fetchMock)
     const mod = await import('../src/client/bridge-fetch.ts')
     await mod.bridgeFetch('/dsh-bridge/config')
-    const [input, init] = fetchMock.mock.calls[0]
+    const [input, init] = fetchMock.mock.calls[0]!
     expect(init).toBeUndefined()
     expect(input).toBe('/dsh-bridge/config')
   })

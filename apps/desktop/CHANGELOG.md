@@ -4,6 +4,12 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.6] - 2026-08-23
+
+### Fixed
+
+- Desktop bridge packages are installed as pnpm workspace members, so release runners resolve their `workspace:` dependencies without invoking npm and all target bundle jobs can compile the bridge client.
+
 ## [0.3.5] - 2026-08-23
 
 ### Added

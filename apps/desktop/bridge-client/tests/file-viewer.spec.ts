@@ -3,13 +3,13 @@
 // rendering, binary/error states, truncation notice, and Search line scroll.
 
 import { createElement } from 'react'
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DesktopWorkspaceFileViewer, fetchFileView, langFromPath, parseFileView } from '../src/client/DesktopWorkspaceFileViewer.tsx'
 
 afterEach(cleanup)
 
-function stubFetch(body: unknown, ok = true, status = 200) {
+function stubFetch(body: unknown, status = 200) {
   vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(body), {
     status,
     headers: { 'content-type': 'application/json' },
@@ -65,7 +65,7 @@ describe('desktop file viewer', () => {
     await waitFor(() => { expect(view.getByText('worktree.fileTruncated')).toBeTruthy() })
 
     cleanup()
-    stubFetch({ ok: false, code: 'binary-file', message: 'the file is binary' }, false, 422)
+    stubFetch({ ok: false, code: 'binary-file', message: 'the file is binary' }, 422)
     const binary = render(createElement(DesktopWorkspaceFileViewer, {
       workspaceId: 'workspace-1',
       path: 'a.bin',
@@ -92,7 +92,7 @@ describe('desktop file viewer', () => {
   })
 
   it('propagates fetch errors as the stable message and closes on demand', async () => {
-    stubFetch({ ok: false, code: 'file-unavailable', message: 'file is unavailable' }, false, 404)
+    stubFetch({ ok: false, code: 'file-unavailable', message: 'file is unavailable' }, 404)
     const onClose = vi.fn()
     const view = render(createElement(DesktopWorkspaceFileViewer, {
       workspaceId: 'workspace-1',
