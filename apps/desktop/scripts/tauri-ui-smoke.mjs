@@ -145,6 +145,57 @@ export function webdriverCapabilities(executable) {
   };
 }
 
+/**
+ * Terminate a child process without waiting for an exit event that may already
+ * have fired, and bound cleanup when graceful termination is ignored.
+ *
+ * @param {import('node:child_process').ChildProcess} child Process to stop.
+ * @param {{graceMs?: number, forceMs?: number}} [options] Cleanup deadlines.
+ * @returns {Promise<boolean>} Whether the child reported exit before the final deadline.
+ */
+export function terminateProcess(child, { graceMs = 5_000, forceMs = 1_000 } = {}) {
+  const hasExited = () => child.exitCode !== null || child.signalCode !== null;
+  if (hasExited()) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    let settled = false;
+    let graceTimer;
+    let forceTimer;
+    const finish = (stopped) => {
+      if (settled) return;
+      settled = true;
+      if (graceTimer !== undefined) clearTimeout(graceTimer);
+      if (forceTimer !== undefined) clearTimeout(forceTimer);
+      child.removeListener('exit', onExit);
+      resolve(stopped);
+    };
+    const onExit = () => finish(true);
+    child.once('exit', onExit);
+    if (hasExited()) {
+      finish(true);
+      return;
+    }
+    child.kill('SIGTERM');
+    if (settled) return;
+    graceTimer = setTimeout(() => {
+      if (hasExited()) {
+        finish(true);
+        return;
+      }
+      child.kill('SIGKILL');
+      if (settled) return;
+      forceTimer = setTimeout(() => {
+        const stopped = hasExited();
+        if (!stopped) {
+          child.stdout?.destroy();
+          child.stderr?.destroy();
+          child.unref?.();
+        }
+        finish(stopped);
+      }, forceMs);
+    }, graceMs);
+  });
+}
+
 function requiredValue(argv, name) {
   const value = valueFor(argv, name);
   if (value === undefined) throw new Error(`${name} requires a value`);
@@ -323,6 +374,7 @@ async function main() {
   const packageName = installedPackageName(options.artifact);
   let driver;
   let sessionId;
+  let driverCleanupError;
   let installed = false;
   try {
     materializeFixture(home, options.fixture);
@@ -364,14 +416,15 @@ async function main() {
       await webdriverRequest(options.port, `/session/${sessionId}`, 'DELETE').catch(() => {});
     }
     if (driver !== undefined) {
-      driver.kill('SIGTERM');
-      await new Promise((resolveExit) => driver.once('exit', resolveExit));
+      const stopped = await terminateProcess(driver);
+      if (!stopped) driverCleanupError = new Error('tauri-driver did not exit after SIGTERM and SIGKILL');
     }
     if (installed) run('sudo', ['dpkg', '--purge', packageName], { stdio: 'inherit' });
     if (!existsSync(marker) || statSync(marker).size === 0) {
       throw new Error('native UI smoke removed user data');
     }
     if (options.home === undefined) rmSync(home, { recursive: true, force: true });
+    if (driverCleanupError !== undefined) throw driverCleanupError;
   }
 }
 

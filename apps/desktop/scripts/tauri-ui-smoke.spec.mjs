@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { EventEmitter } from 'node:events';
 import test from 'node:test';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -9,6 +10,7 @@ import {
   materializeFixture,
   parseArguments,
   projectKey,
+  terminateProcess,
   webdriverCapabilities,
 } from './tauri-ui-smoke.mjs';
 
@@ -65,3 +67,41 @@ test('uses the W3C Tauri application capability without an ambient browser', () 
     },
   });
 });
+
+test('does not wait for an exit event that fired before cleanup started', async () => {
+  const child = fakeChild();
+  child.exitCode = 0;
+  assert.equal(await terminateProcess(child), true);
+  assert.deepEqual(child.kills, []);
+});
+
+test('gracefully terminates a live driver before the force deadline', async () => {
+  const child = fakeChild((signal) => {
+    if (signal !== 'SIGTERM') return;
+    queueMicrotask(() => {
+      child.exitCode = 0;
+      child.emit('exit', 0, null);
+    });
+  });
+  assert.equal(await terminateProcess(child, { graceMs: 20, forceMs: 20 }), true);
+  assert.deepEqual(child.kills, ['SIGTERM']);
+});
+
+test('escalates and returns after a driver ignores both termination signals', async () => {
+  const child = fakeChild();
+  assert.equal(await terminateProcess(child, { graceMs: 1, forceMs: 1 }), false);
+  assert.deepEqual(child.kills, ['SIGTERM', 'SIGKILL']);
+});
+
+function fakeChild(onKill = () => {}) {
+  const child = new EventEmitter();
+  child.exitCode = null;
+  child.signalCode = null;
+  child.kills = [];
+  child.kill = (signal) => {
+    child.kills.push(signal);
+    onKill(signal);
+    return true;
+  };
+  return child;
+}

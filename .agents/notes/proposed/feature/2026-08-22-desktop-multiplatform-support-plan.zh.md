@@ -143,6 +143,8 @@ Linux release job 现在还会安装 Chromium,并在 `xvfb-run` 下通过组装 
 
 Linux release job 还会在 `xvfb-run` 下针对已安装的 deb 包运行 [`tauri-ui-smoke`](../../implemented/testing/2026-08-23-desktop-linux-native-tauri-ui-smoke.md)。该 smoke 通过 `tauri-driver` 驱动原生 WebKit WebView,还原已提交的无 key session fixture,校验 composer 和模型面对的终端卡片,保存截图,purge package,并检查用户数据保留。它关闭了已安装 Tauri WebView 终端卡片的证据缺口;最低发行版、已安装更新和完整的打包 GUI 清单仍未完成。
 
+原生 UI smoke 现在会限制 `tauri-driver` 清理时间:识别 listener 注册前已记录的退出,在宽限时间后从 `SIGTERM` 升级到 `SIGKILL`,并在报告仍存活的 driver 前继续执行 package purge 和用户数据检查。[原生 UI smoke 进程清理记录](../../implemented/testing/2026-08-23-desktop-native-ui-process-cleanup.md)记录了这项 harness 不变量;实际执行仍需目标 runner。
+
 deb 安装冒烟会在安装后查询 package manager 文件清单,启动 `dpkg` 注册的可执行文件,并针对已安装的目标 sidecar 与 runtime 运行可选的终端探针。[Desktop deb 已安装 runtime 冒烟](../../implemented/bug-fix/2026-08-23-desktop-deb-installed-runtime-smoke.md)记录了这项路径选择修复;原生 Linux 安装、已安装包终端 UI、更新、卸载、基线和 GUI 证据仍未完成。
 
 macOS arm64 workflow 保留未签名 experimental job，并提供由 `DSH_DESKTOP_MACOS_RELEASE=true` 显式启用的签名发布 lane。该 lane 将 Developer ID 证书导入临时 keychain，在 bundle 和 updater 生成前把 `APPLE_SIGNING_IDENTITY` 传给 Tauri，使用 `codesign` 校验嵌套代码，使用 `notarytool` 提交 dmg，staple app 与 dmg，使用 `spctl` 检查 app，从已 staple 的 app 重建 updater archive，并使用受保护的 Tauri key 重新签名该 archive。始终执行的清理步骤会恢复 runner keychain 列表并删除临时密钥材料。单独的 attachment job 只会把已签名 macOS 清单以及刷新的 `latest.json`／`SHA256SUMS` 加入 draft Release；experimental 清单不会进入 manifest。该 lane 提供发布自动化，不构成 macOS 支持证据。
@@ -161,9 +163,9 @@ Windows x64 发布 job 现在会在体积与构件检查后、上传前运行 [W
 
 桌面 release workflow 的每个读取源码 job 都 checkout `needs.validate.outputs.commit`,并在构建、暂存或附加构件前校验 `git rev-parse HEAD`。结构测试覆盖全部六个 job;这关闭了源码快照一致性缺口,但不增加目标原生运行时证据。[已校验 commit 记录](../../implemented/process/2026-08-23-desktop-release-uses-validated-commit.md)记录了该发布不变量。
 
-剩余工作包括已安装 Tauri Linux 终端 UI／模型可见工作流、执行已安装版本更新验收 workflow、最低基线和打包 GUI 证据；macOS 已配置凭据执行签名 lane、公证／Gatekeeper 证据、已安装版本更新 runner 证据、受支持发布文档和 GUI 证据；以及 Windows runner 上执行已安装 Windows 安装包回归。更新冒烟驱动器、签名 lane 自动化、清单签名校验、打包 PTY 冒烟和组装 Web 回放不能替代目标原生的已安装版本更新执行或用户可见的 GUI 证据。
+剩余工作包括执行已安装 Tauri Linux 终端 UI／模型可见工作流、执行已安装版本更新验收 workflow、最低基线和打包 GUI 证据；macOS 已配置凭据执行签名 lane、公证／Gatekeeper 证据、已安装版本更新 runner 证据、受支持发布文档和 GUI 证据；以及 Windows runner 上执行已安装 Windows 安装包回归。更新冒烟驱动器、签名 lane 自动化、清单签名校验、打包 PTY 冒烟和组装 Web 回放不能替代目标原生的已安装版本更新执行或用户可见的 GUI 证据。
 
-本工作包的聚焦验证已通过 22 项桌面脚本测试、6 项 Rust 单测和 7 项独立桌面发布／更新 workflow 结构测试。Windows Web 回放通过 5 项测试并跳过 3 项仅限 Linux Bash 的断言;命名的双语配对检查、Agent Note 格式校验、`pnpm run lint` 和 `pnpm run doc-sync` 也已通过,其中 doc-sync 通过全部 28 项门禁及文档构建。这些检查不能替代目标原生已安装包证据;保留的本地 NSIS 构件已通过安装器阶段而不再触发继承 stdio 错误,但未到达 readiness。
+本工作包的聚焦验证已通过 65 项桌面脚本测试、6 项 Rust 单测和 7 项独立桌面发布／更新 workflow 结构测试。原生 UI 清理测试覆盖 driver 提前退出、正常终止和有界升级。Windows Web 回放通过 5 项测试并跳过 3 项仅限 Linux Bash 的断言;命名的双语配对检查、Agent Note 格式校验、`pnpm run lint` 和 `pnpm run doc-sync` 也已通过,其中 doc-sync 通过全部 28 项门禁及文档构建。这些检查不能替代目标原生已安装包证据;保留的本地 NSIS 构件已通过安装器阶段而不再触发继承 stdio 错误,但未到达 readiness。
 
 发布产品仍仅支持 Windows x64。Linux 与 macOS 需完成原生运行时、Rust/Tauri 壳子、目标配置、发布工作流、updater、安装、更新、卸载和打包 GUI 证据，并满足下方验收标准后，才能声明受支持。
 
