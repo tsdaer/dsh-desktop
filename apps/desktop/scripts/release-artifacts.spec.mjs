@@ -23,7 +23,10 @@ function populate(root, target, version = '0.3.4') {
         ? suffix.startsWith('.AppImage') || suffix.startsWith('.app')
         : suffix.startsWith('.deb') || suffix.startsWith('.dmg'));
     for (const suffix of suffixes) {
-      const path = join(directory, `dsh-desktop_${version}${suffix}`);
+      const name = target.productTarget === 'macos-arm64' && suffix === '.app'
+        ? 'dsh-desktop.app'
+        : `dsh-desktop_${version}${suffix}`;
+      const path = join(directory, name);
       if (suffix === '.app') mkdirSync(path, { recursive: true });
       else writeFileSync(path, suffix.endsWith('.sig') ? 'signature' : 'artifact');
     }
@@ -40,6 +43,21 @@ test('stages the complete target inventory and verifies its stable layout', () =
     assert.equal(targetRoot, join(output, 'linux-x64'));
     const inventory = verifyStagedRelease({ root: output, version: '0.3.4', targets: [target] });
     assert.equal(inventory.length, target.updaterArtifactSuffixes.length);
+  } finally {
+    testFixture.cleanup();
+  }
+});
+
+test('accepts Tauri’s unversioned macOS app bundle alongside versioned release files', () => {
+  const testFixture = fixture();
+  try {
+    const target = resolveTarget('aarch64-apple-darwin');
+    populate(testFixture.root, target);
+    const output = resolve(testFixture.root, 'out');
+    stageReleaseArtifacts(target, testFixture.root, output);
+    const inventory = verifyStagedRelease({ root: output, version: '0.3.4', targets: [target] });
+    assert.equal(inventory.length, target.updaterArtifactSuffixes.length);
+    assert.equal(inventory.find((entry) => entry.name === 'dsh-desktop.app')?.target, 'macos-arm64');
   } finally {
     testFixture.cleanup();
   }

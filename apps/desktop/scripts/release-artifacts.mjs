@@ -82,7 +82,12 @@ export function verifyStagedRelease({ root, version, targets }) {
       if (!target.updaterArtifactSuffixes.some((suffix) => entry.name.endsWith(suffix))) {
         throw new Error(`unexpected staged ${target.productTarget} artifact: ${entry.name}`);
       }
-      if (!entry.name.includes(version)) throw new Error(`staged artifact ${entry.name} does not contain version ${version}`);
+      // Tauri emits the macOS application bundle as an unversioned directory
+      // (`dsh-desktop.app`); the signed updater archive and every other
+      // release file remain versioned and are checked below.
+      if (!entry.directory && !entry.name.includes(version)) {
+        throw new Error(`staged artifact ${entry.name} does not contain version ${version}`);
+      }
       if (!entry.directory && statSync(entry.path).size === 0) throw new Error(`empty staged artifact: ${entry.name}`);
       if (names.has(entry.name)) throw new Error(`duplicate staged release artifact: ${entry.name}`);
       names.add(entry.name);

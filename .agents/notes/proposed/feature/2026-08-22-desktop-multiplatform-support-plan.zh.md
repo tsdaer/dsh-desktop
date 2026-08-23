@@ -125,7 +125,7 @@ Tauri updater 按平台和架构选择制品。从同一已校验工作流创建
 
 运行时烘焙路径现在要求使用已获取的目标 sidecar 完成 profile 初始化与 readiness 校验，终止校验进程树，且 bundle 命令先获取 sidecar 再烘焙。[目标原生运行时校验](../../implemented/feature/2026-08-22-desktop-target-native-runtime.md)会裁剪每个原生 `prebuilds` 目录；没有兼容预编译时接受目标 source build；存在时要求 `node-pty` 与 `koffi` 有可加载二进制；并在启动校验前拒绝可识别的其他平台原生文件。聚焦测试覆盖兼容预编译、source-build fallback、缺少目标二进制和跨平台文件。Rust 壳已经具备按目标命名的安装版 sidecar、禁止安装版使用环境 Node、把 WebView2 controller 与修复代码隔离到 Windows，以及使用平台中立的 `webview` 启动画面步骤。可移植 debug-mode 命令返回 `{ requested, applied, limitation }`；Linux 和 macOS 返回 `applied: false` 及明确的平台 webview 限制，bridge client 会记录该限制。工作包 3 仍需完成目标原生启动与 Linux 终端证据；工作包 4 仍需在各目标原生 runner 上编译并验证可移植壳行为。
 
-[按目标的 bundle 配置与 updater 构件清单](../../implemented/feature/2026-08-22-desktop-target-aware-bundles.md)现在把共享 Tauri 设置与经过审查的 Windows、Linux、macOS 配置层分开。bundle 编排会校验生效的目标层,目标输出目录包含 Rust triple,体积报告检查每个预期构件并单独报告压缩安装器字节数,updater 清单生成会读取共享 Tauri updater 公钥,并在写入清单前校验每个主构件的 Minisign 文件签名和 trusted comment 签名。测试覆盖有效签名、构件被修改、公钥不匹配以及三个目标的已签名主构件。工作包 5、工作包 6 中 Windows/Linux draft 构件暂存部分以及工作包 7 的清单生成部分已实现;目标原生安装、更新、卸载和打包 GUI 证据仍未完成。
+[按目标的 bundle 配置与 updater 构件清单](../../implemented/feature/2026-08-22-desktop-target-aware-bundles.md)现在把共享 Tauri 设置与经过审查的 Windows、Linux、macOS 配置层分开。bundle 编排会校验生效的目标层,目标输出目录包含 Rust triple,体积报告检查每个预期构件并单独报告压缩安装器字节数,updater 清单生成会读取共享 Tauri updater 公钥,并在写入清单前校验每个主构件的 Minisign 文件签名和 trusted comment 签名。发布清单校验器现在接受 Tauri 未带版本号的 `dsh-desktop.app` 目录,同时继续校验 updater 归档、安装镜像和签名文件的版本号;[macOS app bundle 清单记录](../../implemented/bug-fix/2026-08-23-desktop-macos-app-bundle-inventory.md)记录了这项修正。测试覆盖有效签名、构件被修改、公钥不匹配、三个目标的已签名主构件以及 macOS 原生 app bundle 布局。工作包 5、工作包 6 中 Windows/Linux draft 构件暂存部分以及工作包 7 的清单生成部分已实现;目标原生安装、更新、卸载和打包 GUI 证据仍未完成。
 
 Linux 发布 job 现在会在 `xvfb-run` 下运行目标原生 AppImage 启动冒烟,以及 deb 安装/启动/清除冒烟。它还会调用[Linux 基线 preflight](../../implemented/feature/2026-08-22-desktop-linux-baseline-preflight.md),在安装前置依赖后记录 runner 的 glibc、GTK、WebKitGTK 和打包工具版本。该冒烟检查证明打包后的就绪状态、受管理进程清理和临时 `DSH_HOME` 保留;终端交互、更新安装、最低发行版覆盖和打包 GUI 证据仍未完成。preflight 记录构建环境,但不证明对更旧发行版的兼容性。
 
@@ -155,7 +155,7 @@ Windows x64 发布 job 现在会在体积与构件检查后、上传前运行 [W
 
 剩余工作包括目标原生 Linux 终端 UI／模型可见工作流、执行已安装版本更新验收 workflow、最低基线和打包 GUI 证据；macOS 已配置凭据执行签名 lane、公证／Gatekeeper 证据、已安装版本更新 runner 证据、受支持发布文档和 GUI 证据；以及 Windows runner 上执行已安装 Windows 安装包回归。更新冒烟驱动器、签名 lane 自动化、清单签名校验和打包 PTY 冒烟不能替代目标原生的已安装版本更新执行或用户可见的 GUI 证据。
 
-当前 Windows checkout 已通过 58 项桌面脚本测试、5 项桌面发布／更新 workflow 结构测试、命名的双语配对检查、Agent Note 格式校验和 `pnpm run lint`。`pnpm run doc-sync` 已通过全部 28 项门禁,包括文档构建。保留的本地 NSIS 构件已通过安装器阶段而不再触发继承 stdio 错误,但未到达 readiness,因此原生 Windows 打包证据仍未完成。
+当前 Windows checkout 已通过 59 项桌面脚本测试、5 项桌面发布／更新 workflow 结构测试、命名的双语配对检查、Agent Note 格式校验和 `pnpm run lint`。`pnpm run doc-sync` 已通过全部 28 项门禁,包括文档构建。保留的本地 NSIS 构件已通过安装器阶段而不再触发继承 stdio 错误,但未到达 readiness,因此原生 Windows 打包证据仍未完成。
 
 发布产品仍仅支持 Windows x64。Linux 与 macOS 需完成原生运行时、Rust/Tauri 壳子、目标配置、发布工作流、updater、安装、更新、卸载和打包 GUI 证据，并满足下方验收标准后，才能声明受支持。
 
