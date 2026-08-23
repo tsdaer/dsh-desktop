@@ -4,6 +4,8 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.5] - 2026-08-23
+
 ### Added
 
 - The Worktree Explorer and Search open files in an in-app read-only viewer: bounded strict UTF-8 content with an explicit truncation state, binary and non-UTF-8 refusal, syntax highlighting through the client's existing highlighter, and Search results that scroll to the matched line.
