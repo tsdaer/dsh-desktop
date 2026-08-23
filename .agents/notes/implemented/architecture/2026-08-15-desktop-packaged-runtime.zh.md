@@ -19,7 +19,7 @@ dsh-desktop 的 Tauri 壳子通过 spawn 一个跑着 CLI 的 Node 进程来启�
 
 内置裸插件名通过修复后的 `$DSH_HOME/profiles/node_modules` 回退目录解析,其中的链接指向打包运行时。打包桌面启动默认不设置 `DSH_BARE_MODULE_BASE`,使 profile 安装的 bundle 从 profile 自己的 `node_modules` 解析;由宿主拥有完整插件集的场景仍可显式设置。 [profile 自有 bundle 解析修正](../bug-fix/2026-08-20-desktop-profile-bundle-resolution.md)记录了打包默认值不能使用仅运行时锚点的原因。
 
-`main.rs` 的打包解析:环境变量接线(`DSH_CLI`/`DSH_NODE`/`DSH_BARE_MODULE_BASE`/`DSH_BRIDGE_TARBALL`)优先(dev 启动器);没有 `DSH_CLI` 的构建回退到 `resources/runtime/lib/bin.js`、sidecar `node.exe`(Tauri `externalBin`,gitignore,由 `scripts/fetch-node-sidecar.mjs` 拉取)和离线桥接拷贝。桥接包随运行时携带,首次启动拷入 profile —— 打包应用没有 npm,dev 的 npm tarball 路径仅保留给 dev 启动器。
+`main.rs` 的打包解析:环境变量接线(`DSH_CLI`/`DSH_NODE`/`DSH_BARE_MODULE_BASE`/`DSH_BRIDGE_TARBALL`)优先(dev 启动器);没有 `DSH_CLI` 的构建回退到 `resources/runtime/lib/bin.js`、产品自有 sidecar `dsh-node.exe` 或 `dsh-node`(Tauri `externalBin`,gitignore,由 `scripts/fetch-node-sidecar.mjs` 拉取)和离线桥接拷贝。桥接包随运行时携带,首次启动拷入 profile —— 打包应用没有 npm,dev 的 npm tarball 路径仅保留给 dev 启动器。
 
 这个封闭安装暴露了两个 Windows 打包事实,都归这里所有:
 

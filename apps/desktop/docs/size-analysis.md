@@ -7,7 +7,7 @@
 | 内容 | 体积 | 说明 |
 |---|---|---|
 | `resources/runtime/`（Windows x64 源目录为 `src-tauri/runtime/windows-x64`） | **573.8 MB** / 50,746 个文件 | 主体，dsh CLI 全量依赖闭包 |
-| Windows x64 Node sidecar | 83.0 MB | `externalBin: ["binaries/node"]`，Node 22.23.1 |
+| Windows x64 Node sidecar | 83.0 MB | `externalBin: ["binaries/dsh-node"]`，Node 22.23.1 |
 | `dsh-desktop.exe` | 4.3 MB | Tauri/Rust 壳本体，可忽略 |
 | NSIS 安装包 | 114.9 MB | 上面全部经 LZMA 压缩后的结果 |
 | WebView2 Runtime | ~150–200 MB（首次安装时按需下载） | 未配置 `webviewInstallMode`，默认 `downloadBootstrapper` |

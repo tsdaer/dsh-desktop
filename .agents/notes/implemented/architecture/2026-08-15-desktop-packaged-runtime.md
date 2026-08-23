@@ -19,7 +19,7 @@ Produce the runtime with `apps/desktop/scripts/bake-runtime.mjs`:
 
 Built-in bare plugin names resolve through the healed `$DSH_HOME/profiles/node_modules` fallback, whose links point into the packaged runtime. Packaged desktop launches leave `DSH_BARE_MODULE_BASE` unset so profile-installed bundles resolve from the profile's own `node_modules`; hosts that own the complete plugin set may still set it explicitly. The [profile-owned bundle resolution correction](../bug-fix/2026-08-20-desktop-profile-bundle-resolution.md) records why the packaged default cannot use the runtime-only anchor.
 
-Packaged resolution in `main.rs`: env wiring (`DSH_CLI`/`DSH_NODE`/`DSH_BARE_MODULE_BASE`/`DSH_BRIDGE_TARBALL`) wins for the dev launcher; a build without `DSH_CLI` falls back to `resources/runtime/lib/bin.js`, the sidecar `node.exe` (Tauri `externalBin`, gitignored, fetched by `scripts/fetch-node-sidecar.mjs`), and offline bridge copying. The bridge packages travel in the runtime and are copied into the profile at first boot — a packaged app has no npm, and the dev npm-tarball path remains for the dev launcher.
+Packaged resolution in `main.rs`: env wiring (`DSH_CLI`/`DSH_NODE`/`DSH_BARE_MODULE_BASE`/`DSH_BRIDGE_TARBALL`) wins for the dev launcher; a build without `DSH_CLI` falls back to `resources/runtime/lib/bin.js`, the product-owned sidecar `dsh-node.exe` or `dsh-node` (Tauri `externalBin`, gitignored, fetched by `scripts/fetch-node-sidecar.mjs`), and offline bridge copying. The bridge packages travel in the runtime and are copied into the profile at first boot — a packaged app has no npm, and the dev npm-tarball path remains for the dev launcher.
 
 Two Windows packaging facts this closed install surfaced, both owned here:
 

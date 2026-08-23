@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-08-22-desktop-cross-platform-shell-runtime.md)
+[English](2026-08-22-desktop-cross-platform-shell-runtime.md) | 中文
 
 ## Problem
 
@@ -10,7 +10,7 @@ English | [中文](2026-08-22-desktop-cross-platform-shell-runtime.md)
 
 ## Decision
 
-安装版启动按编译目标派生 Node sidecar 文件名：`node-x86_64-pc-windows-msvc.exe`、`node-x86_64-unknown-linux-gnu` 或 `node-aarch64-apple-darwin`。发布启动把目标 sidecar 与运行时路径作为文件检查，绝不回退到 PATH 中的 Node；开发模式保留 `DSH_CLI`／`DSH_NODE` 环境接线。
+安装版启动使用产品自有的 Tauri 外部二进制名称:Windows 为 `dsh-node.exe`,POSIX 为 `dsh-node`。带目标后缀的名称只属于源码暂存,Tauri 把外部二进制复制进应用时会移除该后缀。发布启动把已安装 sidecar 与运行时路径作为文件检查,绝不回退到 PATH 中的 Node;开发模式保留 `DSH_CLI`／`DSH_NODE` 环境接线。
 
 WebView2 controller 访问只在 Windows 编译。其他目标保留页面级调试守卫，并返回 `applied: false` 与明确的平台限制，因为运行时 developer tools 控制属于平台 webview。WebView2 修复命令只作为 Windows 操作提供，其他平台明确返回不支持错误。启动状态使用平台中立的 `webview` id。Windows Explorer 注册和原生窗口 chrome 仍由 cfg 限定为 Windows 集成。
 
@@ -18,15 +18,15 @@ WebView2 controller 访问只在 Windows 编译。其他目标保留页面级调
 
 ## Testing
 
-在临时移除不可用打包资源的构建配置下，Rust 源码通过宿主编译，且 `cargo fmt -- --check` 通过。Rust 测试固定编译目标对应的 sidecar 文件名；脚本语法与目标 sidecar 测试通过。原生 Linux／macOS 链接、打包安装和目标 runner 启动证据仍是待完成工作包要求。
+在临时移除不可用打包资源的构建配置下,Rust 源码通过宿主编译,且 `cargo fmt -- --check` 通过。Rust 测试固定各平台安装后的 sidecar 文件名;脚本语法与目标 sidecar 测试通过。原生 Linux／macOS 链接、打包安装和目标 runner 启动证据仍是待完成工作包要求。
 
 ## 相关记录
 
-目标原生文件裁剪与校验由[桌面目标原生运行时](2026-08-22-desktop-target-native-runtime.md)记录定义。
+目标原生文件裁剪与校验由[桌面目标原生运行时](2026-08-22-desktop-target-native-runtime.md)记录定义。源码 sidecar 名与安装后名称的更正由[桌面打包 sidecar 命名](../bug-fix/2026-08-23-desktop-packaged-sidecar-naming.md)记录。
 
 ## Alternatives considered
 
-**在所有打包目标使用 `node.exe` 和环境中的 Node。** 不采用，因为 POSIX 制品没有该文件名，且发布启动必须自包含并固定版本。
+**已安装 sidecar 缺失时使用环境 Node。** 不采用,因为发布启动必须自包含并固定版本。
 
 **在所有目标编译 WebView2 调用。** 不采用，因为 controller API 是 Windows 专属；非 Windows 状态现在明确说明平台限制，不再宣称具有运行时控制能力。
 

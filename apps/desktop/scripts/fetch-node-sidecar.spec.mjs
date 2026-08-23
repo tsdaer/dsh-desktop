@@ -140,7 +140,7 @@ test('verifies, installs, and records an exact POSIX sidecar name and mode', asy
     hostPlatform: 'linux',
   });
   assert.equal(result.cached, false);
-  assert.equal(result.destination.endsWith('node-x86_64-unknown-linux-gnu'), true);
+  assert.equal(result.destination.endsWith('dsh-node-x86_64-unknown-linux-gnu'), true);
   assert.deepEqual(executableModes.map(({ mode }) => mode), [0o755, 0o755, 0o755]);
   if (process.platform !== 'win32') assert.equal(statSync(destination).mode & 0o111, 0o111);
   assert.deepEqual(JSON.parse(readFileSync(metadataPath, 'utf8')), {

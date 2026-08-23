@@ -113,8 +113,8 @@ export function effectiveTauriConfig(target, desktopRoot, targetConfig = target.
   if (resourceEntries.length !== 1 || resourceEntries[0][1] !== 'runtime' || configuredResource !== expectedResource) {
     throw new Error(`Tauri resources must stage the target runtime as runtime for ${target.rustTriple}`);
   }
-  if (JSON.stringify(bundle.externalBin) !== JSON.stringify(['binaries/node'])) {
-    throw new Error('Tauri externalBin must contain only binaries/node');
+  if (JSON.stringify(bundle.externalBin) !== JSON.stringify(['binaries/dsh-node'])) {
+    throw new Error('Tauri externalBin must contain only binaries/dsh-node');
   }
   if (target.updaterPlatform === 'windows-x86_64' && !isRecord(updater.windows)) {
     throw new Error('Windows updater install mode is missing from the Windows config');

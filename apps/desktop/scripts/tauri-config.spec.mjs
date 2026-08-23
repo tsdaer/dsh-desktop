@@ -18,7 +18,7 @@ test('effective Tauri config selects the reviewed layer for every target', () =>
     const target = resolveTarget(triple);
     const config = effectiveTauriConfig(target, desktopRoot);
     assert.deepEqual(config.bundle.targets, target.bundleKinds);
-    assert.deepEqual(config.bundle.externalBin, ['binaries/node']);
+    assert.deepEqual(config.bundle.externalBin, ['binaries/dsh-node']);
     assert.deepEqual(Object.values(config.bundle.resources), ['runtime']);
     if (target.rustTriple === 'x86_64-pc-windows-msvc') {
       assert.equal(config.bundle.windows.webviewInstallMode.type, 'embedBootstrapper');

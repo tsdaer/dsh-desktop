@@ -247,27 +247,12 @@ impl RuntimePaths {
 
 #[cfg(windows)]
 fn packaged_node_basename() -> &'static str {
-    "node-x86_64-pc-windows-msvc.exe"
+    "dsh-node.exe"
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(not(windows))]
 fn packaged_node_basename() -> &'static str {
-    "node-x86_64-unknown-linux-gnu"
-}
-
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-fn packaged_node_basename() -> &'static str {
-    "node-aarch64-apple-darwin"
-}
-
-#[cfg(all(target_os = "macos", not(target_arch = "aarch64")))]
-fn packaged_node_basename() -> &'static str {
-    "node-unsupported-macos-architecture"
-}
-
-#[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
-fn packaged_node_basename() -> &'static str {
-    "node-unsupported-platform"
+    "dsh-node"
 }
 
 /// Toggle WebView2 DevTools availability (F12 / context-menu inspect).
@@ -1424,11 +1409,9 @@ mod tests {
     #[test]
     fn packaged_sidecar_name_matches_the_compiled_target() {
         #[cfg(windows)]
-        assert_eq!(packaged_node_basename(), "node-x86_64-pc-windows-msvc.exe");
-        #[cfg(target_os = "linux")]
-        assert_eq!(packaged_node_basename(), "node-x86_64-unknown-linux-gnu");
-        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-        assert_eq!(packaged_node_basename(), "node-aarch64-apple-darwin");
+        assert_eq!(packaged_node_basename(), "dsh-node.exe");
+        #[cfg(not(windows))]
+        assert_eq!(packaged_node_basename(), "dsh-node");
     }
 
     #[test]

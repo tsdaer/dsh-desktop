@@ -10,13 +10,13 @@ Windows 发布检查会验证 NSIS 构件清单,但不会在启动壳子前安�
 
 ## 决定
 
-`apps/desktop/scripts/packaged-smoke.mjs` 通过 `--install-nsis` 接受 Windows x64 NSIS 构件。冒烟检查把构件安装到一次性目录,启动已安装的 `dsh-desktop.exe`,等待打包应用的就绪 URL,按需运行目标 sidecar 的 PTY 探针,终止受管理的进程树,运行 NSIS 卸载程序,并确认临时 `DSH_HOME` 标记仍然存在。Windows 进程快照使用 PowerShell 的 `Win32_Process` 记录,因此重新归属的 sidecar 仍可被观察;POSIX 目标保留 `ps` 快照路径。
+`apps/desktop/scripts/packaged-smoke.mjs` 通过 `--install-nsis` 接受 Windows x64 NSIS 构件。冒烟检查把构件安装到一次性目录,启动已安装的 `dsh-desktop.exe`,等待打包应用的就绪 URL,按需通过 `cmd.exe` 与 `echo` 运行已安装 sidecar 的 PTY 探针,必要时以有界的强制升级终止受管理进程树,使用 `_?=<install-directory>` 同步运行 NSIS 卸载程序,并确认临时 `DSH_HOME` 标记仍然存在。Windows 进程快照使用 PowerShell 的 `Win32_Process` 记录,因此重新归属的 sidecar 仍可按已安装的精确路径观察;POSIX 目标保留 `ps` 快照路径。
 
 Windows 发布 job 会在体积和构件检查后、上传前运行这项冒烟。它不替代多平台计划要求的跨平台更新、GUI 或受支持发布证据。
 
 ## 测试
 
-`apps/desktop/scripts/packaged-smoke.spec.mjs` 固定 Windows 安装器参数校验和已安装可执行文件解析。桌面发布 workflow 结构测试要求 Windows job 调用 `--install-nsis` 和 `--terminal-smoke`。原生执行仍是 Windows runner 检查,因为 NSIS、PowerShell 进程检查和已安装 Tauri 壳子无法在当前 Linux/macOS 路径中复现。
+`apps/desktop/scripts/packaged-smoke.spec.mjs` 固定 Windows 安装器参数校验、已安装可执行文件解析、`cmd.exe` 标记命令、已安装 sidecar 精确匹配、强制升级和同步卸载参数。桌面发布 workflow 结构测试要求 Windows job 调用 `--install-nsis` 和 `--terminal-smoke`。原生执行仍是 Windows runner 检查,因为 NSIS、PowerShell 进程检查和已安装 Tauri 壳子无法在当前 Linux/macOS 路径中复现。
 
 ## 结果
 

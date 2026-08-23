@@ -10,13 +10,13 @@ Windows release checks verified the NSIS artifact inventory but did not install 
 
 ## Decision
 
-`apps/desktop/scripts/packaged-smoke.mjs` accepts Windows x64 NSIS artifacts with `--install-nsis`. The smoke installs the artifact into a disposable directory, launches the installed `dsh-desktop.exe`, waits for the packaged readiness URL, optionally runs the target sidecar's PTY probe, terminates the managed process tree, runs the NSIS uninstaller, and verifies that the temporary `DSH_HOME` marker remains. Windows process snapshots use PowerShell's `Win32_Process` records so a re-parented sidecar remains observable; POSIX targets retain their `ps` snapshot path.
+`apps/desktop/scripts/packaged-smoke.mjs` accepts Windows x64 NSIS artifacts with `--install-nsis`. The smoke installs the artifact into a disposable directory, launches the installed `dsh-desktop.exe`, waits for the packaged readiness URL, optionally runs the installed sidecar's PTY probe through `cmd.exe` and `echo`, terminates the managed process tree with bounded forced escalation when required, runs the NSIS uninstaller synchronously with `_?=<install-directory>`, and verifies that the temporary `DSH_HOME` marker remains. Windows process snapshots use PowerShell's `Win32_Process` records so a re-parented sidecar remains observable by its exact installed path; POSIX targets retain their `ps` snapshot path.
 
 The Windows release job runs this smoke after the size and artifact checks and before upload. It does not establish the cross-platform update, GUI, or supported-release evidence required by the multi-platform plan.
 
 ## Testing
 
-`apps/desktop/scripts/packaged-smoke.spec.mjs` pins Windows installer argument validation and installed executable resolution. The desktop release workflow structure test requires the Windows job to invoke `--install-nsis` and `--terminal-smoke`. Native execution remains a Windows-runner check because NSIS, PowerShell process inspection, and the installed Tauri shell are not available on the current Linux/macOS paths.
+`apps/desktop/scripts/packaged-smoke.spec.mjs` pins Windows installer argument validation, installed executable resolution, the `cmd.exe` marker command, exact installed-sidecar matching, forced escalation, and synchronous uninstaller arguments. The desktop release workflow structure test requires the Windows job to invoke `--install-nsis` and `--terminal-smoke`. Native execution remains a Windows-runner check because NSIS, PowerShell process inspection, and the installed Tauri shell are not available on the current Linux/macOS paths.
 
 ## Consequences
 

@@ -4,6 +4,13 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.10] - 2026-08-23
+
+### Fixed
+
+- Packaged startup now uses the product-owned Tauri external-binary names (`dsh-node.exe` on Windows and `dsh-node` on POSIX) while keeping target-suffixed names for source staging; package smokes launch macOS app bundles directly, use shell-native PTY marker commands, accept successful forced cleanup after a bounded graceful attempt, wait for the real NSIS uninstaller, and track only the installed sidecar path.
+- Linux release bundles disable linuxdeploy stripping so prebuilt runtime and native-addon ELF files are not rewritten while the AppImage is assembled.
+
 ## [0.3.9] - 2026-08-23
 
 ### Fixed

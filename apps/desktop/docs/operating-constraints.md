@@ -4,12 +4,12 @@
 
 ## 事实
 
-- 桌面证据可能来自源码启动或已安装的打包应用。源码启动通常由仓库构建的 `apps/cli/lib/bin.js` 提供 Node 子进程，打包启动则由安装目录中的 `node.exe` 执行资源目录中的 `runtime/lib/bin.js`；不要根据工作目录推断当前拓扑。
+- 桌面证据可能来自源码启动或已安装的打包应用。源码启动通常由仓库构建的 `apps/cli/lib/bin.js` 提供 Node 子进程，打包启动则由安装目录中的 `dsh-node.exe` 执行资源目录中的 `runtime/lib/bin.js`；不要根据工作目录推断当前拓扑。
 - 先测量活跃进程，再决定仓库构建产物是否可能被占用：
 
   ```powershell
   Get-CimInstance Win32_Process |
-    Where-Object { $_.Name -in @('dsh-desktop.exe', 'node.exe') } |
+    Where-Object { $_.Name -in @('dsh-desktop.exe', 'dsh-node.exe') } |
     Select-Object ProcessId, ParentProcessId, ExecutablePath, CommandLine
   ```
 

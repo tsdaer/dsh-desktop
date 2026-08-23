@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-22-desktop-macos-packaged-smoke.md
-2026-08-22-desktop-macos-packaged-smoke.md: e0d4ed39e2e193c2a33638a8eed4c44bb4972a44
-2026-08-22-desktop-macos-packaged-smoke.zh.md: 181e6b3a9db5152f9c898461b024e7bb72084903
+2026-08-22-desktop-macos-packaged-smoke.md: 3e22e68150d339c89986a7045eaff9498cbb57ed
+2026-08-22-desktop-macos-packaged-smoke.zh.md: a7a151c7d5ba2fae6b21c8280f02eb52d677a79a

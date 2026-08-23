@@ -12,13 +12,13 @@ Desktop build scripts selected Windows x64 independently. The sidecar filename, 
 
 `apps/desktop/scripts/target-spec.mjs` is the single source of target policy for the supported product rows: Windows x64, Linux x64, and macOS arm64. Scripts accept an explicit Rust target triple through `--target`; without one, the resolver accepts only the host triple reported by `rustc -vV`. Unsupported or malformed triples fail before a script downloads, deletes, or stages files.
 
-Each row owns the Node distribution name and archive kind, the exact sidecar source member and destination basename, the native-platform key, bundle kinds, artifact directories, updater suffixes, target-owned runtime directory, and size budget. Sidecar acquisition, runtime baking, size reporting, and the bundle orchestration all consume the same immutable row. Archive members are validated before they are joined to a temporary extraction directory.
+Each row owns the Node distribution name and archive kind, the exact sidecar source member, the target-suffixed staging basename, Tauri's installed sidecar basename, the native-platform key, bundle kinds, artifact directories, updater suffixes, target-owned runtime directory, and size budget. Sidecar acquisition and runtime baking consume the staging basename; packaged startup and package inspection consume the installed basename. Size reporting and bundle orchestration consume the same immutable row. Archive members are validated before they are joined to a temporary extraction directory.
 
 Each Tauri resource path points at its target-owned runtime directory under `src-tauri/runtime/<product-target>`. The bundle command forwards one resolved target to every preparation step and to `tauri build`, so platform-specific Tauri configuration and native packaging use the same selection.
 
 ## Testing
 
-`apps/desktop/scripts/target-spec.spec.mjs` pins every field that identifies the three target rows, rejects absent or unsupported targets, renders the three Node archive layouts, and rejects archive path traversal. The Node scripts pass syntax checks, and `git diff --check` passes.
+`apps/desktop/scripts/target-spec.spec.mjs` pins every field that identifies the three target rows, including both sidecar basenames, rejects absent or unsupported targets, renders the three Node archive layouts, and rejects archive path traversal. The Node scripts pass syntax checks, and `git diff --check` passes.
 
 ## Alternatives considered
 

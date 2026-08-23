@@ -114,6 +114,17 @@ export function dmgMountArguments(artifact, mountPoint) {
 }
 
 /**
+ * Keep the NSIS uninstaller in its installation directory so the smoke waits
+ * for the real process instead of the temporary self-copy.
+ *
+ * @param {string} installDirectory Installed package directory.
+ * @returns {readonly string[]} Silent uninstaller arguments.
+ */
+export function nsisUninstallArguments(installDirectory) {
+  return ['/S', `_?=${installDirectory}`];
+}
+
+/**
  * Return descendants from a `ps -eo pid=,ppid=` snapshot.
  *
  * @param {readonly {pid: number, parent: number}[]} processes Process tree rows.
@@ -155,18 +166,35 @@ export function parseProcessSnapshot(output) {
 }
 
 /**
+ * Test whether a process command line names one packaged executable path.
+ * Windows comparisons normalize separators and drive-letter casing.
+ *
+ * @param {string | undefined} command Process command line.
+ * @param {string} executable Absolute packaged executable path.
+ * @returns {boolean} Whether the command line names the executable.
+ */
+export function processCommandIncludesExecutable(command, executable) {
+  if (command === undefined) return false;
+  const commandPath = command.replaceAll('\\', '/');
+  const executablePath = executable.replaceAll('\\', '/');
+  const escapedPath = executablePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const windowsPath = /^[A-Za-z]:\//.test(executablePath) || executablePath.startsWith('//');
+  return new RegExp(`(?:^|["'\\s])${escapedPath}(?=$|["'\\s])`, windowsPath ? 'i' : '').test(commandPath);
+}
+
+/**
  * Return the packaged shell and its managed Node process, including a Node
  * process that was re-parented during shutdown.
  *
  * @param {readonly {pid: number, parent: number, command?: string}[]} processes Process snapshot rows.
  * @param {number} rootPid Packaged shell process id.
- * @param {string} sidecarBasename Exact target sidecar basename.
+ * @param {string} sidecarPath Exact packaged sidecar path.
  * @returns {Set<number>}
  */
-export function managedProcessPids(processes, rootPid, sidecarBasename) {
+export function managedProcessPids(processes, rootPid, sidecarPath) {
   const managed = descendantPids(processes, rootPid);
   for (const process of processes) {
-    if (process.command?.includes(sidecarBasename)) managed.add(process.pid);
+    if (processCommandIncludesExecutable(process.command, sidecarPath)) managed.add(process.pid);
   }
   if (processes.some((process) => process.pid === rootPid)) managed.add(rootPid);
   return managed;
@@ -177,7 +205,7 @@ export function managedProcessPids(processes, rootPid, sidecarBasename) {
  * Symlinks are ignored so the smoke cannot inspect files outside the package.
  *
  * @param {string} root - Extracted AppImage, deb, or app bundle root.
- * @param {{readonly sidecarBasename: string}} target - Target specification.
+ * @param {{readonly packagedSidecarBasename: string}} target - Target specification.
  * @returns {{sidecar: string, runtime: string}}
  */
 export function packagedRuntime(root, target) {
@@ -194,14 +222,14 @@ export function packagedRuntime(root, target) {
       if (entry.isDirectory()) {
         stack.push(path);
       } else if (entry.isFile()) {
-        if (entry.name === target.sidecarBasename) sidecars.push(path);
+        if (entry.name === target.packagedSidecarBasename) sidecars.push(path);
         if (entry.name === 'bin.js' && dirname(path).endsWith(`${join('lib')}`)) {
           runtimes.push(dirname(dirname(path)));
         }
       }
     }
   }
-  if (sidecars.length !== 1) throw new Error(`expected one packaged sidecar ${target.sidecarBasename}, found ${sidecars.length}`);
+  if (sidecars.length !== 1) throw new Error(`expected one packaged sidecar ${target.packagedSidecarBasename}, found ${sidecars.length}`);
   if (runtimes.length !== 1) throw new Error(`expected one packaged runtime lib/bin.js, found ${runtimes.length}`);
   return { sidecar: sidecars[0], runtime: runtimes[0] };
 }
@@ -237,31 +265,29 @@ function installedDebFiles(packageName) {
 }
 
 /**
- * Resolve the installed resource root from one deb package file listing.
+ * Resolve the installed sidecar and runtime from one deb package file listing.
  *
  * @param {readonly string[]} files Paths reported by `dpkg-query -L`.
- * @param {{readonly sidecarBasename: string}} target Target sidecar identity.
- * @returns {string} Installed directory containing the runtime and sidecar.
+ * @param {{readonly packagedSidecarBasename: string}} target Target sidecar identity.
+ * @returns {{sidecar: string, runtime: string}} Installed runtime paths.
  */
-export function resolveInstalledDebPackageRoot(files, target) {
-  const sidecars = files.filter((file) => posixPath.basename(file) === target.sidecarBasename);
+export function resolveInstalledDebRuntime(files, target) {
+  const sidecars = files.filter((file) => posixPath.basename(file) === target.packagedSidecarBasename);
   const runtimes = files.filter((file) => file.endsWith('/lib/bin.js'));
   if (sidecars.length !== 1) {
-    throw new Error(`expected one installed sidecar ${target.sidecarBasename}, found ${sidecars.length}`);
+    throw new Error(`expected one installed sidecar ${target.packagedSidecarBasename}, found ${sidecars.length}`);
   }
   if (runtimes.length !== 1) {
     throw new Error(`expected one installed runtime lib/bin.js, found ${runtimes.length}`);
   }
-  const packageRoot = posixPath.dirname(posixPath.dirname(posixPath.dirname(runtimes[0])));
-  const sidecarRelative = posixPath.relative(packageRoot, sidecars[0]);
-  if (sidecarRelative === '' || sidecarRelative.startsWith('..') || sidecarRelative.startsWith('/')) {
-    throw new Error(`installed sidecar is outside the desktop resource root: ${sidecars[0]}`);
-  }
-  return packageRoot;
+  return {
+    sidecar: sidecars[0],
+    runtime: posixPath.dirname(posixPath.dirname(runtimes[0])),
+  };
 }
 
-function installedDebPackageRoot(packageName, target) {
-  return resolveInstalledDebPackageRoot(installedDebFiles(packageName), target);
+function installedDebRuntime(packageName, target) {
+  return resolveInstalledDebRuntime(installedDebFiles(packageName), target);
 }
 
 function packageName(artifact) {
@@ -337,14 +363,41 @@ async function waitForExit(child, timeoutMs = 10_000) {
   });
 }
 
-async function waitForManagedProcesses(child, sidecarBasename, timeoutMs = 10_000) {
+/**
+ * Stop one packaged process tree, escalating after a bounded graceful wait.
+ * A successful forced stop satisfies cleanup; only a surviving process fails.
+ *
+ * @param {import('node:child_process').ChildProcess} child Packaged shell process.
+ * @param {{stop?: typeof stopProcessTree, wait?: typeof waitForExit}} [options] Test adapters.
+ * @returns {Promise<void>}
+ */
+export async function stopChildWithEscalation(child, options = {}) {
+  const stop = options.stop ?? stopProcessTree;
+  const wait = options.wait ?? waitForExit;
+  stop(child, 'SIGTERM');
+  try {
+    await wait(child, 10_000);
+  } catch (gracefulError) {
+    stop(child, 'SIGKILL');
+    try {
+      await wait(child, 2_000);
+    } catch (forcedError) {
+      throw new AggregateError(
+        [gracefulError, forcedError],
+        'packaged app did not exit after forced shutdown',
+      );
+    }
+  }
+}
+
+async function waitForManagedProcesses(child, sidecarPath, timeoutMs = 10_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    const remaining = managedProcessPids(processSnapshot(), child.pid, sidecarBasename);
+    const remaining = managedProcessPids(processSnapshot(), child.pid, sidecarPath);
     if (remaining.size === 0) return;
     await new Promise((resolveWait) => setTimeout(resolveWait, 100));
   }
-  const remaining = managedProcessPids(processSnapshot(), child.pid, sidecarBasename);
+  const remaining = managedProcessPids(processSnapshot(), child.pid, sidecarPath);
   if (remaining.size > 0) {
     throw new Error(`packaged app left managed processes after shutdown: ${[...remaining].join(', ')}`);
   }
@@ -368,26 +421,25 @@ async function waitForUpdatedVersion(path, expectedVersion, timeoutMs = 180_000)
   throw new Error(`installed update did not reach ${expectedVersion}; last recorded version: ${observed}`);
 }
 
-async function stopPackagedProcesses(executable, sidecarBasename, timeoutMs = 10_000) {
-  const executableNeedle = resolve(executable).replaceAll('\\', '/');
+async function stopPackagedProcesses(executable, sidecarPath, timeoutMs = 10_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const processes = processSnapshot();
-    const roots = processes.filter((process) => process.command
-      ?.replaceAll('\\', '/').includes(executableNeedle));
+    const roots = processes.filter((process) => processCommandIncludesExecutable(process.command, executable));
     const managed = new Set();
     for (const root of roots) {
-      for (const pid of managedProcessPids(processes, root.pid, sidecarBasename)) managed.add(pid);
+      for (const pid of managedProcessPids(processes, root.pid, sidecarPath)) managed.add(pid);
     }
     for (const process of processes) {
-      if (process.command?.includes(sidecarBasename)) managed.add(process.pid);
+      if (processCommandIncludesExecutable(process.command, sidecarPath)) managed.add(process.pid);
     }
     if (managed.size === 0) return;
     for (const pid of managed) stopProcessId(pid);
     await new Promise((resolveWait) => setTimeout(resolveWait, 100));
   }
-  const remaining = processSnapshot().filter((process) => process.command
-    ?.replaceAll('\\', '/').includes(executableNeedle));
+  const remaining = processSnapshot().filter((process) =>
+    processCommandIncludesExecutable(process.command, executable)
+    || processCommandIncludesExecutable(process.command, sidecarPath));
   if (remaining.length > 0) {
     for (const process of remaining) stopProcessId(process.pid, 'SIGKILL');
     throw new Error(`updated packaged app left processes after shutdown: ${remaining.map((process) => process.pid).join(', ')}`);
@@ -404,6 +456,18 @@ const TERMINAL_SMOKE_SCRIPT = [
   `child.onData(data => { output += data; if (output.includes(${JSON.stringify(TERMINAL_SMOKE_MARKER)})) done(0); });`,
   'const timer = setTimeout(() => done(1), 10000);',
 ].join('');
+
+/**
+ * Return the fixed shell command used by the packaged PTY probe.
+ *
+ * @param {NodeJS.Platform} [platform] Target host platform.
+ * @returns {string} Shell-native marker command.
+ */
+export function terminalSmokeCommand(platform = process.platform) {
+  return platform === 'win32'
+    ? `echo ${TERMINAL_SMOKE_MARKER}`
+    : `printf ${TERMINAL_SMOKE_MARKER}`;
+}
 
 function terminalSmokeEnvironment(home, runtime) {
   const environment = {
@@ -424,13 +488,12 @@ function terminalSmokeEnvironment(home, runtime) {
  * Execute one fixed command through the packaged runtime's node-pty module.
  * The sidecar and runtime are both resolved from the installed artifact.
  *
- * @param {string} packageRoot - Extracted package root.
- * @param {Readonly<{sidecarBasename: string}>} target - Target specification.
+ * @param {{sidecar: string, runtime: string}} runtimePaths - Installed runtime paths.
  * @returns {Promise<string>} Captured PTY output.
  */
-export async function runTerminalSmoke(packageRoot, target) {
-  const { sidecar, runtime } = packagedRuntime(packageRoot, target);
-  const child = spawn(sidecar, ['-e', TERMINAL_SMOKE_SCRIPT, `printf ${TERMINAL_SMOKE_MARKER}`], {
+export async function runTerminalSmoke(runtimePaths) {
+  const { sidecar, runtime } = runtimePaths;
+  const child = spawn(sidecar, ['-e', TERMINAL_SMOKE_SCRIPT, terminalSmokeCommand()], {
     cwd: runtime,
     env: terminalSmokeEnvironment(process.env.DSH_HOME ?? runtime, runtime),
     detached: true,
@@ -518,7 +581,7 @@ export function removeTemporaryHome(home, remove = rmSync) {
   remove(home, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
 }
 
-async function launch(command, args, env, sidecarBasename, { stopAfterReady = true } = {}) {
+async function launch(command, args, env, sidecarPath, { stopAfterReady = true } = {}) {
   const child = spawn(command, args, {
     env,
     cwd: dirname(command),
@@ -562,19 +625,12 @@ async function launch(command, args, env, sidecarBasename, { stopAfterReady = tr
   });
   const url = await ready;
   if (!stopAfterReady) return { url, child };
-  stopProcessTree(child);
+  await stopChildWithEscalation(child);
   try {
-    await waitForExit(child);
+    await waitForManagedProcesses(child, sidecarPath);
   } catch (error) {
     stopProcessTree(child, 'SIGKILL');
-    await waitForExit(child, 2_000).catch(() => {});
-    throw error;
-  }
-  try {
-    await waitForManagedProcesses(child, sidecarBasename);
-  } catch (error) {
-    stopProcessTree(child, 'SIGKILL');
-    await waitForManagedProcesses(child, sidecarBasename, 2_000).catch(() => {});
+    await waitForManagedProcesses(child, sidecarPath, 2_000).catch(() => {});
     throw error;
   }
   return { url, child };
@@ -592,10 +648,12 @@ async function main() {
   let installedWindows;
   let mountedDmg;
   let runningChild;
+  let sidecarPath;
   let smokeCompleted = false;
   try {
     let executable;
     let packageRoot;
+    let runtimePaths;
     if (options.installNsis) {
       installedWindows = join(home, 'installed');
       mkdirSync(installedWindows);
@@ -607,7 +665,7 @@ async function main() {
       installedDeb = packageName(options.artifact);
       run('sudo', ['dpkg', '--install', options.artifact], { stdio: 'inherit' });
       executable = installedDebExecutable(installedDeb);
-      packageRoot = installedDebPackageRoot(installedDeb, options.target);
+      runtimePaths = installedDebRuntime(installedDeb, options.target);
     } else if (options.installDmg) {
       mountedDmg = join(home, 'dmg-mount');
       mkdirSync(mountedDmg);
@@ -621,6 +679,9 @@ async function main() {
       mountedDmg = undefined;
       executable = packagedExecutable(copiedApp, options.target);
       packageRoot = copiedApp;
+    } else if (options.target.productTarget === 'macos-arm64') {
+      packageRoot = options.artifact;
+      executable = packagedExecutable(packageRoot, options.target);
     } else {
       const extracted = join(home, 'squashfs-root');
       run(options.artifact, ['--appimage-extract'], { cwd: home, stdio: 'ignore' });
@@ -630,6 +691,12 @@ async function main() {
         throw new Error(`extracted AppImage has no executable: ${executable}`);
       }
     }
+    if (!existsSync(executable)) throw new Error(`package has no executable: ${executable}`);
+    if (runtimePaths === undefined) {
+      if (packageRoot === undefined) throw new Error('packaged smoke has no package root');
+      runtimePaths = packagedRuntime(packageRoot, options.target);
+    }
+    sidecarPath = runtimePaths.sidecar;
     const updateResult = join(home, 'update-version.txt');
     const launched = await launch(executable, [], {
       ...process.env,
@@ -639,7 +706,7 @@ async function main() {
         DSH_DESKTOP_UPDATE_SMOKE: '1',
         DSH_DESKTOP_UPDATE_RESULT: updateResult,
       } : {}),
-    }, options.target.sidecarBasename, { stopAfterReady: !(options.updateSmoke || options.webSmoke) });
+    }, sidecarPath, { stopAfterReady: !(options.updateSmoke || options.webSmoke) });
     runningChild = launched.child;
     if (options.webSmoke) {
       const webResult = await runPackagedWebSmoke(launched.url, {
@@ -648,17 +715,16 @@ async function main() {
       console.log(`[packaged-smoke] web UI title: ${webResult.title}`);
     }
     if (options.terminalSmoke) {
-      if (packageRoot === undefined) throw new Error('packaged terminal smoke has no package root');
-      const output = await runTerminalSmoke(packageRoot, options.target);
+      const output = await runTerminalSmoke(runtimePaths);
       console.log(`[packaged-smoke] terminal output: ${output.trim()}`);
     }
     if (options.updateSmoke) {
       await waitForUpdatedVersion(updateResult, options.expectedVersion);
-      await stopPackagedProcesses(executable, options.target.sidecarBasename);
+      await stopPackagedProcesses(executable, sidecarPath);
       console.log(`[packaged-smoke] updated to ${options.expectedVersion}`);
     }
     if (options.webSmoke) {
-      await stopPackagedProcesses(executable, options.target.sidecarBasename);
+      await stopPackagedProcesses(executable, sidecarPath);
     }
     console.log(`[packaged-smoke] ready at ${launched.url}`);
     smokeCompleted = true;
@@ -671,14 +737,16 @@ async function main() {
         stopProcessTree(runningChild, 'SIGKILL');
         await waitForExit(runningChild, 2_000).catch(() => {});
       }
-      await waitForManagedProcesses(runningChild, options.target.sidecarBasename, 2_000).catch(() => {});
+      if (sidecarPath !== undefined) {
+        await waitForManagedProcesses(runningChild, sidecarPath, 2_000).catch(() => {});
+      }
     }
     if (mountedDmg !== undefined) {
       run('hdiutil', ['detach', mountedDmg, '-force'], { stdio: 'inherit' });
     }
     if (installedWindows !== undefined) {
       const uninstaller = join(installedWindows, 'uninstall.exe');
-      if (existsSync(uninstaller)) run(uninstaller, ['/S'], { stdio: 'inherit' });
+      if (existsSync(uninstaller)) run(uninstaller, nsisUninstallArguments(installedWindows), { stdio: 'inherit' });
       else throw new Error(`NSIS install has no uninstaller: ${uninstaller}`);
     }
     if (installedDeb !== undefined) {

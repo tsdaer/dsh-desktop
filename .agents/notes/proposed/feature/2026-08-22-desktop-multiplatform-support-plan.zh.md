@@ -32,9 +32,9 @@ Status: proposed
 
 | 产品目标 | Rust triple | Node 发行包 | Sidecar 文件名 stem | Bundles |
 |---|---|---|---|---|
-| Windows x64 | `x86_64-pc-windows-msvc` | `win-x64.zip` | `node-x86_64-pc-windows-msvc.exe` | NSIS |
-| Linux x64 | `x86_64-unknown-linux-gnu` | `linux-x64.tar.xz` | `node-x86_64-unknown-linux-gnu` | AppImage、deb |
-| macOS arm64 | `aarch64-apple-darwin` | `darwin-arm64.tar.gz` | `node-aarch64-apple-darwin` | app、dmg |
+| Windows x64 | `x86_64-pc-windows-msvc` | `win-x64.zip` | `dsh-node-x86_64-pc-windows-msvc.exe` | NSIS |
+| Linux x64 | `x86_64-unknown-linux-gnu` | `linux-x64.tar.xz` | `dsh-node-x86_64-unknown-linux-gnu` | AppImage、deb |
+| macOS arm64 | `aarch64-apple-darwin` | `darwin-arm64.tar.gz` | `dsh-node-aarch64-apple-darwin` | app、dmg |
 
 缺少目标、格式错误或目标不受支持时，须在下载、删除、烘焙或打包前拒绝。各脚本内不得根据 `process.platform` 分别推断产品目标：发布任务可能交叉准备制品，重复推断会让 sidecar、原生运行时和 bundle 不一致。Node 版本继续只有一个既有配置来源，并保留 `DSH_NODE_VERSION` 作为有意覆盖入口。
 
@@ -123,7 +123,7 @@ Tauri updater 按平台和架构选择制品。从同一已校验工作流创建
 
 工作包 2 已在[可移植 Node sidecar 记录](../../implemented/feature/2026-08-22-desktop-portable-node-sidecar.md)中实现。sidecar 获取会按目标选择压缩包、跟随有上限的重定向、拒绝 HTTP 失败、在解压前校验匹配的 `SHASUMS256.txt` 摘要、记录版本／目标／摘要元数据、校验可执行文件版本、设置 POSIX 权限，通过可恢复替换同时更新 sidecar 与元数据，在安装或最终权限检查失败时保留旧目标，并清理临时文件。注入适配器测试覆盖摘要不匹配、损坏压缩包、缺少成员、陈旧元数据、精确目标文件名、重定向、HTTP 失败、清理、可执行权限请求和替换回滚。按目标区分的运行时目录和目标派生的原生裁剪已经接通；目标 runner 上的启动证据仍属于工作包 3。
 
-运行时烘焙路径现在要求使用已获取的目标 sidecar 完成 profile 初始化与 readiness 校验，终止校验进程树，且 bundle 命令先获取 sidecar 再烘焙。[目标原生运行时校验](../../implemented/feature/2026-08-22-desktop-target-native-runtime.md)会裁剪每个原生 `prebuilds` 目录；没有兼容预编译时接受目标 source build；存在时要求 `node-pty` 与 `koffi` 有可加载二进制；并在启动校验前拒绝可识别的其他平台原生文件。聚焦测试覆盖兼容预编译、source-build fallback、缺少目标二进制和跨平台文件。Rust 壳已经具备按目标命名的安装版 sidecar、禁止安装版使用环境 Node、把 WebView2 controller 与修复代码隔离到 Windows，以及使用平台中立的 `webview` 启动画面步骤。可移植 debug-mode 命令返回 `{ requested, applied, limitation }`；Linux 和 macOS 返回 `applied: false` 及明确的平台 webview 限制，bridge client 会记录该限制。工作包 3 仍需完成目标原生启动与 Linux 终端证据；工作包 4 仍需在各目标原生 runner 上编译并验证可移植壳行为。
+运行时烘焙路径现在要求使用已获取的目标 sidecar 完成 profile 初始化与 readiness 校验，终止校验进程树，且 bundle 命令先获取 sidecar 再烘焙。[目标原生运行时校验](../../implemented/feature/2026-08-22-desktop-target-native-runtime.md)会裁剪每个原生 `prebuilds` 目录；没有兼容预编译时接受目标 source build；存在时要求 `node-pty` 与 `koffi` 有可加载二进制；并在启动校验前拒绝可识别的其他平台原生文件。聚焦测试覆盖兼容预编译、source-build fallback、缺少目标二进制和跨平台文件。Rust 壳使用 Tauri 安装后的 `dsh-node.exe` 或 `dsh-node` 文件名、禁止安装版使用环境 Node、把 WebView2 controller 与修复代码隔离到 Windows，以及使用平台中立的 `webview` 启动画面步骤。可移植 debug-mode 命令返回 `{ requested, applied, limitation }`；Linux 和 macOS 返回 `applied: false` 及明确的平台 webview 限制，bridge client 会记录该限制。工作包 3 仍需完成目标原生启动与 Linux 终端证据；工作包 4 仍需在各目标原生 runner 上编译并验证可移植壳行为。
 
 [按目标的 bundle 配置与 updater 构件清单](../../implemented/feature/2026-08-22-desktop-target-aware-bundles.md)现在把共享 Tauri 设置与经过审查的 Windows、Linux、macOS 配置层分开。bundle 编排会校验生效的目标层,目标输出目录包含 Rust triple,体积报告检查每个预期构件并单独报告压缩安装器字节数,updater 清单生成会读取共享 Tauri updater 公钥,并在写入清单前校验每个主构件的 Minisign 文件签名和 trusted comment 签名。发布清单校验器现在接受 Tauri 未带版本号的 `dsh-desktop.app` 目录,同时继续校验 updater 归档、安装镜像和签名文件的版本号;[macOS app bundle 清单记录](../../implemented/bug-fix/2026-08-23-desktop-macos-app-bundle-inventory.md)记录了这项修正。测试覆盖有效签名、构件被修改、公钥不匹配、三个目标的已签名主构件以及 macOS 原生 app bundle 布局。工作包 5、工作包 6 中 Windows/Linux draft 构件暂存部分以及工作包 7 的清单生成部分已实现;目标原生安装、更新、卸载和打包 GUI 证据仍未完成。
 
@@ -133,9 +133,9 @@ Linux 基线 preflight 接受 `--output <file>`,发布 job 会把包含 target�
 
 打包冒烟会在启动前创建用户数据标记,并要求 deb purge 后标记和 `DSH_HOME` 仍然存在。这完成了安装包冒烟对用户数据保留的检查,但不表示已经验证安装版从版本 N 更新到版本 N+1。[桌面 Linux 安装包冒烟记录](../../implemented/feature/2026-08-22-desktop-linux-packaged-smoke.md)记录了该机制及其剩余证据边界。
 
-打包冒烟现在会在 POSIX 进程快照中保留命令行,在 sidecar 被重新托管后仍按目标命名的 Node sidecar 识别它,并在尝试 `SIGKILL` 清理前限制优雅停止的等待时间。[桌面打包进程清理校验](../../implemented/bug-fix/2026-08-22-desktop-packaged-process-cleanup.md)记录了这项检查;它强化了进程清理证据,但不会关闭剩余的原生平台验收工作。
+打包冒烟会保留进程命令行,在已安装 Node sidecar 被重新托管后仍按解析出的路径识别它,并在尝试强制清理前限制优雅停止的等待时间。[桌面打包进程清理校验](../../implemented/bug-fix/2026-08-22-desktop-packaged-process-cleanup.md)记录了这项检查;它强化了进程清理证据,但不会关闭剩余的原生平台验收工作。
 
-打包冒烟现在也接受 `--terminal-smoke`。启动 AppImage、deb、app 或 dmg 构件后,它会从构件中解析出且仅解析出一个目标 sidecar 和运行时,使用该运行时通过 `node-pty` 执行固定的 `printf` 探针,等待探针退出,并执行目标本地清理。Linux 和 macOS workflow job 都会调用这项检查。[桌面打包终端冒烟](../../implemented/testing/2026-08-22-desktop-packaged-terminal-smoke.md)记录了证据及其边界:它证明打包后的 PTY 字节和释放,不证明浏览器／模型可见的终端工作流。
+打包冒烟现在也接受 `--terminal-smoke`。启动 NSIS、AppImage、deb、app 或 dmg 构件后,它会从构件中解析出且仅解析出一个由 Tauri 安装的 sidecar 和运行时,使用该运行时通过 `node-pty` 执行固定且适合平台 shell 的标记探针,等待探针退出,并执行目标本地清理。Windows、Linux 和 macOS workflow job 都会调用这项检查。[桌面打包终端冒烟](../../implemented/testing/2026-08-22-desktop-packaged-terminal-smoke.md)记录了证据及其边界:它证明打包后的 PTY 字节和释放,不证明浏览器／模型可见的终端工作流。
 
 Linux release job 还会对已安装的 deb 包运行 `packaged-smoke --web-smoke`。Chromium 打开已安装包的就绪 URL,等待 composer 和 textarea,校验文档标题并上传可选截图。[桌面已安装包 Web UI 冒烟](../../implemented/testing/2026-08-23-desktop-installed-package-web-smoke.md)记录了证据边界:这证明已安装 shell／runtime 能提供并渲染 Web UI,不证明原生 Tauri WebView 行为或模型可见的终端工作流。
 
@@ -145,7 +145,7 @@ Linux release job 还会在 `xvfb-run` 下针对已安装的 deb 包运行 [`tau
 
 原生 UI smoke 现在会限制 `tauri-driver` 清理时间:识别 listener 注册前已记录的退出,在宽限时间后从 `SIGTERM` 升级到 `SIGKILL`,并在报告仍存活的 driver 前继续执行 package purge 和用户数据检查。[原生 UI smoke 进程清理记录](../../implemented/testing/2026-08-23-desktop-native-ui-process-cleanup.md)记录了这项 harness 不变量;实际执行仍需目标 runner。
 
-deb 安装冒烟会在安装后查询 package manager 文件清单,启动 `dpkg` 注册的可执行文件,并针对已安装的目标 sidecar 与 runtime 运行可选的终端探针。[Desktop deb 已安装 runtime 冒烟](../../implemented/bug-fix/2026-08-23-desktop-deb-installed-runtime-smoke.md)记录了这项路径选择修复;原生 Linux 安装、已安装包终端 UI、更新、卸载、基线和 GUI 证据仍未完成。
+deb 安装冒烟会在安装后查询 package manager 文件清单,启动 `dpkg` 注册的可执行文件,并针对已安装 sidecar 与 runtime 运行可选的终端探针。[Desktop deb 已安装 runtime 冒烟](../../implemented/bug-fix/2026-08-23-desktop-deb-installed-runtime-smoke.md)记录了这项路径选择修复;原生 Linux 安装、已安装包终端 UI、更新、卸载、基线和 GUI 证据仍未完成。
 
 macOS arm64 workflow 保留未签名 experimental job，并提供由 `DSH_DESKTOP_MACOS_RELEASE=true` 显式启用的签名发布 lane。该 lane 将 Developer ID 证书导入临时 keychain，在 bundle 和 updater 生成前把 `APPLE_SIGNING_IDENTITY` 传给 Tauri，使用 `codesign` 校验嵌套代码，使用 `notarytool` 提交 dmg，staple app 与 dmg，使用 `spctl` 检查 app，从已 staple 的 app 重建 updater archive，并使用受保护的 Tauri key 重新签名该 archive。始终执行的清理步骤会恢复 runner keychain 列表并删除临时密钥材料。单独的 attachment job 只会把已签名 macOS 清单以及刷新的 `latest.json`／`SHA256SUMS` 加入 draft Release；experimental 清单不会进入 manifest。该 lane 提供发布自动化，不构成 macOS 支持证据。
 

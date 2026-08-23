@@ -10,7 +10,8 @@ const TARGET_ROWS = [
     nodeArchiveKind: 'zip',
     nodeArchivePlatform: 'win-x64',
     sidecarSourceMember: 'node-v{version}-win-x64/node.exe',
-    sidecarBasename: 'node-x86_64-pc-windows-msvc.exe',
+    sidecarBasename: 'dsh-node-x86_64-pc-windows-msvc.exe',
+    packagedSidecarBasename: 'dsh-node.exe',
     nativePlatformKey: 'win32-x64',
     bundleKinds: ['nsis'],
     artifactDirectories: ['src-tauri/target/{rustTriple}/release/bundle/nsis'],
@@ -30,7 +31,8 @@ const TARGET_ROWS = [
     nodeArchiveKind: 'tar.xz',
     nodeArchivePlatform: 'linux-x64',
     sidecarSourceMember: 'node-v{version}-linux-x64/bin/node',
-    sidecarBasename: 'node-x86_64-unknown-linux-gnu',
+    sidecarBasename: 'dsh-node-x86_64-unknown-linux-gnu',
+    packagedSidecarBasename: 'dsh-node',
     nativePlatformKey: 'linux-x64',
     bundleKinds: ['appimage', 'deb'],
     artifactDirectories: [
@@ -53,7 +55,8 @@ const TARGET_ROWS = [
     nodeArchiveKind: 'tar.gz',
     nodeArchivePlatform: 'darwin-arm64',
     sidecarSourceMember: 'node-v{version}-darwin-arm64/bin/node',
-    sidecarBasename: 'node-aarch64-apple-darwin',
+    sidecarBasename: 'dsh-node-aarch64-apple-darwin',
+    packagedSidecarBasename: 'dsh-node',
     nativePlatformKey: 'darwin-arm64',
     bundleKinds: ['app', 'dmg'],
     artifactDirectories: [
@@ -91,7 +94,7 @@ const NODE_VERSION_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
  *
  * @param {string | undefined} requestedTriple
  * @param {{ detectHost?: () => string }} [options]
- * @returns {Readonly<{productTarget: string, rustTriple: string, nodePlatform: string, nodeArchitecture: string, nodeArchiveKind: string, nodeArchivePlatform: string, sidecarSourceMember: string, sidecarBasename: string, nativePlatformKey: string, bundleKinds: readonly string[], artifactDirectories: readonly string[], updaterPlatform: string, updaterArtifactSuffix: string, updaterSignatureSuffix: string, updaterArtifactSuffixes: readonly string[], tauriConfig: string, runtimeRelativeDir: string, sizeBudgetMiB: number}>}
+ * @returns {Readonly<{productTarget: string, rustTriple: string, nodePlatform: string, nodeArchitecture: string, nodeArchiveKind: string, nodeArchivePlatform: string, sidecarSourceMember: string, sidecarBasename: string, packagedSidecarBasename: string, nativePlatformKey: string, bundleKinds: readonly string[], artifactDirectories: readonly string[], updaterPlatform: string, updaterArtifactSuffix: string, updaterSignatureSuffix: string, updaterArtifactSuffixes: readonly string[], tauriConfig: string, runtimeRelativeDir: string, sizeBudgetMiB: number}>}
  */
 export function resolveTarget(requestedTriple, options = {}) {
   const triple = requestedTriple ?? (options.detectHost ?? detectHostRustTriple)();

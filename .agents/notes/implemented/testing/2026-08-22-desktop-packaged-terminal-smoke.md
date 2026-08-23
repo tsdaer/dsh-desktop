@@ -10,9 +10,9 @@ Desktop package startup can succeed while the target runtime omits or cannot loa
 
 ## Decision
 
-The Linux and macOS packaged smoke extracts or stages the artifact, launches the installed desktop executable, waits for its readiness URL, and then resolves exactly one target-named Node sidecar and one `lib/bin.js` runtime from that same package root. The sidecar runs a fixed `printf` command through the runtime's `node-pty` module, requires the marker in PTY output, waits for the probe process to exit, and retains the existing desktop process-tree cleanup check.
+The target-native packaged smoke extracts or stages the artifact, launches the installed desktop executable, waits for its readiness URL, and then resolves exactly one Tauri-installed Node sidecar and one `lib/bin.js` runtime from the installed package. The sidecar runs a fixed marker command through the runtime's `node-pty` module, using `echo` under Windows `cmd.exe` and `printf` under the POSIX shell. It requires the marker in PTY output, waits for the probe process to exit, and retains the existing desktop process-tree cleanup check.
 
-The deb path inspects a private `dpkg-deb --extract` tree while installing the same artifact for the application launch. The macOS dmg path copies the mounted app before launching it. Symlinks are ignored during resource discovery, and missing or duplicate sidecars and runtimes fail the smoke.
+The deb path installs the artifact, queries its registered file list, and resolves the `/usr/bin` sidecar and resource runtime independently from that package-owned list. The macOS dmg path copies the mounted app before launching it, while a direct app artifact is launched through `Contents/MacOS/dsh-desktop` without treating the `.app` directory as an executable. Symlinks are ignored during extracted-package resource discovery, and missing or duplicate sidecars and runtimes fail the smoke.
 
 This check proves target-native packaged PTY bytes and disposal. It does not claim that a browser session invoked a model-facing terminal tool; that GUI and updater evidence remains an installed-product requirement.
 
@@ -30,4 +30,4 @@ The Linux AppImage/deb and macOS app/dmg workflow smokes now exercise the target
 
 ## Testing
 
-`apps/desktop/scripts/packaged-smoke.spec.mjs` pins target argument parsing, exact package resource discovery, missing-sidecar rejection, process-tree observation, and package executable paths. The desktop release workflow invokes `--terminal-smoke` for Linux AppImage/deb and macOS app/dmg artifacts.
+`apps/desktop/scripts/packaged-smoke.spec.mjs` pins target argument parsing, exact package resource discovery, missing-sidecar rejection, shell-native marker commands, process-tree observation, and package executable paths. The desktop release workflow invokes `--terminal-smoke` for Windows NSIS, Linux AppImage/deb, and macOS app/dmg artifacts.

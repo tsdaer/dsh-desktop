@@ -20,7 +20,7 @@
 | 指标 | 现状 | 目标 |
 |---|---|---|
 | `resources/runtime` | 573.8 MB / 50,746 文件 | ≤ ~100 MB |
-| `node.exe` sidecar | 83.0 MB | 83.0 MB（架构固有，压缩进包约 30 MB） |
+| `dsh-node.exe` sidecar | 83.0 MB | 83.0 MB（架构固有，压缩进包约 30 MB） |
 | 安装后解包总量 | ~660 MB（+WebView2 150–200） | ≤ ~190 MB |
 | NSIS 安装包 | 114.9 MB | ~50–60 MB |
 
@@ -128,7 +128,7 @@ Rust 启动后按序执行，逐项通过 `emit("splash://status", { step, statu
 | # | 检测项 | 阻塞性 | 建议 |
 |---|---|---|---|
 | 1 | WebView2 版本 ≥ 最低要求 | warn | 过低→“重新安装 WebView2”按钮 |
-| 2 | `node.exe` sidecar 存在（打包态）/ `DSH_NODE`（开发态） | error | “重新安装应用” |
+| 2 | `dsh-node.exe` sidecar 存在（打包态）/ `DSH_NODE`（开发态） | error | “重新安装应用” |
 | 3 | `resources/runtime/lib/bin.js` 存在 | error | “运行时缺失，请重装” |
 | 4 | node-pty 当前平台 prebuild 存在 | error | “重装应用” |
 | 5 | DSH_HOME 可写 / 可初始化 | error | “检查用户目录权限” |
@@ -181,11 +181,11 @@ Rust 启动后按序执行，逐项通过 `emit("splash://status", { step, statu
 - `pnpm --filter @deepseek-ai/dsh-desktop bundle` 成功产出 NSIS 安装包。
 - size-report 显示 runtime ≤ ~100 MB、安装包 ≤ ~60 MB，且 dev 工具名不在 node_modules 顶层。
 - 冷启动（全新 DSH_HOME、无 API key）：splash 逐项检测、提示“未配置 API key”、不阻塞进入主界面。
-- 断开 node.exe / 删除 runtime：splash 停在对应 error 并给出可操作建议。
+- 断开 dsh-node.exe / 删除 runtime：splash 停在对应 error 并给出可操作建议。
 - 打包态首次启动：桥接包离线复制到 profile 成功，主窗口导航到 `dsh web` 就绪 URL，titlebar 正常注入。
 
 ## 风险与备注
 
 - **A1 是唯一有回退风险的点**：依赖建模改动触及 `apps/cli`/`packages/bundle`，需跑 `verify-cordis-config`、`verify-runtime-closure` 及 boot 冒烟，并补充 Agent Note 与快照测试。
 - **WebView2 分层**（B1）是易误解点：下载归安装层，splash 只做检测+引导。
-- node.exe 83 MB 是“壳里跑 Node”架构的固有成本，本轮不优化；要再降需评估把 web 服务下沉 Rust 或换更小运行时（超出本轮范围）。
+- dsh-node.exe 83 MB 是“壳里跑 Node”架构的固有成本，本轮不优化；要再降需评估把 web 服务下沉 Rust 或换更小运行时（超出本轮范围）。

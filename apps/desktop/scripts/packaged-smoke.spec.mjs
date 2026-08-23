@@ -7,16 +7,20 @@ import { tmpdir } from 'node:os';
 import {
   descendantPids,
   dmgMountArguments,
+  nsisUninstallArguments,
   managedProcessPids,
   packagedRuntime,
   packagedExecutable,
+  processCommandIncludesExecutable,
   observeUpdateVersion,
-  resolveInstalledDebPackageRoot,
+  resolveInstalledDebRuntime,
   parseArguments,
   parseProcessSnapshot,
   assertUserDataRetained,
   run,
   removeTemporaryHome,
+  stopChildWithEscalation,
+  terminalSmokeCommand,
 } from './packaged-smoke.mjs';
 
 test('requires a target-native package artifact for the packaged smoke', () => {
@@ -103,6 +107,12 @@ test('accepts inherited stdio for installer commands', () => {
   assert.equal(run(process.execPath, ['-e', 'process.stdout.write(\'\')'], { stdio: 'inherit' }), '');
 });
 
+test('uses a shell-native terminal marker command', () => {
+  assert.equal(terminalSmokeCommand('win32'), 'echo dsh-desktop-terminal-smoke');
+  assert.equal(terminalSmokeCommand('linux'), 'printf dsh-desktop-terminal-smoke');
+  assert.equal(terminalSmokeCommand('darwin'), 'printf dsh-desktop-terminal-smoke');
+});
+
 test('resolves the executable inside target-native packages and app bundles', () => {
   assert.equal(
     packagedExecutable('C:/dsh-desktop', { productTarget: 'windows-x64' }),
@@ -120,6 +130,10 @@ test('resolves the executable inside target-native packages and app bundles', ()
     dmgMountArguments('/tmp/dsh.dmg', '/tmp/mount'),
     ['attach', '-nobrowse', '-readonly', '-mountpoint', '/tmp/mount', '/tmp/dsh.dmg'],
   );
+  assert.deepEqual(
+    nsisUninstallArguments('C:\\Temp\\dsh desktop'),
+    ['/S', '_?=C:\\Temp\\dsh desktop'],
+  );
 });
 
 test('finds all runtime descendants from an immutable process snapshot', () => {
@@ -135,21 +149,30 @@ test('finds all runtime descendants from an immutable process snapshot', () => {
 test('keeps command lines so re-parented sidecars remain observable', () => {
   const processes = parseProcessSnapshot([
     '  10   1 /opt/dsh-desktop/usr/bin/dsh-desktop',
-    '  20  10 /opt/dsh-desktop/usr/lib/dsh-desktop/node-x86_64-unknown-linux-gnu runtime/lib/bin.js',
+    '  20  10 /opt/dsh-desktop/usr/lib/dsh-desktop/dsh-node runtime/lib/bin.js',
     '  30   1 /usr/bin/node unrelated.js',
+    '  40   1 /opt/dsh-desktop/usr/lib/dsh-desktop/dsh-node-copy unrelated.js',
   ].join('\n'));
   assert.deepEqual(processes, [
     { pid: 10, parent: 1, command: '/opt/dsh-desktop/usr/bin/dsh-desktop' },
     {
       pid: 20,
       parent: 10,
-      command: '/opt/dsh-desktop/usr/lib/dsh-desktop/node-x86_64-unknown-linux-gnu runtime/lib/bin.js',
+      command: '/opt/dsh-desktop/usr/lib/dsh-desktop/dsh-node runtime/lib/bin.js',
     },
     { pid: 30, parent: 1, command: '/usr/bin/node unrelated.js' },
+    { pid: 40, parent: 1, command: '/opt/dsh-desktop/usr/lib/dsh-desktop/dsh-node-copy unrelated.js' },
   ]);
   assert.deepEqual(
-    [...managedProcessPids(processes, 10, 'node-x86_64-unknown-linux-gnu')].sort((a, b) => a - b),
+    [...managedProcessPids(processes, 10, '/opt/dsh-desktop/usr/lib/dsh-desktop/dsh-node')].sort((a, b) => a - b),
     [10, 20],
+  );
+  assert.equal(
+    processCommandIncludesExecutable(
+      '"C:\\Temp\\DSH Desktop\\dsh-node.exe" runtime\\lib\\bin.js',
+      'c:/temp/dsh desktop/dsh-node.exe',
+    ),
+    true,
   );
 });
 
@@ -160,10 +183,10 @@ test('locates exactly one target sidecar and runtime inside an extracted package
     mkdirSync(join(runtime, 'lib'), { recursive: true });
     mkdirSync(join(root, 'usr', 'lib', 'dsh-desktop', 'binaries'), { recursive: true });
     writeFileSync(join(runtime, 'lib', 'bin.js'), '');
-    const sidecar = join(root, 'usr', 'lib', 'dsh-desktop', 'binaries', 'node-x86_64-unknown-linux-gnu');
+    const sidecar = join(root, 'usr', 'lib', 'dsh-desktop', 'binaries', 'dsh-node');
     writeFileSync(sidecar, '');
     assert.deepEqual(
-      packagedRuntime(root, { sidecarBasename: 'node-x86_64-unknown-linux-gnu' }),
+      packagedRuntime(root, { packagedSidecarBasename: 'dsh-node' }),
       { sidecar, runtime },
     );
   } finally {
@@ -171,19 +194,23 @@ test('locates exactly one target sidecar and runtime inside an extracted package
   }
 });
 
-test('resolves the runtime root from the files installed by a deb package', () => {
-  const root = resolveInstalledDebPackageRoot([
+test('resolves the sidecar and runtime from the files installed by a deb package', () => {
+  const runtime = resolveInstalledDebRuntime([
     '/usr/bin/dsh-desktop',
-    '/usr/lib/dsh-desktop/binaries/node-x86_64-unknown-linux-gnu',
+    '/usr/bin/dsh-node',
     '/usr/lib/dsh-desktop/runtime/lib/bin.js',
-  ], { sidecarBasename: 'node-x86_64-unknown-linux-gnu' });
-  assert.equal(root, '/usr/lib/dsh-desktop');
+  ], { packagedSidecarBasename: 'dsh-node' });
+  assert.deepEqual(runtime, {
+    sidecar: '/usr/bin/dsh-node',
+    runtime: '/usr/lib/dsh-desktop/runtime',
+  });
   assert.throws(
-    () => resolveInstalledDebPackageRoot([
+    () => resolveInstalledDebRuntime([
       '/usr/lib/dsh-desktop/runtime/lib/bin.js',
-      '/opt/node-x86_64-unknown-linux-gnu',
-    ], { sidecarBasename: 'node-x86_64-unknown-linux-gnu' }),
-    /outside the desktop resource root/,
+      '/usr/bin/dsh-node',
+      '/opt/dsh-node',
+    ], { packagedSidecarBasename: 'dsh-node' }),
+    /expected one installed sidecar/,
   );
 });
 
@@ -210,11 +237,33 @@ test('retries temporary-home removal while Windows releases installer handles', 
   }]);
 });
 
+test('accepts forced shutdown after a bounded graceful attempt', async () => {
+  const signals = [];
+  const waits = [];
+  await stopChildWithEscalation({}, {
+    stop: (_child, signal) => signals.push(signal),
+    wait: async (_child, timeout) => {
+      waits.push(timeout);
+      if (waits.length === 1) throw new Error('graceful timeout');
+    },
+  });
+  assert.deepEqual(signals, ['SIGTERM', 'SIGKILL']);
+  assert.deepEqual(waits, [10_000, 2_000]);
+
+  await assert.rejects(
+    stopChildWithEscalation({}, {
+      stop: () => {},
+      wait: async () => { throw new Error('still running'); },
+    }),
+    /did not exit after forced shutdown/,
+  );
+});
+
 test('rejects a package without the target sidecar', () => {
   const root = join(tmpdir(), `dsh-packaged-runtime-invalid-${process.pid}-${Date.now()}`);
   try {
     assert.throws(
-      () => packagedRuntime(root, { sidecarBasename: 'node-x86_64-unknown-linux-gnu' }),
+      () => packagedRuntime(root, { packagedSidecarBasename: 'dsh-node' }),
       /expected one packaged sidecar/,
     );
   } finally {

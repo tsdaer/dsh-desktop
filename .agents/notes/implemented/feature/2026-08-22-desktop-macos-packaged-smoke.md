@@ -20,7 +20,7 @@ The unsigned experimental macOS job and the opt-in signed macOS job run the app-
 
 ## Consequences
 
-macOS packaging jobs now exercise the installed app layout and the target-named runtime before uploading artifacts. Dmg verification copies the app instead of launching from the mounted volume, so resource lookup and process cleanup are checked after the volume is detached. The smoke requires macOS tools and cannot be reproduced on a Windows host.
+macOS packaging jobs now exercise the installed app layout and Tauri-installed runtime before uploading artifacts. Dmg verification copies the app instead of launching from the mounted volume, so resource lookup and process cleanup are checked after the volume is detached. The smoke requires macOS tools and cannot be reproduced on a Windows host.
 
 ## Alternatives considered
 

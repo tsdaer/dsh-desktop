@@ -4,6 +4,13 @@ dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a
 
 ## [未发布]
 
+## [0.3.10] - 2026-08-23
+
+### 修复
+
+- 打包启动现在使用产品自有的 Tauri 外部二进制名称（Windows 为 `dsh-node.exe`，POSIX 为 `dsh-node`），同时保留带目标后缀的源码暂存名称；安装包冒烟会直接启动 macOS app bundle、使用适合平台 shell 的 PTY 标记命令、在有界优雅退出后接受成功的强制清理、等待真实 NSIS 卸载进程，并且只跟踪已安装 sidecar 的路径。
+- Linux 发布打包会禁用 linuxdeploy 的 strip，避免在组装 AppImage 时改写预构建运行时和原生 addon 的 ELF 文件。
+
 ## [0.3.9] - 2026-08-23
 
 ### 修复

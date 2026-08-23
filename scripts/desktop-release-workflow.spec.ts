@@ -65,6 +65,7 @@ describe('desktop release workflow', () => {
     expect(JSON.stringify(linux)).toContain('DSH_SNAPSHOT=replay')
     expect(JSON.stringify(linux)).toContain('Upload Linux terminal UI replay evidence')
     expect(JSON.stringify(linux)).toContain('APPIMAGE_EXTRACT_AND_RUN')
+    expect(JSON.stringify(linux)).toContain('NO_STRIP')
     expect(JSON.stringify(windows)).toContain('packaged-smoke')
     expect(JSON.stringify(windows)).toContain('--install-nsis')
     expect(JSON.stringify(windows)).toContain('--terminal-smoke')
