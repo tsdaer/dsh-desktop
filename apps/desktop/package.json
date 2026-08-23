@@ -12,6 +12,7 @@
     "evidence": "node scripts/build-bridge.mjs && node scripts/evidence-server.mjs",
     "test:evidence": "node --test scripts/evidence-server.spec.mjs",
     "packaged-smoke": "node scripts/packaged-smoke.mjs",
+    "native-ui-smoke": "node scripts/tauri-ui-smoke.mjs",
     "update-smoke": "node scripts/update-smoke.mjs",
     "update-fixture": "node scripts/update-fixture.mjs",
     "linux-baseline": "node scripts/linux-baseline.mjs",

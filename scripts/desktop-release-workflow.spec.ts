@@ -54,6 +54,10 @@ describe('desktop release workflow', () => {
     expect(JSON.stringify(linux)).toContain('packaged-smoke')
     expect(JSON.stringify(linux)).toContain('--terminal-smoke')
     expect(JSON.stringify(linux)).toContain('--install-deb')
+    expect(JSON.stringify(linux)).toContain('webkit2gtk-driver')
+    expect(JSON.stringify(linux)).toContain('cargo install tauri-driver --locked')
+    expect(JSON.stringify(linux)).toContain('native-ui-smoke')
+    expect(JSON.stringify(linux)).toContain('Upload Linux native Tauri UI evidence')
     expect(JSON.stringify(linux)).toContain(
       'pnpm --filter @deepseek-ai/dsh-web-frontend exec playwright install --with-deps chromium',
     )

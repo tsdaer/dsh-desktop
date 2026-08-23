@@ -1,0 +1,33 @@
+# Agent Note: Desktop Linux native Tauri UI smoke
+
+Status: implemented
+
+[English](2026-08-23-desktop-linux-native-tauri-ui-smoke.md) | 中文
+
+## Problem
+
+Linux 桌面检查会验证已安装包的就绪 URL 和 bundled PTY runtime,但终端卡片回放使用的是独立 Chromium 进程及组装 Web profile。两者都没有驱动已安装 Tauri 应用内部的 WebKit WebView。
+
+## Decision
+
+`apps/desktop/scripts/tauri-ui-smoke.mjs` 提供显式的 Linux x64 deb 构件检查。它用 `dpkg` 安装 package,启动 `tauri-driver`,为已安装可执行文件创建 W3C WebDriver session,并驱动原生 WebKit WebView 直到 composer 就绪。检查会把已提交的 `apps/web/tests/snapshots/navigation-panes/seed.jsonl` fixture 还原到临时 `DSH_HOME`,通过搜索 UI 打开 seeded session,展开模型面对的 Bash 终端卡片,要求出现 `NAVIGATION_OK`,并可保存 WebDriver 截图。临时 home patch 只在还原 fixture 时选择 plaintext JSONL 持久化,不会改变生产 bundle。
+
+smoke 会 purge 已安装 package,并要求 `DSH_HOME` 中用户拥有的标记仍然存在。Linux release job 会安装 `webkit2gtk-driver`,构建 `tauri-driver`,在 `xvfb-run` 下运行 smoke,并把截图作为独立证据构件上传。该命令按目标限制,不会在 Windows 或 macOS 上运行。
+
+这项检查用无 key transcript 证明原生 WebKit WebView 的 DOM 交互和已打包的模型面对终端呈现。它不证明真实模型流量、旧 Linux 发行版兼容性、更新器安装或完整的手工 GUI 清单。
+
+## Alternatives considered
+
+**把 Chromium 打包 Web smoke 当作原生 WebView 证据。** 否决:Chromium 是独立浏览器进程,没有覆盖 Tauri 内嵌的 WebKit WebView。
+
+**在发布打包期间驱动真实模型。** 否决:已提交的无 key transcript 让发布证据可复现,也避免把 API 凭据放入 package workflow。
+
+**在生产配置中使用 plaintext fixture。** 否决:生产 runtime 保持其既有 compression 配置;smoke 只写入临时 home 级覆盖,并在检查后移除该 home。
+
+## Consequences
+
+Linux 发布证据现在包含已安装 Tauri WebView 的截图和 DOM 断言,覆盖 composer、seeded session 导航和终端卡片。原生 driver 成为额外的 Linux 前置依赖,而该检查仍然只是证据;在计划中的更新、最低基线、卸载和打包 GUI 要求完成前,Linux 仍不受支持。
+
+## Testing
+
+`apps/desktop/scripts/tauri-ui-smoke.spec.mjs` 固定 Linux target 解析、fixture 路径还原、安全 session 路径和 WebDriver capabilities。`scripts/desktop-release-workflow.spec.ts` 要求 WebKit driver、`tauri-driver`、原生 smoke 调用和截图上传。实际安装包与 WebKit 执行仍以目标 runner 为证据来源。

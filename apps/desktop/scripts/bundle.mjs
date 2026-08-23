@@ -63,6 +63,7 @@ try {
     'scripts/updater-manifest.spec.mjs',
     'scripts/release-artifacts.spec.mjs',
     'scripts/packaged-smoke.spec.mjs',
+    'scripts/tauri-ui-smoke.spec.mjs',
     'scripts/linux-baseline.spec.mjs',
     'scripts/macos-sign-release.spec.mjs',
     'scripts/update-fixture.spec.mjs',

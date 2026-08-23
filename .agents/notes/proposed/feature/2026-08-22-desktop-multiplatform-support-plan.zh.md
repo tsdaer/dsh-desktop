@@ -141,6 +141,8 @@ Linux release job 还会对已安装的 deb 包运行 `packaged-smoke --web-smok
 
 Linux release job 现在还会安装 Chromium,并在 `xvfb-run` 下通过组装 Web profile 回放无 key 的 [`navigation-panes` 终端 UI 场景](../../implemented/testing/2026-08-23-desktop-linux-terminal-ui-replay.md)。该场景使用 standard preset 重建记录的 session,验证模型面对的终端卡片以及导航和剪贴板交互,并上传日志和失败截图。Windows 上 standard preset 选择 PowerShell,因此会跳过 Bash 专属断言。这只关闭组装 Web 的终端 UI 证据缺口,不建立已安装 Tauri WebView 行为、打包 GUI 证据或 Linux 支持声明。
 
+Linux release job 还会在 `xvfb-run` 下针对已安装的 deb 包运行 [`tauri-ui-smoke`](../../implemented/testing/2026-08-23-desktop-linux-native-tauri-ui-smoke.md)。该 smoke 通过 `tauri-driver` 驱动原生 WebKit WebView,还原已提交的无 key session fixture,校验 composer 和模型面对的终端卡片,保存截图,purge package,并检查用户数据保留。它关闭了已安装 Tauri WebView 终端卡片的证据缺口;最低发行版、已安装更新和完整的打包 GUI 清单仍未完成。
+
 deb 安装冒烟会在安装后查询 package manager 文件清单,启动 `dpkg` 注册的可执行文件,并针对已安装的目标 sidecar 与 runtime 运行可选的终端探针。[Desktop deb 已安装 runtime 冒烟](../../implemented/bug-fix/2026-08-23-desktop-deb-installed-runtime-smoke.md)记录了这项路径选择修复;原生 Linux 安装、已安装包终端 UI、更新、卸载、基线和 GUI 证据仍未完成。
 
 macOS arm64 workflow 保留未签名 experimental job，并提供由 `DSH_DESKTOP_MACOS_RELEASE=true` 显式启用的签名发布 lane。该 lane 将 Developer ID 证书导入临时 keychain，在 bundle 和 updater 生成前把 `APPLE_SIGNING_IDENTITY` 传给 Tauri，使用 `codesign` 校验嵌套代码，使用 `notarytool` 提交 dmg，staple app 与 dmg，使用 `spctl` 检查 app，从已 staple 的 app 重建 updater archive，并使用受保护的 Tauri key 重新签名该 archive。始终执行的清理步骤会恢复 runner keychain 列表并删除临时密钥材料。单独的 attachment job 只会把已签名 macOS 清单以及刷新的 `latest.json`／`SHA256SUMS` 加入 draft Release；experimental 清单不会进入 manifest。该 lane 提供发布自动化，不构成 macOS 支持证据。
