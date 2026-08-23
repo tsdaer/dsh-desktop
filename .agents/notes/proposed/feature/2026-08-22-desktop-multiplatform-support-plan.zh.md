@@ -137,6 +137,8 @@ Linux 基线 preflight 接受 `--output <file>`,发布 job 会把包含 target�
 
 打包冒烟现在也接受 `--terminal-smoke`。启动 AppImage、deb、app 或 dmg 构件后,它会从构件中解析出且仅解析出一个目标 sidecar 和运行时,使用该运行时通过 `node-pty` 执行固定的 `printf` 探针,等待探针退出,并执行目标本地清理。Linux 和 macOS workflow job 都会调用这项检查。[桌面打包终端冒烟](../../implemented/testing/2026-08-22-desktop-packaged-terminal-smoke.md)记录了证据及其边界:它证明打包后的 PTY 字节和释放,不证明浏览器／模型可见的终端工作流。
 
+Linux release job 还会对已安装的 deb 包运行 `packaged-smoke --web-smoke`。Chromium 打开已安装包的就绪 URL,等待 composer 和 textarea,校验文档标题并上传可选截图。[桌面已安装包 Web UI 冒烟](../../implemented/testing/2026-08-23-desktop-installed-package-web-smoke.md)记录了证据边界:这证明已安装 shell／runtime 能提供并渲染 Web UI,不证明原生 Tauri WebView 行为或模型可见的终端工作流。
+
 Linux release job 现在还会安装 Chromium,并在 `xvfb-run` 下通过组装 Web profile 回放无 key 的 [`navigation-panes` 终端 UI 场景](../../implemented/testing/2026-08-23-desktop-linux-terminal-ui-replay.md)。该场景使用 standard preset 重建记录的 session,验证模型面对的终端卡片以及导航和剪贴板交互,并上传日志和失败截图。Windows 上 standard preset 选择 PowerShell,因此会跳过 Bash 专属断言。这只关闭组装 Web 的终端 UI 证据缺口,不建立已安装 Tauri WebView 行为、打包 GUI 证据或 Linux 支持声明。
 
 deb 安装冒烟会在安装后查询 package manager 文件清单,启动 `dpkg` 注册的可执行文件,并针对已安装的目标 sidecar 与 runtime 运行可选的终端探针。[Desktop deb 已安装 runtime 冒烟](../../implemented/bug-fix/2026-08-23-desktop-deb-installed-runtime-smoke.md)记录了这项路径选择修复;原生 Linux 安装、已安装包终端 UI、更新、卸载、基线和 GUI 证据仍未完成。

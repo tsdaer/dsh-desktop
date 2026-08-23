@@ -184,6 +184,9 @@ jobs:
           pnpm --filter @deepseek-ai/dsh-desktop size-check -- --target x86_64-unknown-linux-gnu
           node apps/desktop/scripts/release-artifacts.mjs --target x86_64-unknown-linux-gnu --output "$RUNNER_TEMP/dsh-desktop-artifacts"
 
+      - name: Install Chromium for packaged web UI smoke
+        run: pnpm --filter @deepseek-ai/dsh-web-frontend exec playwright install --with-deps chromium
+
       - name: Smoke-test the packaged AppImage
         run: |
           APPIMAGE="$(find apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage -maxdepth 1 -name '*.AppImage' -print -quit)"
@@ -194,16 +197,23 @@ jobs:
               --terminal-smoke
 
       - name: Smoke-test install and removal of the deb package
+        env:
+          DSH_PACKAGED_WEB_SMOKE_SCREENSHOT: ${{ runner.temp }}/dsh-desktop-packaged-web-smoke.png
         run: |
           DEB="$(find apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb -maxdepth 1 -name '*.deb' -print -quit)"
           test -n "$DEB"
           xvfb-run --auto-servernum --server-args='-screen 0 1280x800x24' \
             pnpm --filter @deepseek-ai/dsh-desktop packaged-smoke -- \
               --target x86_64-unknown-linux-gnu --artifact "$DEB" --install-deb \
-              --terminal-smoke
+              --terminal-smoke --web-smoke
 
-      - name: Install Chromium for the Linux terminal UI replay
-        run: pnpm --filter @deepseek-ai/dsh-web-frontend exec playwright install --with-deps chromium
+      - name: Upload installed Linux package web UI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dsh-desktop-linux-packaged-web-${{ needs.validate.outputs.version }}
+          path: ${{ runner.temp }}/dsh-desktop-packaged-web-smoke.png
+          if-no-files-found: ignore
 
       - name: Replay the Linux terminal UI through the assembled Web profile
         run: |

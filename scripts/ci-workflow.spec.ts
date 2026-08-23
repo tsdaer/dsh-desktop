@@ -456,6 +456,8 @@ describe('Desktop release workflow', () => {
     expect(linuxJson).toContain('Upload Linux baseline evidence')
     expect(linuxJson).toContain('packaged-smoke')
     expect(linuxJson).toContain('--install-deb')
+    expect(linuxJson).toContain('--web-smoke')
+    expect(linuxJson).toContain('Upload installed Linux package web UI evidence')
 
     expect(macos['runs-on']).toBe('macos-14')
     expect(macosJson).toContain('aarch64-apple-darwin')

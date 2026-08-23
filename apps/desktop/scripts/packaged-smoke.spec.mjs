@@ -25,6 +25,9 @@ test('requires a target-native package artifact for the packaged smoke', () => {
   assert.equal(parseArguments([
     '--target', 'x86_64-unknown-linux-gnu', '--artifact', 'dist/dsh.deb', '--install-deb',
   ]).installDeb, true);
+  assert.equal(parseArguments([
+    '--target', 'x86_64-unknown-linux-gnu', '--artifact', 'dist/dsh.AppImage', '--web-smoke',
+  ]).webSmoke, true);
   assert.deepEqual(
     parseArguments([
       '--target', 'x86_64-unknown-linux-gnu', '--artifact', 'dist/dsh.AppImage',
@@ -78,6 +81,12 @@ test('requires a target-native package artifact for the packaged smoke', () => {
   assert.throws(
     () => parseArguments([
       '--target', 'aarch64-apple-darwin', '--artifact', 'dist/dsh.deb', '--install-deb',
+    ]),
+    /only available for Linux x64/,
+  );
+  assert.throws(
+    () => parseArguments([
+      '--target', 'aarch64-apple-darwin', '--artifact', 'dist/dsh-desktop.app', '--web-smoke',
     ]),
     /only available for Linux x64/,
   );

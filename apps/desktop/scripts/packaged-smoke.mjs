@@ -3,6 +3,7 @@
 // The smoke intentionally runs the installed entry point, not `cargo run` or
 // the source CLI, so resource lookup and the target Node sidecar are included.
 import { cpSync, existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join, posix as posixPath, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -10,11 +11,13 @@ import { spawn, spawnSync } from 'node:child_process';
 
 import { resolveTargetFromArgs } from './target-spec.mjs';
 
+const requireWebDependency = createRequire(new URL('../../web/package.json', import.meta.url));
+
 /**
  * Parse target-native packaged-smoke options.
  *
  * @param {readonly string[]} argv Arguments after the script name.
- * @returns {{target: Readonly<object>, artifact: string, installDeb: boolean, installDmg: boolean, installNsis: boolean, terminalSmoke: boolean, updateSmoke: boolean, expectedVersion?: string}}
+ * @returns {{target: Readonly<object>, artifact: string, installDeb: boolean, installDmg: boolean, installNsis: boolean, terminalSmoke: boolean, webSmoke: boolean, updateSmoke: boolean, expectedVersion?: string}}
  */
 export function parseArguments(argv) {
   const target = resolveTargetFromArgs(argv);
@@ -25,6 +28,7 @@ export function parseArguments(argv) {
   const installDmg = argv.includes('--install-dmg');
   const installNsis = argv.includes('--install-nsis');
   const terminalSmoke = argv.includes('--terminal-smoke');
+  const webSmoke = argv.includes('--web-smoke');
   const updateSmoke = argv.includes('--update-smoke');
   const expectedVersionIndex = argv.indexOf('--expected-version');
   const expectedVersion = expectedVersionIndex < 0 ? undefined : argv[expectedVersionIndex + 1];
@@ -55,6 +59,9 @@ export function parseArguments(argv) {
   if (target.productTarget === 'macos-arm64' && installDeb) {
     throw new Error('--install-deb is only available for Linux x64');
   }
+  if (webSmoke && target.productTarget !== 'linux-x64') {
+    throw new Error('--web-smoke is only available for Linux x64');
+  }
   const expectedSuffix = target.productTarget === 'windows-x64'
     ? '.exe'
     : target.productTarget === 'linux-x64'
@@ -63,7 +70,7 @@ export function parseArguments(argv) {
   if (!artifact.endsWith(expectedSuffix)) {
     throw new Error(`expected a ${expectedSuffix} artifact: ${artifact}`);
   }
-  return { target, artifact: resolve(artifact), installDeb, installDmg, installNsis, terminalSmoke, updateSmoke, expectedVersion };
+  return { target, artifact: resolve(artifact), installDeb, installDmg, installNsis, terminalSmoke, webSmoke, updateSmoke, expectedVersion };
 }
 
 /**
@@ -446,6 +453,45 @@ export async function runTerminalSmoke(packageRoot, target) {
 }
 
 /**
+ * Exercise the web UI served by an installed package while its bundled shell
+ * and runtime remain alive. This uses a separate Chromium process because
+ * the target runner's native Tauri WebView is not remotely attachable; native
+ * window and WebView evidence remains a separate acceptance requirement.
+ *
+ * @param {string} url - Readiness URL printed by the packaged shell.
+ * @param {{screenshotPath?: string}} [options] - Optional screenshot output.
+ * @returns {Promise<{title: string, url: string}>} Observed page identity.
+ */
+export async function runPackagedWebSmoke(url, options = {}) {
+  let chromium;
+  try {
+    ({ chromium } = requireWebDependency('playwright'));
+  } catch (error) {
+    throw new Error(`packaged web smoke requires Playwright: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    if (response === null || !response.ok()) {
+      throw new Error(`packaged web UI returned ${response?.status() ?? 'no response'} at ${url}`);
+    }
+    await page.locator('[data-composer-seat]').waitFor({ state: 'attached', timeout: 30_000 });
+    await page.locator('textarea').waitFor({ state: 'attached', timeout: 30_000 });
+    const title = await page.title();
+    if (!/DeepSeek Harness|DSH Local Build/.test(title)) {
+      throw new Error(`packaged web UI has unexpected document title: ${title}`);
+    }
+    if (options.screenshotPath !== undefined) {
+      await page.screenshot({ path: options.screenshotPath, fullPage: true });
+    }
+    return { title, url: page.url() };
+  } finally {
+    await browser.close();
+  }
+}
+
+/**
  * Assert that package removal did not remove data owned by the user.
  *
  * @param {string} home - The temporary DSH_HOME used by the smoke.
@@ -534,6 +580,7 @@ async function main() {
   let installedDeb;
   let installedWindows;
   let mountedDmg;
+  let runningChild;
   let smokeCompleted = false;
   try {
     let executable;
@@ -581,7 +628,14 @@ async function main() {
         DSH_DESKTOP_UPDATE_SMOKE: '1',
         DSH_DESKTOP_UPDATE_RESULT: updateResult,
       } : {}),
-    }, options.target.sidecarBasename, { stopAfterReady: !options.updateSmoke });
+    }, options.target.sidecarBasename, { stopAfterReady: !(options.updateSmoke || options.webSmoke) });
+    runningChild = launched.child;
+    if (options.webSmoke) {
+      const webResult = await runPackagedWebSmoke(launched.url, {
+        screenshotPath: process.env.DSH_PACKAGED_WEB_SMOKE_SCREENSHOT,
+      });
+      console.log(`[packaged-smoke] web UI title: ${webResult.title}`);
+    }
     if (options.terminalSmoke) {
       if (packageRoot === undefined) throw new Error('packaged terminal smoke has no package root');
       const output = await runTerminalSmoke(packageRoot, options.target);
@@ -592,9 +646,22 @@ async function main() {
       await stopPackagedProcesses(executable, options.target.sidecarBasename);
       console.log(`[packaged-smoke] updated to ${options.expectedVersion}`);
     }
+    if (options.webSmoke) {
+      await stopPackagedProcesses(executable, options.target.sidecarBasename);
+    }
     console.log(`[packaged-smoke] ready at ${launched.url}`);
     smokeCompleted = true;
   } finally {
+    if (runningChild !== undefined && runningChild.exitCode === null) {
+      stopProcessTree(runningChild);
+      try {
+        await waitForExit(runningChild);
+      } catch {
+        stopProcessTree(runningChild, 'SIGKILL');
+        await waitForExit(runningChild, 2_000).catch(() => {});
+      }
+      await waitForManagedProcesses(runningChild, options.target.sidecarBasename, 2_000).catch(() => {});
+    }
     if (mountedDmg !== undefined) {
       run('hdiutil', ['detach', mountedDmg, '-force'], { stdio: 'inherit' });
     }

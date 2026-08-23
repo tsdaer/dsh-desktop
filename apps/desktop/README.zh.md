@@ -63,7 +63,7 @@ dev 启动器把 DSH_CLI 设为构建出的 apps/cli/lib/bin.js;DSH_NODE 默认�
 
 Linux 发布 runner 会通过 `pnpm --filter @deepseek-ai/dsh-desktop linux-baseline -- --target x86_64-unknown-linux-gnu` 记录 glibc、GTK、WebKitGTK 和打包工具版本。加上 `--output <file>` 可把 JSON 记录作为构建证据保留。该命令记录构建环境,不证明对更旧发行版的兼容性。
 
-目标原生安装包启动冒烟可通过 `pnpm --filter @deepseek-ai/dsh-desktop packaged-smoke -- --target <triple> --artifact <path>` 运行。Windows 使用 `--install-nsis` 安装 NSIS 构件;Linux 接受 AppImage,或带 `--install-deb` 的 deb;macOS 接受 app bundle,或带 `--install-dmg` 的 dmg。冒烟检查会启动已安装的可执行文件,等待运行时就绪 URL,确认受管理的子进程退出,在带有 `--terminal-smoke` 时运行打包运行时的 PTY 探针,并检查移除安装包后临时 `DSH_HOME` 仍然存在。它要求在目标 runner 上运行,不替代更新器、最低发行版和 GUI 证据。
+目标原生安装包启动冒烟可通过 `pnpm --filter @deepseek-ai/dsh-desktop packaged-smoke -- --target <triple> --artifact <path>` 运行。Windows 使用 `--install-nsis` 安装 NSIS 构件;Linux 接受 AppImage,或带 `--install-deb` 的 deb;macOS 接受 app bundle,或带 `--install-dmg` 的 dmg。冒烟检查会启动已安装的可执行文件,等待运行时就绪 URL,确认受管理的子进程退出,在带有 `--terminal-smoke` 时运行打包运行时的 PTY 探针,并检查移除安装包后临时 `DSH_HOME` 仍然存在。Linux 可加 `--web-smoke` 用 Chromium 打开已安装包提供的就绪 URL,要求 composer DOM 挂载并保留截图;这验证打包运行时与 HTTP UI,原生 Tauri WebView 证据仍需单独取得。它要求在目标 runner 上运行,不替代更新器、最低发行版和 GUI 证据。
 
 deb 冒烟会在安装前创建用户数据标记,并要求执行 package purge 后该标记仍然存在。这样可以验证安装包的卸载路径,同时不把一次性 smoke home 当成应用应拥有的数据。Linux release job 还会在 Chromium 下回放无 key 的 `navigation-panes` 浏览器场景,覆盖组装 Web profile 的模型面对的终端卡片和导航交互。这项回放与已安装包 smoke 分开,不代表已安装 GUI 证据;版本 N 到 N+1 的已安装更新仍需要目标原生验收 workflow。
 
