@@ -15,6 +15,7 @@ import {
   parseArguments,
   parseProcessSnapshot,
   assertUserDataRetained,
+  run,
 } from './packaged-smoke.mjs';
 
 test('requires a target-native package artifact for the packaged smoke', () => {
@@ -86,6 +87,10 @@ test('requires a target-native package artifact for the packaged smoke', () => {
     ]),
     /mutually exclusive/,
   );
+});
+
+test('accepts inherited stdio for installer commands', () => {
+  assert.equal(run(process.execPath, ['-e', 'process.stdout.write(\'\')'], { stdio: 'inherit' }), '');
 });
 
 test('resolves the executable inside target-native packages and app bundles', () => {

@@ -199,13 +199,21 @@ export function packagedRuntime(root, target) {
   return { sidecar: sidecars[0], runtime: runtimes[0] };
 }
 
-function run(command, args, options = {}) {
+/**
+ * Run a package-management or installer command without requiring captured stdout.
+ *
+ * @param {string} command - Executable to run.
+ * @param {readonly string[]} args - Arguments passed without shell interpolation.
+ * @param {import('node:child_process').SpawnSyncOptions} [options] - Spawn options.
+ * @returns {string} Captured stdout, or an empty string when stdio is inherited.
+ */
+export function run(command, args, options = {}) {
   const result = spawnSync(command, args, { encoding: 'utf8', ...options });
   if (result.error) throw result.error;
   if (result.status !== 0) {
     throw new Error(`${command} ${args.join(' ')} failed with exit code ${result.status}\n${result.stderr || result.stdout}`);
   }
-  return result.stdout.trim();
+  return (result.stdout ?? '').trim();
 }
 
 function installedDebExecutable(packageName) {
