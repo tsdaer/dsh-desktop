@@ -19,7 +19,6 @@ import {
   parseArguments,
   parseProcessSnapshot,
   assertUserDataRetained,
-  run,
   removeTemporaryHome,
   splashLogDiagnostics,
   stopChildWithEscalation,
@@ -131,18 +130,6 @@ test('resolves the macOS installation root before launch', () => {
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
-});
-
-test('accepts inherited stdio for installer commands', () => {
-  assert.equal(run(process.execPath, ['-e', 'process.stdout.write(\'\')'], { stdio: 'inherit' }), '');
-});
-
-test('captures installed package inventories beyond the child process default buffer', () => {
-  const bytes = 2 * 1024 * 1024;
-  assert.equal(
-    run(process.execPath, ['-e', `process.stdout.write('x'.repeat(${bytes}))`]).length,
-    bytes,
-  );
 });
 
 test('uses a shell-native terminal marker command', () => {

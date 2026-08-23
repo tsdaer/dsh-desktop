@@ -12,7 +12,7 @@ The Linux desktop checks exercised the installed package's readiness URL and bun
 
 `apps/desktop/scripts/tauri-ui-smoke.mjs` provides an explicit Linux x64 check for a deb artifact. It installs the package with `dpkg`, starts `tauri-driver`, creates a W3C WebDriver session for the installed executable, and drives the native WebKit WebView until the composer is ready. The check materializes the committed `apps/web/tests/snapshots/navigation-panes/seed.jsonl` fixture under a temporary `DSH_HOME`, opens the seeded session through the search UI, expands the model-facing Bash terminal card, requires `NAVIGATION_OK`, and optionally stores a WebDriver screenshot. A temporary home patch selects plaintext JSONL persistence only for fixture materialization; it does not alter the production bundle.
 
-The smoke purges the installed package and requires a user-owned marker in `DSH_HOME` to remain. The Linux release job installs `webkit2gtk-driver`, builds `tauri-driver`, runs the smoke under `xvfb-run`, and uploads its screenshot as a separate evidence artifact. The command is target-gated and does not run for Windows or macOS.
+The smoke resolves the installed executable from the package manager's registered file inventory through the same bounded command runner as the deb package smoke. It purges the installed package and requires a user-owned marker in `DSH_HOME` to remain. The Linux release job installs `webkit2gtk-driver`, builds `tauri-driver`, runs the smoke under `xvfb-run`, and uploads its screenshot as a separate evidence artifact. The command is target-gated and does not run for Windows or macOS.
 
 This check proves native WebKit WebView DOM interaction and the packaged model-facing terminal presentation using a keyless transcript. It does not prove live model traffic, compatibility with an older Linux distribution, updater installation, or the complete manual GUI checklist.
 
@@ -30,4 +30,4 @@ Linux release evidence now includes a screenshot and DOM assertions from the ins
 
 ## Testing
 
-`apps/desktop/scripts/tauri-ui-smoke.spec.mjs` pins Linux target parsing, fixture path materialization, safe session paths, and WebDriver capabilities. `scripts/desktop-release-workflow.spec.ts` requires the WebKit driver, `tauri-driver`, native smoke invocation, and screenshot upload. The actual installed package and WebKit execution remain target-runner evidence.
+`apps/desktop/scripts/tauri-ui-smoke.spec.mjs` pins Linux target parsing, fixture path materialization, safe session paths, and WebDriver capabilities. `apps/desktop/scripts/run-command.spec.mjs` pins captured package inventories larger than Node's default synchronous child-process buffer. `scripts/desktop-release-workflow.spec.ts` requires the WebKit driver, `tauri-driver`, native smoke invocation, and screenshot upload. The actual installed package and WebKit execution remain target-runner evidence.

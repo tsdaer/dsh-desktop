@@ -2,13 +2,14 @@
 // session fixture is a committed keyless transcript, so this check observes
 // the native Tauri WebView while keeping model traffic out of CI.
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { createConnection } from 'node:net';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { resolveTargetFromArgs } from './target-spec.mjs';
+import { runCommand as run } from './run-command.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(here, '../../..');
@@ -208,15 +209,6 @@ function valueFor(argv, name) {
   const value = argv[index + 1];
   if (value === undefined || value.startsWith('-')) throw new Error(`${name} requires a value`);
   return value;
-}
-
-function run(command, args, options = {}) {
-  const result = spawnSync(command, args, { encoding: 'utf8', ...options });
-  if (result.error) throw result.error;
-  if (result.status !== 0) {
-    throw new Error(`${command} ${args.join(' ')} failed with exit code ${result.status}\n${result.stderr || result.stdout}`);
-  }
-  return (result.stdout ?? '').trim();
 }
 
 function installedPackageName(artifact) {

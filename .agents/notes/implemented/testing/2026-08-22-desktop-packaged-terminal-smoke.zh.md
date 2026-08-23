@@ -32,4 +32,4 @@ Linux AppImage/deb 和 macOS app/dmg 工作流冒烟现在会在打包启动后�
 
 ## Testing
 
-`apps/desktop/scripts/packaged-smoke.spec.mjs` 固定目标参数解析、安装包资源的唯一发现、缺少 sidecar 时的拒绝、适合平台 shell 的标记命令、进程树观察、包括 AppImage `AppRun` 在内的 package 入口路径,以及超过 Node 默认同步子进程缓冲区的已捕获 package 文件清单。`scripts/desktop-release-workflow.spec.ts` 要求三项 Linux package 探针都使用 checkout 根目录的绝对构件路径。桌面发布工作流会对 Windows NSIS、Linux AppImage/deb 以及 macOS app/dmg 构件传入 `--terminal-smoke`。
+`apps/desktop/scripts/packaged-smoke.spec.mjs` 固定目标参数解析、安装包资源的唯一发现、缺少 sidecar 时的拒绝、适合平台 shell 的标记命令、进程树观察和包括 AppImage `AppRun` 在内的 package 入口路径。`apps/desktop/scripts/run-command.spec.mjs` 为两个 deb 消费方固定超过 Node 默认同步子进程缓冲区的已捕获 package 文件清单。`scripts/desktop-release-workflow.spec.ts` 要求三项 Linux package 探针都使用 checkout 根目录的绝对构件路径。桌面发布工作流会对 Windows NSIS、Linux AppImage/deb 以及 macOS app/dmg 构件传入 `--terminal-smoke`。

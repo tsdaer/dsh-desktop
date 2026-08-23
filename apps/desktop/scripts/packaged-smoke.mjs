@@ -10,9 +10,9 @@ import { pathToFileURL } from 'node:url';
 import { spawn, spawnSync } from 'node:child_process';
 
 import { resolveTargetFromArgs } from './target-spec.mjs';
+import { runCommand as run } from './run-command.mjs';
 
 const requireWebDependency = createRequire(new URL('../../web/package.json', import.meta.url));
-const capturedCommandOutputLimit = 16 * 1024 * 1024;
 
 /**
  * Parse target-native packaged-smoke options.
@@ -273,27 +273,6 @@ export function packagedRuntime(root, target) {
   if (sidecars.length !== 1) throw new Error(`expected one packaged sidecar ${target.packagedSidecarBasename}, found ${sidecars.length}`);
   if (runtimes.length !== 1) throw new Error(`expected one packaged runtime lib/bin.js, found ${runtimes.length}`);
   return { sidecar: sidecars[0], runtime: runtimes[0] };
-}
-
-/**
- * Run a package-management or installer command without requiring captured stdout.
- *
- * @param {string} command - Executable to run.
- * @param {readonly string[]} args - Arguments passed without shell interpolation.
- * @param {import('node:child_process').SpawnSyncOptions} [options] - Spawn options.
- * @returns {string} Captured stdout, or an empty string when stdio is inherited.
- */
-export function run(command, args, options = {}) {
-  const result = spawnSync(command, args, {
-    encoding: 'utf8',
-    maxBuffer: capturedCommandOutputLimit,
-    ...options,
-  });
-  if (result.error) throw result.error;
-  if (result.status !== 0) {
-    throw new Error(`${command} ${args.join(' ')} failed with exit code ${result.status}\n${result.stderr || result.stdout}`);
-  }
-  return (result.stdout ?? '').trim();
 }
 
 function installedDebExecutable(packageName, files) {

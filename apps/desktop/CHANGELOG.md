@@ -4,6 +4,12 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.18] - 2026-08-24
+
+### Fixed
+
+- Linux deb and native Tauri UI smokes share a bounded command runner that accepts the baked runtime's full installed-file inventory.
+
 ## [0.3.17] - 2026-08-24
 
 ### Fixed
