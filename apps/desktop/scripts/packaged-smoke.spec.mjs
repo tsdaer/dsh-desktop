@@ -150,7 +150,7 @@ test('resolves the executable inside target-native packages and app bundles', ()
   );
   assert.equal(
     packagedExecutable('/tmp/squashfs-root', { productTarget: 'linux-x64' }),
-    join('/tmp/squashfs-root', 'usr', 'bin', 'dsh-desktop'),
+    join('/tmp/squashfs-root', 'AppRun'),
   );
   assert.equal(
     packagedExecutable('/tmp/dsh-desktop.app', { productTarget: 'macos-arm64' }),

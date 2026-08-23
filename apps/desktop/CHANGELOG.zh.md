@@ -4,6 +4,12 @@ dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a
 
 ## [未发布]
 
+## [0.3.16] - 2026-08-24
+
+### 修复
+
+- Linux AppImage 冒烟会启动 package 的 `AppRun` 入口,让 GTK hooks 和 WebKit 相对 helper 路径使用所需的 `$APPDIR/usr` 工作目录。
+
 ## [0.3.15] - 2026-08-24
 
 ### 修复

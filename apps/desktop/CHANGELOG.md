@@ -4,6 +4,12 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.16] - 2026-08-24
+
+### Fixed
+
+- The Linux AppImage smoke launches the package's `AppRun` entry so GTK hooks and WebKit's relative helper paths use the required `$APPDIR/usr` working directory.
+
 ## [0.3.15] - 2026-08-24
 
 ### Fixed

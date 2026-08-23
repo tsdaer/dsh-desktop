@@ -98,7 +98,7 @@ export function observeUpdateVersion(sawInitialVersion, observedVersion, expecte
  */
 export function packagedExecutable(root, target) {
   if (target.productTarget === 'windows-x64') return join(root, 'dsh-desktop.exe');
-  if (target.productTarget === 'linux-x64') return join(root, 'usr', 'bin', 'dsh-desktop');
+  if (target.productTarget === 'linux-x64') return join(root, 'AppRun');
   return join(root, 'Contents', 'MacOS', 'dsh-desktop');
 }
 
