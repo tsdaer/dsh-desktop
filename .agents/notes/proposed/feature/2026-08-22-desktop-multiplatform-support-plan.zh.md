@@ -157,7 +157,7 @@ Windows x64 发布 job 现在会在体积与构件检查后、上传前运行 [W
 
 剩余工作包括目标原生 Linux 终端 UI／模型可见工作流、执行已安装版本更新验收 workflow、最低基线和打包 GUI 证据；macOS 已配置凭据执行签名 lane、公证／Gatekeeper 证据、已安装版本更新 runner 证据、受支持发布文档和 GUI 证据；以及 Windows runner 上执行已安装 Windows 安装包回归。更新冒烟驱动器、签名 lane 自动化、清单签名校验和打包 PTY 冒烟不能替代目标原生的已安装版本更新执行或用户可见的 GUI 证据。
 
-当前 Windows checkout 已通过 59 项桌面脚本测试、7 项独立桌面发布／更新 workflow 结构测试、命名的双语配对检查、Agent Note 格式校验和 `pnpm run lint`。`pnpm run doc-sync` 已通过全部 28 项门禁,包括文档构建。保留的本地 NSIS 构件已通过安装器阶段而不再触发继承 stdio 错误,但未到达 readiness,因此原生 Windows 打包证据仍未完成。
+当前 Windows checkout 已通过 59 项桌面脚本测试、6 项 Rust 单测、`cargo check --target x86_64-pc-windows-msvc`、7 项独立桌面发布／更新 workflow 结构测试、命名的双语配对检查、Agent Note 格式校验和 `pnpm run lint`。`pnpm run doc-sync` 已通过全部 28 项门禁,包括文档构建。这些检查不能替代目标原生已安装包证据;保留的本地 NSIS 构件已通过安装器阶段而不再触发继承 stdio 错误,但未到达 readiness。
 
 发布产品仍仅支持 Windows x64。Linux 与 macOS 需完成原生运行时、Rust/Tauri 壳子、目标配置、发布工作流、updater、安装、更新、卸载和打包 GUI 证据，并满足下方验收标准后，才能声明受支持。
 
