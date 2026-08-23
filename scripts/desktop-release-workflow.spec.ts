@@ -45,6 +45,8 @@ describe('desktop release workflow', () => {
       expect(json).toContain('size-')
       expect(json).not.toContain('.runtime/win32-x64')
       expect(json).not.toContain('actions/download-artifact')
+      expect(json).toContain('needs.validate.outputs.commit')
+      expect(json).toContain('git rev-parse HEAD')
     }
     expect(JSON.stringify(linux)).toContain('linux-baseline')
     expect(JSON.stringify(linux)).toContain('--output')
@@ -58,6 +60,19 @@ describe('desktop release workflow', () => {
     expect(JSON.stringify(macos)).toContain('--experimental')
     expect(JSON.stringify(macos)).toContain('--install-dmg')
     expect(JSON.stringify(macos)).toContain('--terminal-smoke')
+  })
+
+  it('checks out the validated commit for every release job that reads the source tree', () => {
+    const workflow = loadWorkflow()
+    for (const name of ['build-windows', 'build-linux', 'build-macos-experimental', 'build-macos-signed', 'draft-release', 'attach-macos-signed']) {
+      const job = requiredJob(workflow, name)
+      const steps: readonly unknown[] = Array.isArray(job.steps) ? job.steps : []
+      const checkout = steps.find((step): step is Record<string, unknown> => isRecord(step) && step.uses === 'actions/checkout@v4')
+      if (!isRecord(checkout) || !isRecord(checkout.with)) {
+        throw new TypeError(`${name} must checkout the validated source`)
+      }
+      expect(checkout.with.ref).toBe('${{ needs.validate.outputs.commit }}')
+    }
   })
 
   it('publishes only the validated Windows/Linux inventory and keeps signed macOS attachment opt-in', () => {
