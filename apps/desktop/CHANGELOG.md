@@ -4,6 +4,12 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.13] - 2026-08-24
+
+### Fixed
+
+- Linux release staging ignores Tauri's unpacked AppImage and deb work directories while retaining strict checks for unexpected files, and the macOS dmg smoke launches from a canonical temporary path so Tauri does not reject the `/var` symlink ancestor during resource lookup.
+
 ## [0.3.12] - 2026-08-24
 
 ### Fixed

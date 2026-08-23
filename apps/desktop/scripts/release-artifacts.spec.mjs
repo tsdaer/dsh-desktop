@@ -38,6 +38,14 @@ test('stages the complete target inventory and verifies its stable layout', () =
   try {
     const target = resolveTarget('x86_64-unknown-linux-gnu');
     populate(testFixture.root, target);
+    mkdirSync(join(
+      testFixture.root,
+      'src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/dsh-desktop.AppDir',
+    ), { recursive: true });
+    mkdirSync(join(
+      testFixture.root,
+      'src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/dsh-desktop_0.3.4_amd64',
+    ), { recursive: true });
     const output = resolve(testFixture.root, 'out');
     const targetRoot = stageReleaseArtifacts(target, testFixture.root, output);
     assert.equal(targetRoot, join(output, 'linux-x64'));

@@ -2,7 +2,7 @@
 // shell reaches its runtime readiness line before the process tree is stopped.
 // The smoke intentionally runs the installed entry point, not `cargo run` or
 // the source CLI, so resource lookup and the target Node sidecar are included.
-import { existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join, posix as posixPath, resolve } from 'node:path';
@@ -138,6 +138,19 @@ export function splashLogDiagnostics(temporaryDirectory) {
   const path = join(temporaryDirectory, 'dsh-desktop-splash.log');
   if (!existsSync(path)) return '';
   return `\n[packaged-smoke] native splash log:\n${readFileSync(path, 'utf8')}`;
+}
+
+/**
+ * Resolve a macOS app installation directory before launching from it.
+ *
+ * Tauri rejects executables with symlinked ancestors on macOS, while the
+ * system temporary directory normally enters `/private/var` through `/var`.
+ *
+ * @param {string} temporaryDirectory - Existing temporary installation directory.
+ * @returns {string} Symlink-free installation directory.
+ */
+export function macosInstallRoot(temporaryDirectory) {
+  return realpathSync(temporaryDirectory);
 }
 
 /**
@@ -703,7 +716,7 @@ async function main() {
       run('hdiutil', dmgMountArguments(options.artifact, mountedDmg), { stdio: 'inherit' });
       const app = join(mountedDmg, 'dsh-desktop.app');
       if (!existsSync(app)) throw new Error(`mounted dmg has no dsh-desktop.app: ${app}`);
-      installedDmg = mkdtempSync(join(tmpdir(), 'dsh-desktop-packaged-install-'));
+      installedDmg = macosInstallRoot(mkdtempSync(join(tmpdir(), 'dsh-desktop-packaged-install-')));
       const copiedApp = join(installedDmg, 'dsh-desktop.app');
       run('ditto', dmgInstallArguments(app, copiedApp), { stdio: 'inherit' });
       run('hdiutil', ['detach', mountedDmg], { stdio: 'inherit' });

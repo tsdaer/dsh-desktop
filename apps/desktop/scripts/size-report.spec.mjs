@@ -26,11 +26,13 @@ test('discovers every expected Linux bundle and separates signatures from instal
     const target = resolveTarget('x86_64-unknown-linux-gnu');
     testFixture.file('src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/dsh.AppImage');
     testFixture.file('src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/dsh.AppImage.sig');
+    testFixture.file('src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/dsh.AppDir/nested.AppImage');
     testFixture.file('src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/dsh.deb');
     testFixture.file('src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/dsh.deb.sig');
     const result = inspectArtifacts(target, testFixture.root);
     assert.deepEqual(result.missing, []);
     assert.equal(result.compressedBytes, 'artifact'.length * 2);
+    assert.equal(result.entries.length, 5);
   } finally {
     testFixture.cleanup();
   }

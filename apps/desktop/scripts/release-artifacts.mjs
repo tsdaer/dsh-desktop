@@ -23,8 +23,10 @@ function directEntries(directory) {
  * @returns {Array<{name: string, path: string, directory: boolean}>}
  */
 export function collectReleaseArtifacts(target, desktopRoot) {
-  const entries = artifactDirectoriesFor(target, desktopRoot).flatMap(directEntries);
-  const unexpected = entries.filter((entry) => !target.updaterArtifactSuffixes.some((suffix) => entry.name.endsWith(suffix)));
+  const candidates = artifactDirectoriesFor(target, desktopRoot).flatMap(directEntries);
+  const isReleaseArtifact = (entry) => target.updaterArtifactSuffixes.some((suffix) => entry.name.endsWith(suffix));
+  const entries = candidates.filter(isReleaseArtifact);
+  const unexpected = candidates.filter((entry) => !entry.directory && !isReleaseArtifact(entry));
   if (unexpected.length > 0) {
     throw new Error(`unexpected ${target.productTarget} release artifact: ${unexpected.map((entry) => entry.name).join(', ')}`);
   }

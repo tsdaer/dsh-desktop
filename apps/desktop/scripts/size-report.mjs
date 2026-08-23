@@ -43,15 +43,12 @@ function topLevelDirs(dir) {
   return names;
 }
 
-function walkArtifactEntries(dir, entries) {
+function directArtifactEntries(dir) {
   let children;
-  try { children = readdirSync(dir, { withFileTypes: true }); } catch { return; }
-  for (const entry of children) {
-    if (entry.isSymbolicLink()) continue;
-    const path = join(dir, entry.name);
-    entries.push({ path, name: entry.name, directory: entry.isDirectory() });
-    if (entry.isDirectory()) walkArtifactEntries(path, entries);
-  }
+  try { children = readdirSync(dir, { withFileTypes: true }); } catch { return []; }
+  return children
+    .filter((entry) => !entry.isSymbolicLink())
+    .map((entry) => ({ path: join(dir, entry.name), name: entry.name, directory: entry.isDirectory() }));
 }
 
 /**
@@ -65,8 +62,7 @@ function walkArtifactEntries(dir, entries) {
  */
 export function inspectArtifacts(target, desktopRoot, expectedSuffixes = target.updaterArtifactSuffixes) {
   const directories = artifactDirectoriesFor(target, desktopRoot);
-  const entries = [];
-  for (const directory of directories) walkArtifactEntries(directory, entries);
+  const entries = directories.flatMap(directArtifactEntries);
   const missing = expectedSuffixes.filter((suffix) =>
     !entries.some((entry) => entry.name.endsWith(suffix)),
   );

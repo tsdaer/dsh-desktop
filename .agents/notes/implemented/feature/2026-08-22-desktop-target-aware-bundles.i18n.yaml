@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-22-desktop-target-aware-bundles.md
-2026-08-22-desktop-target-aware-bundles.md: 2907d6235ed4913a704fdab3c0e4451c33f607f3
-2026-08-22-desktop-target-aware-bundles.zh.md: 93695e0350ac37f002e2e4576870e8806885e985
+2026-08-22-desktop-target-aware-bundles.md: 795f0f790597a29037cf9d813d08f06db830cf4a
+2026-08-22-desktop-target-aware-bundles.zh.md: e1f70506d42219c826d4c1f5f580d96f3073b786

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -8,6 +8,7 @@ import {
   descendantPids,
   dmgInstallArguments,
   dmgMountArguments,
+  macosInstallRoot,
   nsisUninstallArguments,
   managedProcessPids,
   packagedRuntime,
@@ -114,6 +115,19 @@ test('reports an isolated native splash log after startup failure', () => {
       splashLogDiagnostics(root),
       '\n[packaged-smoke] native splash log:\nboot: waiting\n',
     );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('resolves the macOS installation root before launch', () => {
+  const root = mkdtempSync(join(tmpdir(), 'dsh-macos-install-root-test-'));
+  try {
+    const physical = join(root, 'physical');
+    const alias = join(root, 'alias');
+    mkdirSync(physical);
+    symlinkSync(physical, alias, 'junction');
+    assert.equal(macosInstallRoot(alias), realpathSync(physical));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
