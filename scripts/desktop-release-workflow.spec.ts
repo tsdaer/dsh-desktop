@@ -64,12 +64,14 @@ describe('desktop release workflow', () => {
     expect(JSON.stringify(linux)).toContain('apps/web/tests/navigation-panes.e2e.ts')
     expect(JSON.stringify(linux)).toContain('DSH_SNAPSHOT=replay')
     expect(JSON.stringify(linux)).toContain('Upload Linux terminal UI replay evidence')
+    expect(JSON.stringify(linux)).toContain('APPIMAGE_EXTRACT_AND_RUN')
     expect(JSON.stringify(windows)).toContain('packaged-smoke')
     expect(JSON.stringify(windows)).toContain('--install-nsis')
     expect(JSON.stringify(windows)).toContain('--terminal-smoke')
     expect(JSON.stringify(macos)).toContain('--experimental')
     expect(JSON.stringify(macos)).toContain('--install-dmg')
     expect(JSON.stringify(macos)).toContain('--terminal-smoke')
+    expect(JSON.stringify(macos)).toContain('$(pwd)/apps/desktop/src-tauri/target')
   })
 
   it('checks out the validated commit for every release job that reads the source tree', () => {

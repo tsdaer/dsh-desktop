@@ -10,11 +10,11 @@ The Linux and macOS packaged smoke could miss a bundled Node process that was re
 
 ## Decision
 
-`apps/desktop/scripts/packaged-smoke.mjs` records `ps -eo pid=,ppid=,args=` snapshots and identifies the target-named Node sidecar by command line as well as by parentage. Shutdown waits for the shell and all recorded managed processes with bounded deadlines, escalates the process group to `SIGKILL` after a failed graceful stop, and reports any remaining managed process ids. The target specification supplies the sidecar basename, so Linux and macOS checks cannot silently share a host Node name.
+`apps/desktop/scripts/packaged-smoke.mjs` records `ps -eo pid=,ppid=,args=` snapshots and identifies the target-named Node sidecar by command line as well as by parentage. Shutdown waits for the shell and all recorded managed processes with bounded deadlines, escalates the process group to `SIGKILL` after a failed graceful stop, and reports any remaining managed process ids. Temporary-home removal uses Node's bounded retry support so Windows can finish releasing installer and uninstaller handles. The target specification supplies the sidecar basename, so Linux and macOS checks cannot silently share a host Node name.
 
 ## Testing
 
-`apps/desktop/scripts/packaged-smoke.spec.mjs` covers process snapshot parsing and detects a re-parented target sidecar without matching an unrelated system Node process. Existing target argument, package-entry, and descendant tests remain in the same suite.
+`apps/desktop/scripts/packaged-smoke.spec.mjs` covers process snapshot parsing, detects a re-parented target sidecar without matching an unrelated system Node process, and verifies the bounded temporary-home removal policy. Existing target argument, package-entry, and descendant tests remain in the same suite.
 
 ## Consequences
 

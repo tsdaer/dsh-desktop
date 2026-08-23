@@ -16,6 +16,7 @@ import {
   parseProcessSnapshot,
   assertUserDataRetained,
   run,
+  removeTemporaryHome,
 } from './packaged-smoke.mjs';
 
 test('requires a target-native package artifact for the packaged smoke', () => {
@@ -198,6 +199,15 @@ test('requires user-owned data to survive package removal', () => {
   } finally {
     rmSync(home, { recursive: true, force: true });
   }
+});
+
+test('retries temporary-home removal while Windows releases installer handles', () => {
+  const calls = [];
+  removeTemporaryHome('C:/Temp/dsh-smoke', (path, options) => calls.push({ path, options }));
+  assert.deepEqual(calls, [{
+    path: 'C:/Temp/dsh-smoke',
+    options: { recursive: true, force: true, maxRetries: 20, retryDelay: 250 },
+  }]);
 });
 
 test('rejects a package without the target sidecar', () => {

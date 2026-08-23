@@ -507,6 +507,17 @@ export function assertUserDataRetained(home, marker) {
   }
 }
 
+/**
+ * Remove the temporary smoke home after installers release their file handles.
+ *
+ * @param {string} home Temporary DSH_HOME and installation root.
+ * @param {(path: string, options: import('node:fs').RmDirOptions) => void} [remove] Removal implementation.
+ * @returns {void}
+ */
+export function removeTemporaryHome(home, remove = rmSync) {
+  remove(home, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+}
+
 async function launch(command, args, env, sidecarBasename, { stopAfterReady = true } = {}) {
   const child = spawn(command, args, {
     env,
@@ -674,7 +685,7 @@ async function main() {
       run('sudo', ['dpkg', '--purge', installedDeb], { stdio: 'inherit' });
     }
     if (smokeCompleted) assertUserDataRetained(home, userDataMarker);
-    rmSync(home, { recursive: true, force: true });
+    removeTemporaryHome(home);
   }
 }
 

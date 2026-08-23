@@ -10,11 +10,11 @@ Linux 和 macOS 打包冒烟检查可能漏掉在桌面壳停止期间被重新�
 
 ## 决定
 
-`apps/desktop/scripts/packaged-smoke.mjs` 记录 `ps -eo pid=,ppid=,args=` 快照,并同时按父子关系和命令行中的目标命名 Node sidecar 识别进程。停止流程用有上限的截止时间等待壳子及所有已记录的受管理进程;优雅停止失败后会把进程组升级为 `SIGKILL`,并报告仍存在的受管理进程 id。目标规格提供 sidecar basename,因此 Linux 和 macOS 检查不会静默复用主机 Node 名称。
+`apps/desktop/scripts/packaged-smoke.mjs` 记录 `ps -eo pid=,ppid=,args=` 快照,并同时按父子关系和命令行中的目标命名 Node sidecar 识别进程。停止流程用有上限的截止时间等待壳子及所有已记录的受管理进程;优雅停止失败后会把进程组升级为 `SIGKILL`,并报告仍存在的受管理进程 id。临时目录删除使用 Node 的有界重试,让 Windows 有时间释放安装器和卸载器文件句柄。目标规格提供 sidecar basename,因此 Linux 和 macOS 检查不会静默复用主机 Node 名称。
 
 ## 测试
 
-`apps/desktop/scripts/packaged-smoke.spec.mjs` 覆盖进程快照解析,并在不匹配 runner 中无关系统 Node 进程的前提下检测被重新托管的目标 sidecar。现有目标参数、安装包入口和后代进程测试仍保留在同一测试套件中。
+`apps/desktop/scripts/packaged-smoke.spec.mjs` 覆盖进程快照解析,在不匹配 runner 中无关系统 Node 进程的前提下检测被重新托管的目标 sidecar,并验证有界的临时目录删除策略。现有目标参数、安装包入口和后代进程测试仍保留在同一测试套件中。
 
 ## 结果
 

@@ -4,6 +4,12 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.8] - 2026-08-23
+
+### Fixed
+
+- Linux AppImage packaging runs downloaded AppImage tools through their extraction mode on Ubuntu 24.04, macOS package smokes pass absolute artifact paths through pnpm's package working directory, and Windows package smokes retry temporary-directory removal while installer handles are released.
+
 ## [0.3.7] - 2026-08-23
 
 ### Fixed
