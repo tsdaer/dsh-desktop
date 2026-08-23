@@ -12,6 +12,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { resolveTargetFromArgs } from './target-spec.mjs';
 
 const requireWebDependency = createRequire(new URL('../../web/package.json', import.meta.url));
+const capturedCommandOutputLimit = 16 * 1024 * 1024;
 
 /**
  * Parse target-native packaged-smoke options.
@@ -283,7 +284,11 @@ export function packagedRuntime(root, target) {
  * @returns {string} Captured stdout, or an empty string when stdio is inherited.
  */
 export function run(command, args, options = {}) {
-  const result = spawnSync(command, args, { encoding: 'utf8', ...options });
+  const result = spawnSync(command, args, {
+    encoding: 'utf8',
+    maxBuffer: capturedCommandOutputLimit,
+    ...options,
+  });
   if (result.error) throw result.error;
   if (result.status !== 0) {
     throw new Error(`${command} ${args.join(' ')} failed with exit code ${result.status}\n${result.stderr || result.stdout}`);
@@ -291,8 +296,7 @@ export function run(command, args, options = {}) {
   return (result.stdout ?? '').trim();
 }
 
-function installedDebExecutable(packageName) {
-  const files = installedDebFiles(packageName);
+function installedDebExecutable(packageName, files) {
   const executable = files.find((file) => file.endsWith('/bin/dsh-desktop'));
   if (!executable || !existsSync(executable)) {
     throw new Error(`installed package ${packageName} has no executable at /bin/dsh-desktop`);
@@ -324,10 +328,6 @@ export function resolveInstalledDebRuntime(files, target) {
     sidecar: sidecars[0],
     runtime: posixPath.dirname(posixPath.dirname(runtimes[0])),
   };
-}
-
-function installedDebRuntime(packageName, target) {
-  return resolveInstalledDebRuntime(installedDebFiles(packageName), target);
 }
 
 function packageName(artifact) {
@@ -708,8 +708,9 @@ async function main() {
     } else if (options.installDeb) {
       installedDeb = packageName(options.artifact);
       run('sudo', ['dpkg', '--install', options.artifact], { stdio: 'inherit' });
-      executable = installedDebExecutable(installedDeb);
-      runtimePaths = installedDebRuntime(installedDeb, options.target);
+      const installedFiles = installedDebFiles(installedDeb);
+      executable = installedDebExecutable(installedDeb, installedFiles);
+      runtimePaths = resolveInstalledDebRuntime(installedFiles, options.target);
     } else if (options.installDmg) {
       mountedDmg = join(home, 'dmg-mount');
       mkdirSync(mountedDmg);

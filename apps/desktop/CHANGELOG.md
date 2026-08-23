@@ -4,6 +4,12 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.17] - 2026-08-24
+
+### Fixed
+
+- The Linux deb smoke accepts the package's full installed-file inventory without exhausting Node's default synchronous child-process output buffer.
+
 ## [0.3.16] - 2026-08-24
 
 ### Fixed

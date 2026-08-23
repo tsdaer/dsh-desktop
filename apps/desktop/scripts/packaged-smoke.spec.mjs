@@ -137,6 +137,14 @@ test('accepts inherited stdio for installer commands', () => {
   assert.equal(run(process.execPath, ['-e', 'process.stdout.write(\'\')'], { stdio: 'inherit' }), '');
 });
 
+test('captures installed package inventories beyond the child process default buffer', () => {
+  const bytes = 2 * 1024 * 1024;
+  assert.equal(
+    run(process.execPath, ['-e', `process.stdout.write('x'.repeat(${bytes}))`]).length,
+    bytes,
+  );
+});
+
 test('uses a shell-native terminal marker command', () => {
   assert.equal(terminalSmokeCommand('win32'), 'echo dsh-desktop-terminal-smoke');
   assert.equal(terminalSmokeCommand('linux'), 'printf dsh-desktop-terminal-smoke');
