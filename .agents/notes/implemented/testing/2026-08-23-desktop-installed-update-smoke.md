@@ -16,6 +16,8 @@ The Rust shell enables the driver only when that environment variable is exactly
 
 The version-N package must embed the loopback endpoint supplied by `update-fixture.mjs`, and the served version-N+1 artifact must pass the existing signature checks for the same target. The smoke driver does not claim minimum-distribution compatibility or replace separate GUI evidence.
 
+`apps/desktop/scripts/update-smoke.mjs` coordinates the fixture server and `packaged-smoke` for a fixed loopback port. It selects the installer mode from the explicit target and artifact suffix, passes arguments directly to the child process, and closes the fixture server when the smoke succeeds or fails. The version-N package is built separately with that same endpoint; the coordinator does not build or version either package.
+
 ## Alternatives considered
 
 **Add a native updater command that installs without the page.** Rejected because it would bypass the product updater control and its confirmation path.
@@ -30,4 +32,4 @@ Target-native jobs can run a deterministic N-to-N+1 update smoke once they have 
 
 ## Testing
 
-`apps/desktop/scripts/packaged-smoke.spec.mjs` covers the explicit update options and version validation. The existing bridge updater tests continue to cover the two confirmation stages and installation failure states. Tauri Rust tests cover the existing shell contracts; target-runner execution remains required for actual updater installation and relaunch evidence.
+`apps/desktop/scripts/packaged-smoke.spec.mjs` covers the explicit update options and version validation. `apps/desktop/scripts/update-smoke.spec.mjs` covers fixed-port validation, target-specific installer selection, direct child arguments, and fixture cleanup after failure. The existing bridge updater tests continue to cover the two confirmation stages and installation failure states. Tauri Rust tests cover the existing shell contracts; target-runner execution remains required for actual updater installation and relaunch evidence.

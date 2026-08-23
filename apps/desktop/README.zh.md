@@ -114,6 +114,8 @@ main.rs 的环境变量接线:DSH_CLI/DSH_NODE/DSH_BARE_MODULE_BASE/DSH_BRIDGE_T
 
 已安装更新冒烟可对这个目标原生安装包使用 `--update-smoke --expected-version <next-version>`。它只在本次 runner 调用中启用显式驱动器:点击现有更新器控件,接受现有的两次确认调用,记录每次打包启动写入的版本,等待 N 到 N+1 的重启,停止重启后的进程,然后检查用户数据是否保留。版本 N 安装包必须内嵌 fixture URL,下一版本构件必须是同一目标的已签名构件。普通启动不会启用该驱动器;它也不替代 GUI 行为或最低发行版兼容性的目标 runner 证据。
 
+`pnpm --filter @deepseek-ai/dsh-desktop update-smoke -- --target <triple> --artifact <version-N-package> --next-version <version-N+1> --artifact-root <staged-root> --port <fixed-loopback-port>` 会启动已签名 fixture,不经过 shell 拼接地调用 `packaged-smoke`,并在成功或失败时关闭 fixture server。运行前要用相同的固定 `--updater-endpoint` 构建版本 N;该命令不构建任一版本,也不把非目标原生 runner 的结果视为证据。
+
 无边框主窗口在 setup 时重新加回 `WS_THICKFRAME`(不加 `WS_CAPTION`),由操作系统提供原生缩放边框与 Windows 11 贴靠布局弹出层,标题栏保持自绘。最大化图标从原生宿主读取窗口状态:Rust 在每次尺寸事件时推送 `dsh://maximize-change`,标题栏监听该事件,并保留轮询读取作为回退。
 
 ## 拖放
