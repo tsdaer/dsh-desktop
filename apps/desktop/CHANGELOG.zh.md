@@ -4,6 +4,12 @@ dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a
 
 ## [未发布]
 
+## [0.3.11] - 2026-08-24
+
+### 修复
+
+- Linux AppImage 构建在 Tauri 支持的 Ubuntu 22.04 基线上运行并输出 linuxdeploy 诊断；macOS dmg 启动冒烟使用原生 `ditto` 安装 app bundle，使 bundle 元数据在复制后保持完整。
+
 ## [0.3.10] - 2026-08-23
 
 ### 修复

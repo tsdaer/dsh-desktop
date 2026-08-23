@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-22-desktop-linux-baseline-preflight.md
-2026-08-22-desktop-linux-baseline-preflight.md: 6b386cab234576ddd1d83e7b31624e0a1495ea3b
-2026-08-22-desktop-linux-baseline-preflight.zh.md: dba06a6ae29a47ed4b6587ce2b9f4c732d7c12b4
+2026-08-22-desktop-linux-baseline-preflight.md: 94b4375e372aaade38629c53540cc928c80efa1f
+2026-08-22-desktop-linux-baseline-preflight.zh.md: 99a73db251ccbaae17a23c2bfa277ceffe0e14bd

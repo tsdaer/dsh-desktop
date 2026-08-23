@@ -35,6 +35,7 @@ test('effective Tauri config selects the reviewed layer for every target', () =>
 test('Tauri build arguments carry the same explicit target and config layer', () => {
   const target = resolveTarget('x86_64-unknown-linux-gnu');
   assert.deepEqual(tauriBuildArgs(target, desktopRoot), [
+    '--verbose',
     '--ci',
     '--target',
     'x86_64-unknown-linux-gnu',

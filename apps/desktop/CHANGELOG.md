@@ -4,6 +4,12 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.11] - 2026-08-24
+
+### Fixed
+
+- Linux AppImage builds run on the Tauri-supported Ubuntu 22.04 baseline and expose linuxdeploy diagnostics; macOS dmg startup smokes install app bundles with native `ditto` so bundle metadata survives the copy.
+
 ## [0.3.10] - 2026-08-23
 
 ### Fixed

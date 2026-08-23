@@ -136,6 +136,7 @@ export function effectiveTauriConfig(target, desktopRoot, targetConfig = target.
  */
 export function tauriBuildArgs(target, desktopRoot, targetConfig = target.tauriConfig, extraConfigPath) {
   const args = ['--ci', '--target', target.rustTriple, '--config', resolve(desktopRoot, targetConfig)];
+  if (target.rustTriple === 'x86_64-unknown-linux-gnu') args.unshift('--verbose');
   if (extraConfigPath !== undefined) args.push('--config', extraConfigPath);
   return args;
 }

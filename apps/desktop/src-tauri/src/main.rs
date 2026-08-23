@@ -29,6 +29,7 @@ use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::webview::PageLoadEvent;
 use tauri::{DragDropEvent, Emitter, Manager, Url, WebviewWindow, WindowEvent};
+#[cfg(windows)]
 use tauri_plugin_opener::OpenerExt;
 
 #[cfg(windows)]

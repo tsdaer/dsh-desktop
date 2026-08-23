@@ -10,17 +10,17 @@ An unsigned or signed macOS bundle can pass Tauri's build and code-signing check
 
 ## Decision
 
-`apps/desktop/scripts/packaged-smoke.mjs` accepts macOS arm64 app and dmg artifacts in addition to the Linux x64 package paths. An app artifact launches its `Contents/MacOS/dsh-desktop` executable directly. A dmg artifact is mounted read-only with `hdiutil`, copied into the smoke home, detached, and then launched from the copied app bundle. Both paths use a temporary `DSH_HOME`, require the packaged readiness URL, stop the detached process group, and verify that recorded runtime descendants exit.
+`apps/desktop/scripts/packaged-smoke.mjs` accepts macOS arm64 app and dmg artifacts in addition to the Linux x64 package paths. An app artifact launches its `Contents/MacOS/dsh-desktop` executable directly. A dmg artifact is mounted read-only with `hdiutil`, installed into the smoke home with native `ditto --noqtn`, detached, and then launched from the installed app bundle. `ditto` preserves bundle metadata and resource forks; the CI installation omits quarantine metadata because quarantine belongs to the downloaded disk image. Both paths use a temporary `DSH_HOME`, require the packaged readiness URL, stop the detached process group, and verify that recorded runtime descendants exit.
 
 The unsigned experimental macOS job and the opt-in signed macOS job run the app-bundle smoke on their native runner after bundle creation. The smoke remains evidence of packaged startup only; it does not make unsigned artifacts releasable or establish macOS support before signing, update, uninstall, and GUI evidence are complete.
 
 ## Testing
 
-`apps/desktop/scripts/packaged-smoke.spec.mjs` covers macOS argument validation, app-bundle executable resolution, dmg mount arguments, and the existing Linux paths. The target-native macOS jobs invoke the same script against the generated app bundle.
+`apps/desktop/scripts/packaged-smoke.spec.mjs` covers macOS argument validation, app-bundle executable resolution, dmg mount and native installation arguments, and the existing Linux paths. The target-native macOS jobs invoke the same script against the generated app bundle.
 
 ## Consequences
 
-macOS packaging jobs now exercise the installed app layout and Tauri-installed runtime before uploading artifacts. Dmg verification copies the app instead of launching from the mounted volume, so resource lookup and process cleanup are checked after the volume is detached. The smoke requires macOS tools and cannot be reproduced on a Windows host.
+macOS packaging jobs now exercise the installed app layout and Tauri-installed runtime before uploading artifacts. Dmg verification uses the platform installer copy instead of launching from the mounted volume, so bundle metadata, resource lookup, and process cleanup are checked after the volume is detached. The smoke requires macOS tools and cannot be reproduced on a Windows host.
 
 ## Alternatives considered
 

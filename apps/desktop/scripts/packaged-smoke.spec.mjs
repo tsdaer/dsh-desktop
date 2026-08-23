@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 
 import {
   descendantPids,
+  dmgInstallArguments,
   dmgMountArguments,
   nsisUninstallArguments,
   managedProcessPids,
@@ -129,6 +130,10 @@ test('resolves the executable inside target-native packages and app bundles', ()
   assert.deepEqual(
     dmgMountArguments('/tmp/dsh.dmg', '/tmp/mount'),
     ['attach', '-nobrowse', '-readonly', '-mountpoint', '/tmp/mount', '/tmp/dsh.dmg'],
+  );
+  assert.deepEqual(
+    dmgInstallArguments('/tmp/mount/dsh-desktop.app', '/tmp/installed/dsh-desktop.app'),
+    ['--noqtn', '/tmp/mount/dsh-desktop.app', '/tmp/installed/dsh-desktop.app'],
   );
   assert.deepEqual(
     nsisUninstallArguments('C:\\Temp\\dsh desktop'),

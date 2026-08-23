@@ -2,7 +2,7 @@
 // shell reaches its runtime readiness line before the process tree is stopped.
 // The smoke intentionally runs the installed entry point, not `cargo run` or
 // the source CLI, so resource lookup and the target Node sidecar are included.
-import { cpSync, existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join, posix as posixPath, resolve } from 'node:path';
@@ -111,6 +111,21 @@ export function packagedExecutable(root, target) {
  */
 export function dmgMountArguments(artifact, mountPoint) {
   return ['attach', '-nobrowse', '-readonly', '-mountpoint', mountPoint, artifact];
+}
+
+/**
+ * Return the macOS-native copy arguments used to install an app from a dmg.
+ *
+ * `ditto` preserves bundle metadata and resource forks that a generic
+ * recursive filesystem copy can omit. Quarantine metadata belongs to the
+ * downloaded dmg rather than the installed app created by this CI smoke.
+ *
+ * @param {string} app - App bundle mounted from the dmg.
+ * @param {string} destination - Installed app bundle path.
+ * @returns {readonly string[]} `ditto` arguments.
+ */
+export function dmgInstallArguments(app, destination) {
+  return ['--noqtn', app, destination];
 }
 
 /**
@@ -674,7 +689,7 @@ async function main() {
       if (!existsSync(app)) throw new Error(`mounted dmg has no dsh-desktop.app: ${app}`);
       const copiedApp = join(home, 'installed', 'dsh-desktop.app');
       mkdirSync(dirname(copiedApp), { recursive: true });
-      cpSync(app, copiedApp, { recursive: true });
+      run('ditto', dmgInstallArguments(app, copiedApp), { stdio: 'inherit' });
       run('hdiutil', ['detach', mountedDmg], { stdio: 'inherit' });
       mountedDmg = undefined;
       executable = packagedExecutable(copiedApp, options.target);

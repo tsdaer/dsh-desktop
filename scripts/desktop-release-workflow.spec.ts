@@ -33,7 +33,7 @@ describe('desktop release workflow', () => {
     const macos = requiredJob(workflow, 'build-macos-experimental')
 
     expect(windows['runs-on']).toBe('windows-latest')
-    expect(linux['runs-on']).toBe('ubuntu-24.04')
+    expect(linux['runs-on']).toBe('ubuntu-22.04')
     expect(macos['runs-on']).toBe('macos-14')
     expect(JSON.stringify(windows)).toContain('x86_64-pc-windows-msvc')
     expect(JSON.stringify(linux)).toContain('x86_64-unknown-linux-gnu')
