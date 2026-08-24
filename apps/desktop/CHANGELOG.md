@@ -4,6 +4,12 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.21] - 2026-08-24
+
+### Fixed
+
+- The Linux native Tauri UI smoke accepts the seeded session whether startup has already selected it or not.
+
 ## [0.3.20] - 2026-08-24
 
 ### Fixed

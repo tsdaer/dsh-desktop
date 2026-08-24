@@ -71,10 +71,10 @@ test('uses the W3C Tauri application capability without an ambient browser', () 
   });
 });
 
-test('selects persisted rows from the main session tree', () => {
+test('selects persisted rows from the main session tree in either selection state', () => {
   assert.equal(
     seededSessionRowSelector(),
-    '[role="tree"]:not([aria-label="Search results"]) [role="treeitem"][aria-selected="false"]',
+    '[role="tree"]:not([aria-label="Search results"]) [role="treeitem"][aria-selected]',
   );
 });
 

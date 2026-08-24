@@ -10,7 +10,7 @@ Linux 桌面检查会验证已安装包的就绪 URL 和 bundled PTY runtime,但
 
 ## Decision
 
-`apps/desktop/scripts/tauri-ui-smoke.mjs` 提供显式的 Linux x64 deb 构件检查。它用 `dpkg` 安装 package,启动 `tauri-driver`,为已安装可执行文件创建 W3C WebDriver session,并驱动原生 WebKit WebView 直到 composer 就绪。检查会把已提交的 `apps/web/tests/snapshots/navigation-panes/seed.jsonl` fixture 还原到临时 `DSH_HOME`,从主会话树打开唯一的可选择 row,展开模型面对的 Bash 终端卡片,要求出现 `NAVIGATION_OK`,并可保存 WebDriver 截图。row 选择失败会报告可选择 row 的数量和标签。临时 home patch 只在还原 fixture 时选择 plaintext JSONL 持久化,不会改变生产 bundle。组装后的 Web 回放继续保留内容索引搜索检查,因为它的 fixture 通过负责索引对账的后端 API 植入。
+`apps/desktop/scripts/tauri-ui-smoke.mjs` 提供显式的 Linux x64 deb 构件检查。它用 `dpkg` 安装 package,启动 `tauri-driver`,为已安装可执行文件创建 W3C WebDriver session,并驱动原生 WebKit WebView 直到 composer 就绪。检查会把已提交的 `apps/web/tests/snapshots/navigation-panes/seed.jsonl` fixture 还原到临时 `DSH_HOME`,从主会话树打开唯一的持久化 session row,无论启动时该 row 是否已经被选中,展开模型面对的 Bash 终端卡片,要求出现 `NAVIGATION_OK`,并可保存 WebDriver 截图。row 选择失败会报告 session row 的数量和标签。临时 home patch 只在还原 fixture 时选择 plaintext JSONL 持久化,不会改变生产 bundle。组装后的 Web 回放继续保留内容索引搜索检查,因为它的 fixture 通过负责索引对账的后端 API 植入。
 
 smoke 会通过与 deb package 冒烟相同的有界命令执行器,从 package manager 注册的文件清单中解析已安装可执行文件。它会 purge 已安装 package,并要求 `DSH_HOME` 中用户拥有的标记仍然存在。Linux release job 会安装 `webkit2gtk-driver`,构建 `tauri-driver`,在 `xvfb-run` 下运行 smoke,并把截图作为独立证据构件上传。该命令按目标限制,不会在 Windows 或 macOS 上运行。
 

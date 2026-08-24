@@ -152,7 +152,7 @@ export function webdriverCapabilities(executable) {
  * @returns {string} CSS selector for selectable session rows.
  */
 export function seededSessionRowSelector() {
-  return '[role="tree"]:not([aria-label="Search results"]) [role="treeitem"][aria-selected="false"]';
+  return '[role="tree"]:not([aria-label="Search results"]) [role="treeitem"][aria-selected]';
 }
 
 /**
