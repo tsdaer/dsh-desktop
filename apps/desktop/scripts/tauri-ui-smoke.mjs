@@ -147,15 +147,12 @@ export function webdriverCapabilities(executable) {
 }
 
 /**
- * Return the cold-index priming query and seeded transcript query.
+ * Return the selector for persisted session rows in the main session tree.
  *
- * @returns {{prime: string, target: string}} Search queries in execution order.
+ * @returns {string} CSS selector for selectable session rows.
  */
-export function seededSessionSearchQueries() {
-  return {
-    prime: 'zzzqx-no-such-session',
-    target: 'WATERFALL',
-  };
+export function seededSessionRowSelector() {
+  return '[role="tree"]:not([aria-label="Search results"]) [role="treeitem"][aria-selected="false"]';
 }
 
 /**
@@ -318,55 +315,24 @@ async function click(port, sessionId, selector) {
 }
 
 async function openSeededSession(port, sessionId) {
-  await execute(port, sessionId, `
-    const button = document.querySelector('button[aria-label="Search sessions"]');
-    if (button !== null && button.getAttribute('aria-expanded') !== 'true') button.click();
-    return true;
-  `);
-  const queries = seededSessionSearchQueries();
-  const primeDeadline = Date.now() + 30_000;
-  let lastState;
-  while (Date.now() < primeDeadline) {
-    lastState = await searchSessionState(port, sessionId, queries.prime);
-    if (lastState?.input && lastState.noMatches && lastState.rows.length === 0) break;
-    await new Promise((resolveWait) => setTimeout(resolveWait, 250));
-  }
-  if (!(lastState?.input && lastState.noMatches && lastState.rows.length === 0)) {
-    throw new Error(`native Tauri UI could not prime the seeded session index: ${JSON.stringify(lastState)}`);
-  }
-
+  const selector = seededSessionRowSelector();
   const deadline = Date.now() + 30_000;
+  let lastState;
   while (Date.now() < deadline) {
-    lastState = await searchSessionState(port, sessionId, queries.target, true);
+    lastState = await execute(port, sessionId, `
+      const selector = arguments[0];
+      const rows = [...document.querySelectorAll(selector)];
+      if (rows.length === 1) rows[0].click();
+      return {
+        count: rows.length,
+        labels: rows.map((node) => node.textContent ?? ''),
+        clicked: rows.length === 1,
+      };
+    `, [selector]);
     if (lastState?.clicked) return;
     await new Promise((resolveWait) => setTimeout(resolveWait, 250));
   }
   throw new Error(`native Tauri UI could not open the seeded navigation session: ${JSON.stringify(lastState)}`);
-}
-
-async function searchSessionState(port, sessionId, query, clickMatch = false) {
-  return execute(port, sessionId, `
-    const [query, clickMatch] = arguments;
-    const input = document.querySelector('input[placeholder*="Search sessions"]');
-    if (input === null) return { input: false, noMatches: false, rows: [], clicked: false };
-    if (input.value !== query) {
-      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
-      setter?.call(input, query);
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-    const rows = [...document.querySelectorAll('[role="tree"][aria-label="Search results"] [role="treeitem"]')]
-      .map((node) => node.textContent ?? '');
-    const match = [...document.querySelectorAll('[role="tree"][aria-label="Search results"] [role="treeitem"]')]
-      .find((node) => (node.textContent ?? '').includes(query));
-    if (clickMatch && match !== undefined) match.click();
-    return {
-      input: true,
-      value: input.value,
-      noMatches: (document.body?.innerText ?? '').includes('No matching sessions'),
-      rows,
-      clicked: clickMatch && match !== undefined,
-    };
-  `, [query, clickMatch]);
 }
 
 async function assertTerminalCard(port, sessionId) {

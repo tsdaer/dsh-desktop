@@ -4,6 +4,12 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.20] - 2026-08-24
+
+### Fixed
+
+- The Linux native Tauri UI smoke opens its sole persisted fixture directly from the main session tree, keeping content-index coverage in the assembled Web replay.
+
 ## [0.3.19] - 2026-08-24
 
 ### Fixed

@@ -11,7 +11,7 @@ import {
   materializeFixture,
   parseArguments,
   projectKey,
-  seededSessionSearchQueries,
+  seededSessionRowSelector,
   terminateProcess,
   webdriverCapabilities,
 } from './tauri-ui-smoke.mjs';
@@ -71,11 +71,11 @@ test('uses the W3C Tauri application capability without an ambient browser', () 
   });
 });
 
-test('primes the cold session index before searching the seeded transcript', () => {
-  assert.deepEqual(seededSessionSearchQueries(), {
-    prime: 'zzzqx-no-such-session',
-    target: 'WATERFALL',
-  });
+test('selects persisted rows from the main session tree', () => {
+  assert.equal(
+    seededSessionRowSelector(),
+    '[role="tree"]:not([aria-label="Search results"]) [role="treeitem"][aria-selected="false"]',
+  );
 });
 
 test('does not wait for an exit event that fired before cleanup started', async () => {
