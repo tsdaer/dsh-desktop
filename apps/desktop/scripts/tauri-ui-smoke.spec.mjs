@@ -11,6 +11,7 @@ import {
   materializeFixture,
   parseArguments,
   projectKey,
+  seededSessionSearchQueries,
   terminateProcess,
   webdriverCapabilities,
 } from './tauri-ui-smoke.mjs';
@@ -67,6 +68,13 @@ test('uses the W3C Tauri application capability without an ambient browser', () 
         'tauri:options': { application: '/usr/lib/dsh-desktop/bin/dsh-desktop' },
       },
     },
+  });
+});
+
+test('primes the cold session index before searching the seeded transcript', () => {
+  assert.deepEqual(seededSessionSearchQueries(), {
+    prime: 'zzzqx-no-such-session',
+    target: 'WATERFALL',
   });
 });
 

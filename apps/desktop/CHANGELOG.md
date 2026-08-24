@@ -4,6 +4,12 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.19] - 2026-08-24
+
+### Fixed
+
+- The Linux native Tauri UI smoke primes the cold session content index with a guaranteed miss before searching for the seeded transcript.
+
 ## [0.3.18] - 2026-08-24
 
 ### Fixed
