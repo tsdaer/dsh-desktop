@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-22-desktop-loopback-token.md
-2026-08-22-desktop-loopback-token.md: c338d9e327c65d67391dec8b72343b89c6ad00b9
-2026-08-22-desktop-loopback-token.zh.md: e462596cc4993d9dfbaa38d3c5952e1f8824bcb8
+2026-08-22-desktop-loopback-token.md: a21aeb253c8c87765260ee685242f1816c093d7d
+2026-08-22-desktop-loopback-token.zh.md: f5023b42b917a3e7d424bcaa95ccb2ccc7561237

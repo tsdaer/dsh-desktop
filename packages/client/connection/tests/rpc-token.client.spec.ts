@@ -30,4 +30,18 @@ describe('generic RPC loopback token', () => {
     await createWebConnectionRpc().call('/api', 'fixture/read', {})
     expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).has('authorization')).toBe(false)
   })
+
+  it('uses the token captured by the native initialization script', async () => {
+    vi.stubGlobal('location', { search: '', origin: 'http://127.0.0.1:3080' })
+    vi.stubGlobal('__DSH_LOOPBACK_TOKEN__', 'early-rpc-secret')
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      if (typeof init?.body !== 'string') throw new Error('expected JSON request body')
+      const request = JSON.parse(init.body) as { rpcId: string }
+      return new Response(JSON.stringify({ type: 'server-response', rpcId: request.rpcId, result: { ok: true, value: {} } }))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { createWebConnectionRpc } = await import('../src/client/rpc.ts')
+    await createWebConnectionRpc().call('/rpc', 'settings.describe', {})
+    expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get('authorization')).toBe('Bearer early-rpc-secret')
+  })
 })

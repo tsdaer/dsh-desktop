@@ -5,7 +5,11 @@
 // plain browser (no token in the URL) leaves it unset and the requests stay
 // exactly as before.
 
-const loopbackToken = new URLSearchParams(window.location.search).get('dsh_token') ?? undefined
+const loopbackToken = (() => {
+  const token = new URLSearchParams(window.location.search).get('dsh_token')
+    ?? (globalThis as { __DSH_LOOPBACK_TOKEN__?: unknown }).__DSH_LOOPBACK_TOKEN__
+  return typeof token === 'string' && token.length > 0 ? token : undefined
+})()
 
 /**
  * Read the loopback token from the page URL once and cache it.

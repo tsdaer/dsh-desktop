@@ -4,6 +4,13 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.28] - 2026-08-25
+
+### Fixed
+
+- Desktop initialization captures the loopback token before client plugins load, restoring authenticated settings and balance requests.
+- The title bar identifies balance-query availability instead of presenting it as chat API availability.
+
 ## [0.3.27] - 2026-08-25
 
 ### Fixed

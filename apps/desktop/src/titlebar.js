@@ -19,6 +19,8 @@
 // the native host returns only a normalized workload tier.
 (function () {
   'use strict';
+  var navigationToken = new URLSearchParams(window.location.search).get('dsh_token');
+  if (navigationToken) window.__DSH_LOOPBACK_TOKEN__ = navigationToken;
   if (document.getElementById('dsh-desktop-titlebar')) return;
 
   var BAR_H = 36;
@@ -144,10 +146,10 @@
 
   var CURRENCY_SYMBOLS = { CNY: '¥', USD: '$', EUR: '€', GBP: '£' };
   var apiLabels = {
-    checking: ['检查 API', 'Checking API'],
-    connected: ['API 已连接', 'API connected'],
-    unavailable: ['API 不可用', 'API unavailable'],
-    unconfigured: ['未配置 API', 'API unconfigured']
+    checking: ['检查余额', 'Checking balance'],
+    connected: ['余额已连接', 'Balance connected'],
+    unavailable: ['余额不可用', 'Balance unavailable'],
+    unconfigured: ['未配置余额凭据', 'Balance credentials unconfigured']
   };
   var loadLabels = {
     unknown: ['负载未知', 'Workload unknown'],
@@ -228,7 +230,9 @@
     balance.setAttribute('aria-busy', 'true');
     var controller = new AbortController();
     var abort = setTimeout(function () { controller.abort(); }, 8000);
-    balanceRequest = fetch('/dsh-bridge/balance', { signal: controller.signal })
+    var token = window.__DSH_LOOPBACK_TOKEN__;
+    var headers = token ? { authorization: 'Bearer ' + token } : undefined;
+    balanceRequest = fetch('/dsh-bridge/balance', { headers: headers, signal: controller.signal })
       .then(function (response) { return response.json(); })
       .then(applyBalance)
       .catch(function () { applyApiState('unavailable'); })

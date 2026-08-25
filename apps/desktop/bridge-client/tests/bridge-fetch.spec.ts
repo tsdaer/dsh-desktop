@@ -40,6 +40,7 @@ describe('bridge fetch token', () => {
 
   it('passes through unchanged when the URL carries no token', async () => {
     vi.stubGlobal('location', { search: '' })
+    vi.stubGlobal('__DSH_LOOPBACK_TOKEN__', undefined)
     const fetchMock = vi.fn<typeof fetch>(async () => new Response('ok'))
     vi.stubGlobal('fetch', fetchMock)
     const mod = await import('../src/client/bridge-fetch.ts')
@@ -47,6 +48,16 @@ describe('bridge fetch token', () => {
     const [input, init] = fetchMock.mock.calls[0]!
     expect(init).toBeUndefined()
     expect(input).toBe('/dsh-bridge/config')
+  })
+
+  it('uses the token captured by the native initialization script', async () => {
+    vi.stubGlobal('location', { search: '' })
+    vi.stubGlobal('__DSH_LOOPBACK_TOKEN__', 'early-token')
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response('ok'))
+    vi.stubGlobal('fetch', fetchMock)
+    const mod = await import('../src/client/bridge-fetch.ts')
+    await mod.bridgeFetch('/dsh-bridge/config')
+    expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get('authorization')).toBe('Bearer early-token')
   })
 
   it('caches the token after the first read', async () => {

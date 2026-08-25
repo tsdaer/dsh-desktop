@@ -1,4 +1,5 @@
 import { BridgeCloseRow } from './BridgeCloseRow.tsx'
+import { readBridgeConfig } from './bridge-fetch.ts'
 import { BridgeDebugRow } from './BridgeDebugRow.tsx'
 import { BridgeLogoMotionRow } from './BridgeLogoMotionRow.tsx'
 import css from './BridgeRow.module.css'
@@ -505,7 +506,7 @@ export function apply(ctx: BridgeClientContext): () => void {
   // Shell wiring at bind: read the stored desktop settings and mirror them
   // into the shell (close-to-tray interception, WebView2 devtools, and Logo motion).
   applyLogoMotion(false)
-  void bridgeFetch('/dsh-bridge/config').then(r => r.json()).then((c) => {
+  void readBridgeConfig().then((c) => {
     if (typeof c.closeToTray === 'boolean') applyCloseToTray(c.closeToTray)
     if (typeof c.debugMode === 'boolean') applyDebugMode(c.debugMode)
     applyLogoMotion(c.logoMotion === true)

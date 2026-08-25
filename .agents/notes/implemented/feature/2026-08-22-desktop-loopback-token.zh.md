@@ -14,7 +14,7 @@
 
 `@deepseek-ai/dsh-host-webserver` 新增可选 `token` 配置:设置后,每个已注册(非 fallback)路由与每个 upgrade 都要求 `Authorization: Bearer <token>`(WebSocket 无法设置 header,改用 `dsh_token` 查询参数);静态 dist fallback 保持开放,使页面能在客户端得知 token 之前加载。比较采用长度加全扫描,失配不泄漏前缀。缺省时纯 loopback 姿态完全不变。
 
-浏览器在连接模块加载时捕获 token。`@deepseek-ai/dsh-client-connection` 将其附加到每个类型化 API fetch、通用 Remote RPC fetch 与 WebSocket；桌面桥接 client 将其附加到每个 `/dsh-bridge` 请求。在模块加载时捕获可在后续导航移除查询字符串后保留该密钥。
+原生初始化脚本在应用模块加载前捕获 token,并把内存值提供给桌面页面。`@deepseek-ai/dsh-client-connection` 将其附加到每个类型化 API fetch、通用 Remote RPC fetch 与 WebSocket;标题栏余额请求和桌面桥接 client 将其附加到每个 `/dsh-bridge` 请求。各模块也会直接读取导航查询参数,使测试和非原生嵌入保持相同行为。
 
 ## 备选方案
 
@@ -30,4 +30,4 @@
 
 ## 测试
 
-webserver 测试钉住无 token 时路由与 upgrade 拒绝、header 接受、查询参数 upgrade 与开放的 fallback。connection 测试钉住类型化与通用 RPC fetch 的 header 附加和 WebSocket query 附加，用例间重置模块。桥接 client 测试钉住 header 合并、JSON 响应校验、HTTP 失败与无 token 透传。`cargo check` 编译壳子 token 生成与导航。
+webserver 测试钉住无 token 时路由与 upgrade 拒绝、header 接受、查询参数 upgrade 与开放的 fallback。connection 测试钉住类型化与通用 RPC fetch 的 header 附加、提前捕获 token 的 fallback 和 WebSocket query 附加,用例间重置模块。桥接 client 测试钉住 header 合并、提前捕获 token 的 fallback、JSON 响应校验、HTTP 失败与无 token 透传。标题栏测试要求余额请求携带 token。`cargo check` 编译壳子 token 生成与导航。
