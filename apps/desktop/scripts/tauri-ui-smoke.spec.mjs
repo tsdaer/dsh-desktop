@@ -7,10 +7,12 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import {
+  advanceSeededSessionNavigation,
   encodeSegment,
   materializeFixture,
   parseArguments,
   projectKey,
+  seededSessionGroupSelector,
   seededSessionRowSelector,
   terminateProcess,
   webdriverCapabilities,
@@ -76,6 +78,53 @@ test('selects persisted rows from the main session tree in either selection stat
     seededSessionRowSelector(),
     '[role="tree"]:not([aria-label="Search results"]) [role="treeitem"][aria-selected]',
   );
+  assert.equal(
+    seededSessionGroupSelector(),
+    '[role="tree"]:not([aria-label="Search results"]) [role="treeitem"][aria-expanded]',
+  );
+});
+
+test('expands the sole collapsed group before opening its persisted session', () => {
+  let expanded = false;
+  let opened = false;
+  const group = {
+    click: () => { expanded = true; },
+    textContent: 'Ungrouped',
+    getAttribute: (name) => name === 'aria-expanded' ? String(expanded) : null,
+  };
+  const row = {
+    click: () => { opened = true; },
+    textContent: 'NavScenario',
+    getAttribute: () => null,
+  };
+  const documentRoot = {
+    querySelectorAll: (selector) => selector.includes('[aria-selected]')
+      ? (expanded ? [row] : [])
+      : [group],
+  };
+  assert.deepEqual(
+    advanceSeededSessionNavigation(documentRoot, seededSessionRowSelector(), seededSessionGroupSelector()),
+    {
+      count: 0,
+      labels: [],
+      groupCount: 1,
+      groupLabels: ['Ungrouped'],
+      expanded: true,
+      clicked: false,
+    },
+  );
+  assert.deepEqual(
+    advanceSeededSessionNavigation(documentRoot, seededSessionRowSelector(), seededSessionGroupSelector()),
+    {
+      count: 1,
+      labels: ['NavScenario'],
+      groupCount: 1,
+      groupLabels: ['Ungrouped'],
+      expanded: false,
+      clicked: true,
+    },
+  );
+  assert.equal(opened, true);
 });
 
 test('does not wait for an exit event that fired before cleanup started', async () => {

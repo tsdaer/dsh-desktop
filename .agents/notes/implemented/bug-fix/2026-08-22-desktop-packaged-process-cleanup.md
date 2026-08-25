@@ -6,15 +6,15 @@ English | [中文](2026-08-22-desktop-packaged-process-cleanup.zh.md)
 
 ## Problem
 
-The Linux and macOS packaged smoke could miss a bundled Node process that was re-parented while the desktop shell stopped. Its unbounded wait could also leave a failed smoke run hanging when the shell ignored termination.
+The target-native packaged smoke must not lose a bundled Node process that is re-parented while the desktop shell stops. Every wait must also remain bounded when the shell or a managed process ignores termination.
 
 ## Decision
 
-`apps/desktop/scripts/packaged-smoke.mjs` records process snapshots and identifies the installed Node sidecar by its resolved absolute path as well as by parentage. Exact path-token matching distinguishes the package's `dsh-node` or `dsh-node.exe` process from unrelated or similarly prefixed runner commands. Shutdown waits for the shell and all recorded managed processes with bounded deadlines, escalates to forced termination after a failed graceful stop, accepts cleanup when the forced stop succeeds, and reports failure only when managed processes survive that escalation. The Windows smoke invokes the NSIS uninstaller with `_?=<install-directory>`, which prevents the temporary self-copy and keeps the command synchronous; temporary-home removal retains a bounded retry for final handle release.
+`apps/desktop/scripts/packaged-smoke.mjs` records process snapshots and identifies the installed Node sidecar by its resolved absolute path as well as by parentage. Exact path-token matching distinguishes the package's `dsh-node` or `dsh-node.exe` process from unrelated or similarly prefixed runner commands. Shutdown waits for the shell and all managed processes with bounded deadlines. When managed processes outlive the shell, the final escalation takes a fresh snapshot and force-stops each process still identified by parentage or the exact sidecar path instead of retrying the exited shell PID. A successful forced stop satisfies cleanup; the smoke reports failure only when managed processes survive that escalation. The Windows smoke invokes the NSIS uninstaller with `_?=<install-directory>`, which prevents the temporary self-copy and keeps the command synchronous; temporary-home removal retains a bounded retry for final handle release.
 
 ## Testing
 
-`apps/desktop/scripts/packaged-smoke.spec.mjs` covers process snapshot parsing, detects a re-parented installed sidecar by exact path without matching an unrelated system Node process, pins bounded graceful-to-forced escalation and the synchronous NSIS uninstaller arguments, and verifies the bounded temporary-home removal policy. Existing target argument, package-entry, and descendant tests remain in the same suite.
+`apps/desktop/scripts/packaged-smoke.spec.mjs` covers process snapshot parsing, detects re-parented installed sidecars by exact path without matching an unrelated system Node process, and verifies that the forced tier targets every remaining packaged PID and accepts their exit. It also pins bounded shell escalation, the synchronous NSIS uninstaller arguments, and the bounded temporary-home removal policy. Existing target argument, package-entry, and descendant tests remain in the same suite.
 
 ## Consequences
 

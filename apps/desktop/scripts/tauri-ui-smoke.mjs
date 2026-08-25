@@ -156,6 +156,45 @@ export function seededSessionRowSelector() {
 }
 
 /**
+ * Return the selector for collapsible groups in the main session tree.
+ *
+ * @returns {string} CSS selector for Workspace and Ungrouped rows.
+ */
+export function seededSessionGroupSelector() {
+  return '[role="tree"]:not([aria-label="Search results"]) [role="treeitem"][aria-expanded]';
+}
+
+/**
+ * Advance navigation through a collapsed single-group session tree.
+ *
+ * @param {{querySelectorAll: (selector: string) => ArrayLike<{click: () => void, textContent?: string | null, getAttribute: (name: string) => string | null}>}} documentRoot Browser document or a test double.
+ * @param {string} rowSelector Selectable persisted session rows.
+ * @param {string} groupSelector Collapsible session groups.
+ * @returns {{count: number, labels: string[], groupCount: number, groupLabels: string[], expanded: boolean, clicked: boolean}} Navigation observation.
+ */
+export function advanceSeededSessionNavigation(documentRoot, rowSelector, groupSelector) {
+  const rows = [...documentRoot.querySelectorAll(rowSelector)];
+  const groups = [...documentRoot.querySelectorAll(groupSelector)];
+  let expanded = false;
+  let clicked = false;
+  if (rows.length === 1) {
+    rows[0].click();
+    clicked = true;
+  } else if (rows.length === 0 && groups.length === 1 && groups[0].getAttribute('aria-expanded') === 'false') {
+    groups[0].click();
+    expanded = true;
+  }
+  return {
+    count: rows.length,
+    labels: rows.map(node => node.textContent ?? ''),
+    groupCount: groups.length,
+    groupLabels: groups.map(node => node.textContent ?? ''),
+    expanded,
+    clicked,
+  };
+}
+
+/**
  * Terminate a child process without waiting for an exit event that may already
  * have fired, and bound cleanup when graceful termination is ignored.
  *
@@ -315,20 +354,14 @@ async function click(port, sessionId, selector) {
 }
 
 async function openSeededSession(port, sessionId) {
-  const selector = seededSessionRowSelector();
+  const rowSelector = seededSessionRowSelector();
+  const groupSelector = seededSessionGroupSelector();
   const deadline = Date.now() + 30_000;
   let lastState;
   while (Date.now() < deadline) {
     lastState = await execute(port, sessionId, `
-      const selector = arguments[0];
-      const rows = [...document.querySelectorAll(selector)];
-      if (rows.length === 1) rows[0].click();
-      return {
-        count: rows.length,
-        labels: rows.map((node) => node.textContent ?? ''),
-        clicked: rows.length === 1,
-      };
-    `, [selector]);
+      return (${advanceSeededSessionNavigation.toString()})(document, arguments[0], arguments[1]);
+    `, [rowSelector, groupSelector]);
     if (lastState?.clicked) return;
     await new Promise((resolveWait) => setTimeout(resolveWait, 250));
   }

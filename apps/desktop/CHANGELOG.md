@@ -4,6 +4,13 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.22] - 2026-08-25
+
+### Fixed
+
+- The Windows installed-package smoke force-stops re-parented packaged sidecars by their exact installed path after the desktop shell exits.
+- The Linux native Tauri UI smoke expands the sole collapsed session group before opening the seeded session.
+
 ## [0.3.21] - 2026-08-24
 
 ### Fixed

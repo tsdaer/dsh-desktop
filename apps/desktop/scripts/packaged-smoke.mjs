@@ -422,6 +422,35 @@ async function waitForManagedProcesses(child, sidecarPath, timeoutMs = 10_000) {
   }
 }
 
+/**
+ * Join every packaged process after the shell exits, forcing only processes
+ * still identified by shell parentage or the installed sidecar path.
+ *
+ * @param {import('node:child_process').ChildProcess} child Packaged shell process.
+ * @param {string} sidecarPath Exact packaged sidecar path.
+ * @param {{wait?: typeof waitForManagedProcesses, snapshot?: typeof processSnapshot, stop?: typeof stopProcessId}} [options] Test adapters.
+ * @returns {Promise<void>}
+ */
+export async function stopManagedProcessesWithEscalation(child, sidecarPath, options = {}) {
+  const wait = options.wait ?? waitForManagedProcesses;
+  const snapshot = options.snapshot ?? processSnapshot;
+  const stop = options.stop ?? stopProcessId;
+  try {
+    await wait(child, sidecarPath, 10_000);
+  } catch (gracefulError) {
+    const remaining = managedProcessPids(snapshot(), child.pid, sidecarPath);
+    for (const pid of remaining) stop(pid, 'SIGKILL');
+    try {
+      await wait(child, sidecarPath, 2_000);
+    } catch (forcedError) {
+      throw new AggregateError(
+        [gracefulError, forcedError],
+        'packaged app left managed processes after forced shutdown',
+      );
+    }
+  }
+}
+
 async function waitForUpdatedVersion(path, expectedVersion, timeoutMs = 180_000) {
   const deadline = Date.now() + timeoutMs;
   let sawInitialVersion = false;
@@ -648,13 +677,7 @@ async function launch(command, args, env, sidecarPath, { stopAfterReady = true }
   const url = await ready;
   if (!stopAfterReady) return { url, child };
   await stopChildWithEscalation(child);
-  try {
-    await waitForManagedProcesses(child, sidecarPath);
-  } catch (error) {
-    stopProcessTree(child, 'SIGKILL');
-    await waitForManagedProcesses(child, sidecarPath, 2_000).catch(() => {});
-    throw error;
-  }
+  await stopManagedProcessesWithEscalation(child, sidecarPath);
   return { url, child };
 }
 

@@ -6,15 +6,15 @@ Status: implemented
 
 ## 问题
 
-Linux 和 macOS 打包冒烟检查可能漏掉在桌面壳停止期间被重新托管的 bundled Node 进程。壳子忽略终止信号时,无上限的等待也可能让失败的冒烟任务一直挂起。
+目标原生安装包冒烟检查不能漏掉在桌面壳停止期间被重新托管的 bundled Node 进程。壳子或受管理进程忽略终止信号时,每次等待也必须保持有界。
 
 ## 决定
 
-`apps/desktop/scripts/packaged-smoke.mjs` 记录进程快照,并同时按父子关系与解析出的绝对路径识别已安装 Node sidecar。精确的路径 token 匹配会把安装包的 `dsh-node` 或 `dsh-node.exe` 进程与 runner 中无关或只有相似前缀的命令区分开。停止流程用有上限的截止时间等待壳子及所有已记录的受管理进程;优雅停止失败后会升级为强制终止,强制终止成功即可满足清理要求,只有升级后受管理进程仍存活才报告失败。Windows 冒烟使用 `_?=<install-directory>` 调用 NSIS 卸载器,阻止临时自复制并让命令保持同步;临时 home 删除仍保留有界重试,等待最后的文件句柄释放。
+`apps/desktop/scripts/packaged-smoke.mjs` 记录进程快照,并同时按父子关系与解析出的绝对路径识别已安装 Node sidecar。精确的路径 token 匹配会把安装包的 `dsh-node` 或 `dsh-node.exe` 进程与 runner 中无关或只有相似前缀的命令区分开。停止流程用有上限的截止时间等待壳子及所有受管理进程。受管理进程比壳子存活更久时,最终升级会重新取得快照,逐个强制终止仍可按父子关系或精确 sidecar 路径识别的进程,而不是再次操作已经退出的壳 PID。强制终止成功即可满足清理要求;只有升级后受管理进程仍存活才报告失败。Windows 冒烟使用 `_?=<install-directory>` 调用 NSIS 卸载器,阻止临时自复制并让命令保持同步;临时 home 删除仍保留有界重试,等待最后的文件句柄释放。
 
 ## 测试
 
-`apps/desktop/scripts/packaged-smoke.spec.mjs` 覆盖进程快照解析,按精确路径检测被重新托管的已安装 sidecar 且不会匹配 runner 的无关系统 Node 进程,固定有界的优雅到强制升级与同步 NSIS 卸载参数,并验证有界的临时目录删除策略。现有目标参数、安装包入口和后代进程测试仍保留在同一测试套件中。
+`apps/desktop/scripts/packaged-smoke.spec.mjs` 覆盖进程快照解析,按精确路径检测被重新托管的已安装 sidecar 且不会匹配 runner 的无关系统 Node 进程,并验证强制层会定位所有剩余的打包进程 PID 且接受它们随后退出。它还固定有界的壳进程升级、同步 NSIS 卸载参数和有界的临时目录删除策略。现有目标参数、安装包入口和后代进程测试仍保留在同一测试套件中。
 
 ## 结果
 

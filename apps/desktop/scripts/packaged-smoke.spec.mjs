@@ -22,6 +22,7 @@ import {
   removeTemporaryHome,
   splashLogDiagnostics,
   stopChildWithEscalation,
+  stopManagedProcessesWithEscalation,
   terminalSmokeCommand,
 } from './packaged-smoke.mjs';
 
@@ -286,6 +287,39 @@ test('accepts forced shutdown after a bounded graceful attempt', async () => {
     }),
     /did not exit after forced shutdown/,
   );
+});
+
+test('force-stops re-parented packaged sidecars and accepts their exit', async () => {
+  const sidecar = 'C:\\Temp\\dsh desktop\\dsh-node.exe';
+  const alive = new Set([20, 30, 40, 50]);
+  const stopped = [];
+  const snapshot = () => [
+    ...[...alive].map(pid => ({
+      pid,
+      parent: 1,
+      command: `"${sidecar}" runtime\\lib\\bin.js`,
+    })),
+    { pid: 60, parent: 1, command: 'C:\\Program Files\\nodejs\\node.exe unrelated.js' },
+  ];
+  const wait = async (child, sidecarPath) => {
+    if (managedProcessPids(snapshot(), child.pid, sidecarPath).size > 0) {
+      throw new Error('managed processes remain');
+    }
+  };
+  await stopManagedProcessesWithEscalation({ pid: 10 }, sidecar, {
+    snapshot,
+    wait,
+    stop: (pid, signal) => {
+      stopped.push([pid, signal]);
+      alive.delete(pid);
+    },
+  });
+  assert.deepEqual(stopped, [
+    [20, 'SIGKILL'],
+    [30, 'SIGKILL'],
+    [40, 'SIGKILL'],
+    [50, 'SIGKILL'],
+  ]);
 });
 
 test('rejects a package without the target sidecar', () => {

@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-22-desktop-packaged-process-cleanup.md
-2026-08-22-desktop-packaged-process-cleanup.md: 6ae35c9c8472cb25c7e5a098e0105edf42f23614
-2026-08-22-desktop-packaged-process-cleanup.zh.md: 45447db09a953a33074a69a3fa635850ec1f9ae7
+2026-08-22-desktop-packaged-process-cleanup.md: fdb878129b47b0bb257e68c019aaac706f269d1f
+2026-08-22-desktop-packaged-process-cleanup.zh.md: 91ce468327cc859f2ca1abd5acafeb1090febe4e
