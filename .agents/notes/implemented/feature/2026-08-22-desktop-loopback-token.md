@@ -14,7 +14,7 @@ The shell generates a fresh 128-bit token per boot, passes it to the runtime as 
 
 `@deepseek-ai/dsh-host-webserver` gains an optional `token` config: when set, every registered (non-fallback) route and every upgrade requires `Authorization: Bearer <token>` (or the `dsh_token` query parameter for WebSockets, which cannot set headers); the static dist fallback stays open so the page can load before the client learns the token. Comparison is length-plus-scan so a mismatch does not leak its prefix. Omitted, the plain loopback posture is exactly unchanged.
 
-The browser carries the token once it is loaded: `@deepseek-ai/dsh-client-connection`'s `WebApiClient` reads `?dsh_token` from the page URL once and attaches it to every `/api` fetch (header) and WebSocket (query); the desktop bridge client's `bridgeFetch` does the same for every `/dsh-bridge` request.
+The browser captures the token when its connection modules load. `@deepseek-ai/dsh-client-connection` attaches it to every typed API fetch, generic Remote RPC fetch, and WebSocket; the desktop bridge client attaches it to every `/dsh-bridge` request. Capturing at module load preserves the secret if later navigation removes the query string.
 
 ## Alternatives considered
 
@@ -30,4 +30,4 @@ The browser-only posture (no `DSH_WEB_TOKEN`, no `?dsh_token`) is byte-for-byte 
 
 ## Testing
 
-Webserver tests pin route and upgrade refusal without the token, acceptance with the header, query-token upgrades, and the open fallback. Connection tests pin fetch header attachment and WebSocket query attachment, with module reset between cases. Bridge-client tests pin `bridgeFetch` header merging and the no-token pass-through. `cargo check` compiles the shell token generation and navigation.
+Webserver tests pin route and upgrade refusal without the token, acceptance with the header, query-token upgrades, and the open fallback. Connection tests pin typed and generic RPC fetch header attachment and WebSocket query attachment, with module reset between cases. Bridge-client tests pin header merging, validated JSON responses, HTTP failures, and the no-token pass-through. `cargo check` compiles the shell token generation and navigation.

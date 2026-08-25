@@ -2,7 +2,7 @@
 // setting is allowed to override the system reduced-motion preference because
 // the user chose this one small, nonessential animation directly.
 import { useEffect, useState } from 'react'
-import { bridgeFetch } from './bridge-fetch.ts'
+import { readBridgeConfig, saveBridgePolicy } from './bridge-fetch.ts'
 import css from './BridgeRow.module.css'
 
 /** Injected callback that applies the Logo-motion preference to the page. */
@@ -25,7 +25,7 @@ export function BridgeLogoMotionRow({ onLogoMotion, t }: BridgeLogoMotionRowProp
 
   useEffect(() => {
     let alive = true
-    void bridgeFetch('/dsh-bridge/config').then(r => r.json()).then((c) => {
+    void readBridgeConfig().then((c) => {
       if (!alive) return
       setLogoMotion(c.logoMotion === true)
     }).catch(() => { /* keep the default */ })
@@ -35,17 +35,9 @@ export function BridgeLogoMotionRow({ onLogoMotion, t }: BridgeLogoMotionRowProp
   const changeLogoMotion = (enabled: boolean): void => {
     setLogoMotion(enabled)
     setStatus(t('saving'))
-    void bridgeFetch('/dsh-bridge/policy', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ logoMotion: enabled }),
-    }).then(r => r.json()).then((resp) => {
-      if (resp?.ok === true) {
-        onLogoMotion(enabled)
-        setStatus('')
-      } else {
-        setStatus(t('saveFailed') + String(resp?.error ?? 'unknown'))
-      }
+    void saveBridgePolicy({ logoMotion: enabled }).then(() => {
+      onLogoMotion(enabled)
+      setStatus('')
     }).catch(err => setStatus(t('saveFailed') + String(err)))
   }
 

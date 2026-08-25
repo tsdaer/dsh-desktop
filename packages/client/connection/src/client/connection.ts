@@ -9,10 +9,7 @@ export interface ConnectionConfig {
   backoffFactor?: number
   /** Upper bound for the backoff cap in ms. */
   backoffMaxMs?: number
-  /** Cap on waiting for both streams' onOpen before onConnected, in ms. The strict handshake
-   *  waits for mux+host stream establishment plus describe; a carrier that never
-   *  fires onOpen (misbehaving proxy) must not wedge the connection forever — on timeout the
-   *  generation proceeds as connected and the live-gap repair path covers stragglers. */
+  /** Cap on waiting for both streams' onOpen before retrying the generation, in ms. */
   streamOpenTimeoutMs?: number
 }
 
@@ -32,6 +29,19 @@ function sleep(ms: number, signal: AbortSignal): Promise<void> {
       signal.removeEventListener('abort', done)
       resolve()
     }
+  })
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => { reject(new Error('connection stream-open timeout')) }, ms)
+    void promise.then(
+      (value) => { clearTimeout(timer); resolve(value) },
+      (error: unknown) => {
+        clearTimeout(timer)
+        reject(error instanceof Error ? error : new Error(String(error)))
+      },
+    )
   })
 }
 
@@ -135,12 +145,10 @@ export class ConnectionController {
         // only then may onConnected fire, so the resync it triggers cannot outrun the
         // subscribed baseline. The timeout guards against a carrier that never fires onOpen
         // (see ConnectionConfig.streamOpenTimeoutMs).
-        const timeout = new AbortController()
         const [description] = await Promise.all([
           this.api.host.describe({}),
-          Promise.race([streamsOpen, sleep(this.config.streamOpenTimeoutMs, timeout.signal)]),
+          withTimeout(streamsOpen, this.config.streamOpenTimeoutMs),
         ])
-        timeout.abort()
         const descriptionResult = description.result
         if (!descriptionResult.ok) {
           throw new Error(`host.describe failed: ${descriptionResult.error.code}: ${descriptionResult.error.message}`)

@@ -56,4 +56,23 @@ describe('bridge fetch token', () => {
     vi.stubGlobal('location', { search: '?dsh_token=other' })
     expect(mod.bridgeToken()).toBe('cached')
   })
+
+  it('reports empty HTTP failures without attempting to parse JSON', async () => {
+    vi.stubGlobal('location', { search: '?dsh_token=secret' })
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>(async () => new Response(null, { status: 401 })))
+    const mod = await import('../src/client/bridge-fetch.ts')
+    await expect(mod.bridgeJson('/dsh-bridge/config')).rejects.toThrow('HTTP 401')
+  })
+
+  it('validates config reads and policy saves', async () => {
+    vi.stubGlobal('location', { search: '?dsh_token=secret' })
+    const fetchMock = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ closeToTray: true, debugMode: false, logoMotion: true })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true })))
+    vi.stubGlobal('fetch', fetchMock)
+    const mod = await import('../src/client/bridge-fetch.ts')
+    await expect(mod.readBridgeConfig()).resolves.toEqual({ closeToTray: true, debugMode: false, logoMotion: true })
+    await expect(mod.saveBridgePolicy({ debugMode: true })).resolves.toBeUndefined()
+    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({ debugMode: true })
+  })
 })

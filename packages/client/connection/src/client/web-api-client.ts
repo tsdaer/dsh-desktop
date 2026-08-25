@@ -5,31 +5,21 @@ import { AbstractApiClient } from './api.ts'
 import { hostFrameSchema, muxFrameSchema } from '@deepseek-ai/dsh-host-apiproxy/api/events.schema'
 import { serverRequestSchema } from '@deepseek-ai/dsh-host-apiproxy/api/rpc.schema'
 import { HOST_EVENTS_PATH, MUX_EVENTS_PATH } from '../api-path.ts'
+import { getLoopbackToken } from './loopback-token.ts'
 
 type SocketItem<F> = { kind: 'frame'; envelope: RpcRequest<F> } | { kind: 'end' }
 type Parser<F> = { parse(value: unknown): F }
 
 /**
- * Loopback bearer token picked up from the page URL once (`?dsh_token=...`),
+ * Loopback bearer token captured from the page URL (`?dsh_token=...`),
  * then attached to every /api fetch and WebSocket. The desktop shell appends
  * the query when it navigates the window; a plain browser without the query
  * leaves the token unset and the plain posture unchanged.
  */
-let loopbackToken: string | undefined
-
-function pickLoopbackToken(): string | undefined {
-  if (loopbackToken !== undefined) return loopbackToken
-  const query = (globalThis as { location?: { search?: string } }).location?.search
-  if (query === undefined) return undefined
-  const value = new URLSearchParams(query).get('dsh_token')
-  loopbackToken = value === null ? undefined : value
-  return loopbackToken
-}
-
 /** Browser platform subclass: unary/respond use fetch; mux/host use downlink-only WebSockets. */
 export class WebApiClient extends AbstractApiClient {
   protected doFetch(input: URL, init?: RequestInit): Promise<Response> {
-    const token = pickLoopbackToken()
+    const token = getLoopbackToken()
     if (token === undefined) return globalThis.fetch(input, init)
     const headers = new Headers(init?.headers)
     headers.set('authorization', `Bearer ${token}`)
@@ -60,7 +50,7 @@ export class WebApiClient extends AbstractApiClient {
   ): AsyncGenerator<RpcRequest<F>> {
     const url = new URL(path, this.resolveBase())
     url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
-    const token = pickLoopbackToken()
+    const token = getLoopbackToken()
     if (token !== undefined) url.searchParams.set('dsh_token', token)
     const socket = new WebSocket(url)
     const inbox: SocketItem<F>[] = []
@@ -86,12 +76,14 @@ export class WebApiClient extends AbstractApiClient {
       enqueue({ kind: 'frame', envelope: { rpcId: full.rpcId, payload: frame } })
     }
     const handleClose = (): void => { enqueue({ kind: 'end' }) }
+    const handleError = (): void => { enqueue({ kind: 'end' }) }
     const handleAbort = (): void => {
       if (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN) socket.close()
     }
     socket.addEventListener('open', handleOpen)
     socket.addEventListener('message', handleMessage)
     socket.addEventListener('close', handleClose, { once: true })
+    socket.addEventListener('error', handleError, { once: true })
     signal.addEventListener('abort', handleAbort, { once: true })
     if (signal.aborted) handleAbort()
     try {
@@ -108,6 +100,7 @@ export class WebApiClient extends AbstractApiClient {
       socket.removeEventListener('open', handleOpen)
       socket.removeEventListener('message', handleMessage)
       socket.removeEventListener('close', handleClose)
+      socket.removeEventListener('error', handleError)
       handleAbort()
     }
   }

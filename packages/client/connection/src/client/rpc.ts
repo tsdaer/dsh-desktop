@@ -7,6 +7,7 @@ import {
 } from '@deepseek-ai/dsh-host-apiproxy/api'
 import type { ClientConnectionRpc } from '../rpc.ts'
 import { randomUuid } from './random-uuid.ts'
+import { getLoopbackToken } from './loopback-token.ts'
 
 const INTERNAL_BASE = 'http://dsh.internal'
 const CHANNEL_PATTERN = /^\/[A-Za-z0-9._~-]+$/
@@ -27,11 +28,14 @@ export function createWebConnectionRpc(): ClientConnectionRpc {
         method: endpoint,
         payload,
       }
+      const headers = new Headers({ 'content-type': 'application/json' })
+      const token = getLoopbackToken()
+      if (token !== undefined) headers.set('authorization', `Bearer ${token}`)
       const response = await globalThis.fetch(
         new URL(`${channel}/${endpoint}`, resolveBase()),
         {
           method: 'POST',
-          headers: { 'content-type': 'application/json' },
+          headers,
           body: JSON.stringify(message),
           ...signal === undefined ? {} : { signal },
         },

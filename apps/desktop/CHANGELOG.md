@@ -4,6 +4,14 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.26] - 2026-08-25
+
+### Fixed
+
+- Desktop settings validate bridge responses and persist through the authenticated loopback route without failing on an empty JSON body.
+- Generic Remote RPC calls carry the desktop loopback token, restoring the plugin inventory.
+- WebSocket errors and stream-open timeouts enter reconnection instead of publishing an unavailable connection as ready.
+
 ## [0.3.25] - 2026-08-25
 
 ### Fixed

@@ -10,7 +10,9 @@ afterEach(() => {
 describe('desktop Logo-motion setting', () => {
   it('loads the persisted value and applies an enabled change', async () => {
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
-      if (String(input).endsWith('/config')) return new Response(JSON.stringify({ logoMotion: true }))
+      if (String(input).endsWith('/config')) {
+        return new Response(JSON.stringify({ closeToTray: false, debugMode: false, logoMotion: true }))
+      }
       expect(String(input)).toContain('/policy')
       expect(init?.body).toBe(JSON.stringify({ logoMotion: false }))
       return new Response(JSON.stringify({ ok: true }))
