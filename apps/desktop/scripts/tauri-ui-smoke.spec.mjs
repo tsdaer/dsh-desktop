@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import {
+  advanceApiKeyOnboarding,
   advanceWelcomeNotice,
   advanceSeededSessionNavigation,
   encodeSegment,
@@ -18,6 +19,7 @@ import {
   realizePersistedFixture,
   seededSessionGroupSelector,
   seededSessionRowSelector,
+  seededSessionTreeSelector,
   terminateProcess,
   webdriverCapabilities,
 } from './tauri-ui-smoke.mjs';
@@ -128,6 +130,22 @@ test('acknowledges the fresh-home testing notice in either supported locale', ()
   );
 });
 
+test('defers API key configuration in either supported locale', () => {
+  let clicks = 0;
+  const documentRoot = {
+    querySelectorAll: () => [{ textContent: 'Configure later', disabled: false, click: () => { clicks += 1; } }],
+  };
+  assert.deepEqual(
+    advanceApiKeyOnboarding(documentRoot),
+    { present: true, disabled: false, clicked: true },
+  );
+  assert.equal(clicks, 1);
+  assert.deepEqual(
+    advanceApiKeyOnboarding({ querySelectorAll: () => [] }),
+    { present: false, disabled: false, clicked: false },
+  );
+});
+
 test('uses the W3C Tauri application capability without an ambient browser', () => {
   assert.deepEqual(webdriverCapabilities('/usr/lib/dsh-desktop/bin/dsh-desktop'), {
     capabilities: {
@@ -140,38 +158,60 @@ test('uses the W3C Tauri application capability without an ambient browser', () 
 
 test('selects persisted rows from the main session tree in either selection state', () => {
   assert.equal(
+    seededSessionTreeSelector(),
+    '[role="tree"][aria-label="Sessions"], [role="tree"][aria-label="会话"]',
+  );
+  assert.equal(
     seededSessionRowSelector(),
-    '[role="tree"]:not([aria-label="Search results"]) [role="treeitem"][aria-selected]',
+    '[role="treeitem"][aria-selected]',
   );
   assert.equal(
     seededSessionGroupSelector(),
-    '[role="tree"]:not([aria-label="Search results"]) [role="treeitem"][aria-expanded]',
+    '[role="treeitem"][aria-expanded]',
   );
 });
 
-test('expands the sole collapsed group before opening its persisted session', () => {
+test('scopes navigation to Sessions and ignores its provisional New Session row', () => {
   let expanded = false;
   let opened = false;
   const group = {
     click: () => { expanded = true; },
     textContent: 'Ungrouped',
     getAttribute: (name) => name === 'aria-expanded' ? String(expanded) : null,
+    querySelector: () => null,
   };
-  const row = {
+  const blankRow = {
+    click: () => {},
+    textContent: 'New Session',
+    getAttribute: () => null,
+    querySelector: () => null,
+  };
+  const persistedRow = {
     click: () => { opened = true; },
     textContent: 'NavScenario',
     getAttribute: () => null,
+    querySelector: (selector) => selector === 'button' ? {} : null,
   };
-  const documentRoot = {
+  const sessionTree = {
     querySelectorAll: (selector) => selector.includes('[aria-selected]')
-      ? (expanded ? [row] : [])
+      ? (expanded ? [blankRow, persistedRow] : [])
       : [group],
   };
+  const documentRoot = {
+    querySelectorAll: (selector) => selector === seededSessionTreeSelector() ? [sessionTree] : [],
+  };
   assert.deepEqual(
-    advanceSeededSessionNavigation(documentRoot, seededSessionRowSelector(), seededSessionGroupSelector()),
+    advanceSeededSessionNavigation(
+      documentRoot,
+      seededSessionTreeSelector(),
+      seededSessionRowSelector(),
+      seededSessionGroupSelector(),
+    ),
     {
+      treeCount: 1,
       count: 0,
       labels: [],
+      persistedCount: 0,
       groupCount: 1,
       groupLabels: ['Ungrouped'],
       expanded: true,
@@ -179,10 +219,17 @@ test('expands the sole collapsed group before opening its persisted session', ()
     },
   );
   assert.deepEqual(
-    advanceSeededSessionNavigation(documentRoot, seededSessionRowSelector(), seededSessionGroupSelector()),
+    advanceSeededSessionNavigation(
+      documentRoot,
+      seededSessionTreeSelector(),
+      seededSessionRowSelector(),
+      seededSessionGroupSelector(),
+    ),
     {
-      count: 1,
-      labels: ['NavScenario'],
+      treeCount: 1,
+      count: 2,
+      labels: ['New Session', 'NavScenario'],
+      persistedCount: 1,
       groupCount: 1,
       groupLabels: ['Ungrouped'],
       expanded: false,

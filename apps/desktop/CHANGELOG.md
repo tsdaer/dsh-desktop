@@ -4,6 +4,12 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.25] - 2026-08-25
+
+### Fixed
+
+- The Linux native Tauri UI smoke scopes navigation to the localized Sessions tree, ignores the provisional New Session row, and defers the fresh-home API-key prompt before opening its seeded transcript.
+
 ## [0.3.24] - 2026-08-25
 
 ### Fixed

@@ -4,6 +4,12 @@ dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a
 
 ## [未发布]
 
+## [0.3.25] - 2026-08-25
+
+### 修复
+
+- Linux 原生 Tauri UI 冒烟测试会把导航限制在本地化的 Sessions（会话）树中、忽略临时 New Session row,并在打开植入的 transcript 前推迟全新 home 的 API key 提示。
+
 ## [0.3.24] - 2026-08-25
 
 ### 修复

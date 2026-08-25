@@ -217,12 +217,21 @@ export function webdriverCapabilities(executable) {
 }
 
 /**
+ * Return the selector for the localized session tree.
+ *
+ * @returns {string} CSS selector for the English or Chinese Sessions tree.
+ */
+export function seededSessionTreeSelector() {
+  return '[role="tree"][aria-label="Sessions"], [role="tree"][aria-label="会话"]';
+}
+
+/**
  * Return the selector for persisted session rows in the main session tree.
  *
  * @returns {string} CSS selector for selectable session rows.
  */
 export function seededSessionRowSelector() {
-  return '[role="tree"]:not([aria-label="Search results"]) [role="treeitem"][aria-selected]';
+  return '[role="treeitem"][aria-selected]';
 }
 
 /**
@@ -231,7 +240,7 @@ export function seededSessionRowSelector() {
  * @returns {string} CSS selector for Workspace and Ungrouped rows.
  */
 export function seededSessionGroupSelector() {
-  return '[role="tree"]:not([aria-label="Search results"]) [role="treeitem"][aria-expanded]';
+  return '[role="treeitem"][aria-expanded]';
 }
 
 /**
@@ -252,28 +261,54 @@ export function advanceWelcomeNotice(documentRoot) {
 }
 
 /**
+ * Defer credential configuration in the second fresh-home onboarding step.
+ *
+ * @param {{querySelectorAll(selector: string): Iterable<{textContent?: string, disabled?: boolean, click(): void}>}} documentRoot DOM-like root.
+ * @returns {{present: boolean, disabled: boolean, clicked: boolean}} Credential-step state after this attempt.
+ */
+export function advanceApiKeyOnboarding(documentRoot) {
+  const button = Array.from(documentRoot.querySelectorAll('button')).find((candidate) => {
+    const label = candidate.textContent?.trim();
+    return label === 'Configure later' || label === '稍后配置';
+  });
+  if (button === undefined) return { present: false, disabled: false, clicked: false };
+  const disabled = button.disabled === true;
+  if (!disabled) button.click();
+  return { present: true, disabled, clicked: !disabled };
+}
+
+/**
  * Advance navigation through a collapsed single-group session tree.
  *
- * @param {{querySelectorAll: (selector: string) => ArrayLike<{click: () => void, textContent?: string | null, getAttribute: (name: string) => string | null}>}} documentRoot Browser document or a test double.
+ * @param {{querySelectorAll: (selector: string) => ArrayLike<{querySelectorAll: (selector: string) => ArrayLike<{click: () => void, textContent?: string | null, getAttribute: (name: string) => string | null, querySelector: (selector: string) => unknown}>}>}} documentRoot Browser document or a test double.
+ * @param {string} treeSelector Localized Sessions tree.
  * @param {string} rowSelector Selectable persisted session rows.
  * @param {string} groupSelector Collapsible session groups.
- * @returns {{count: number, labels: string[], groupCount: number, groupLabels: string[], expanded: boolean, clicked: boolean}} Navigation observation.
+ * @returns {{treeCount: number, count: number, labels: string[], persistedCount: number, groupCount: number, groupLabels: string[], expanded: boolean, clicked: boolean}} Navigation observation.
  */
-export function advanceSeededSessionNavigation(documentRoot, rowSelector, groupSelector) {
-  const rows = [...documentRoot.querySelectorAll(rowSelector)];
-  const groups = [...documentRoot.querySelectorAll(groupSelector)];
+export function advanceSeededSessionNavigation(documentRoot, treeSelector, rowSelector, groupSelector) {
+  const trees = [...documentRoot.querySelectorAll(treeSelector)];
+  const rows = trees.flatMap(tree => [...tree.querySelectorAll(rowSelector)]);
+  const groups = trees.flatMap(tree => [...tree.querySelectorAll(groupSelector)]);
+  // A provisional blank row has no session-actions button; a nonblank persisted row does.
+  const persistedRows = rows.filter(row => row.querySelector('button') !== null);
   let expanded = false;
   let clicked = false;
-  if (rows.length === 1) {
-    rows[0].click();
+  if (persistedRows.length === 1) {
+    persistedRows[0].click();
     clicked = true;
-  } else if (rows.length === 0 && groups.length === 1 && groups[0].getAttribute('aria-expanded') === 'false') {
+  } else if (persistedRows.length === 0
+    && rows.length === 0
+    && groups.length === 1
+    && groups[0].getAttribute('aria-expanded') === 'false') {
     groups[0].click();
     expanded = true;
   }
   return {
+    treeCount: trees.length,
     count: rows.length,
     labels: rows.map(node => node.textContent ?? ''),
+    persistedCount: persistedRows.length,
     groupCount: groups.length,
     groupLabels: groups.map(node => node.textContent ?? ''),
     expanded,
@@ -461,15 +496,31 @@ async function dismissWelcomeNotice(port, sessionId) {
   throw new Error(`native Tauri UI could not acknowledge the testing notice: ${JSON.stringify(lastState)}`);
 }
 
+async function dismissApiKeyOnboarding(port, sessionId) {
+  const deadline = Date.now() + 30_000;
+  let deferred = false;
+  let lastState;
+  while (Date.now() < deadline) {
+    lastState = await execute(port, sessionId, `
+      return (${advanceApiKeyOnboarding.toString()})(document);
+    `);
+    if (lastState?.clicked === true) deferred = true;
+    if (deferred && lastState?.present === false) return;
+    await new Promise((resolveWait) => setTimeout(resolveWait, 250));
+  }
+  throw new Error(`native Tauri UI could not defer API key onboarding: ${JSON.stringify(lastState)}`);
+}
+
 async function openSeededSession(port, sessionId) {
+  const treeSelector = seededSessionTreeSelector();
   const rowSelector = seededSessionRowSelector();
   const groupSelector = seededSessionGroupSelector();
   const deadline = Date.now() + 30_000;
   let lastState;
   while (Date.now() < deadline) {
     lastState = await execute(port, sessionId, `
-      return (${advanceSeededSessionNavigation.toString()})(document, arguments[0], arguments[1]);
-    `, [rowSelector, groupSelector]);
+      return (${advanceSeededSessionNavigation.toString()})(document, arguments[0], arguments[1], arguments[2]);
+    `, [treeSelector, rowSelector, groupSelector]);
     if (lastState?.clicked) return;
     await new Promise((resolveWait) => setTimeout(resolveWait, 250));
   }
@@ -537,6 +588,7 @@ async function main() {
     }
     const initial = await waitForUi(options.port, sessionId);
     await dismissWelcomeNotice(options.port, sessionId);
+    await dismissApiKeyOnboarding(options.port, sessionId);
     await openSeededSession(options.port, sessionId);
     const terminal = await assertTerminalCard(options.port, sessionId);
     if (options.screenshot !== undefined) {
