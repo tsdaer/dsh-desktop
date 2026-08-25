@@ -4,6 +4,12 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.24] - 2026-08-25
+
+### Fixed
+
+- The Linux native Tauri UI smoke rebuilds a valid persisted-session header from its recorded fixture, acknowledges the fresh-home testing notice, and reports isolated native diagnostics on failure.
+
 ## [0.3.23] - 2026-08-25
 
 ### Fixed

@@ -7,12 +7,15 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import {
+  advanceWelcomeNotice,
   advanceSeededSessionNavigation,
   encodeSegment,
   materializeFixture,
   nativeUiDriverEnvironment,
   parseArguments,
   projectKey,
+  redactNativeUiDiagnostics,
+  realizePersistedFixture,
   seededSessionGroupSelector,
   seededSessionRowSelector,
   terminateProcess,
@@ -54,6 +57,16 @@ test('materializes the committed session fixture without path tokens', () => {
     writeFileSync(fixture, source, { encoding: 'utf8' });
     const materialized = materializeFixture(home, fixture);
     const stored = readFileSync(materialized.sessionPath, 'utf8');
+    const header = JSON.parse(stored.split('\n', 1)[0]);
+    assert.deepEqual(header, {
+      type: 'session',
+      version: 0,
+      id: 'dsh-desktop-native-ui',
+      createdAt: 1785011380476,
+      cwd: join(home, 'workspace', 'workspace'),
+      delegationDepth: 0,
+      agentPreset: 'standard',
+    });
     assert.equal(stored.includes('{{sessionId}}'), false);
     assert.equal(stored.includes('{{cwd}}'), false);
     assert.equal(materialized.patchPath, join(home, 'cordis.patch.yml'));
@@ -65,20 +78,53 @@ test('materializes the committed session fixture without path tokens', () => {
   }
 });
 
-test('passes the plaintext fixture overlay through the installed shell environment', () => {
+test('rejects a recorded fixture without a usable session header', () => {
+  assert.throws(
+    () => realizePersistedFixture('{"type":"turn/start"}\n', '/tmp/workspace', 'session-id'),
+    /must start with a versioned session header/,
+  );
+});
+
+test('passes an isolated plaintext fixture environment to the installed shell', () => {
   assert.deepEqual(
     nativeUiDriverEnvironment('/tmp/native-home', '/tmp/native-home/cordis.patch.yml', {
       PATH: '/usr/bin',
       DSH_HOME: '/ambient/home',
       DSH_PATCH: '/ambient/patch.yml',
+      DEEPSEEK_API_KEY: 'must-not-reach-the-installed-app',
+      GITHUB_TOKEN: 'must-not-reach-the-installed-app',
     }),
     {
       PATH: '/usr/bin',
       DSH_HOME: '/tmp/native-home',
       DSH_PATCH: '/tmp/native-home/cordis.patch.yml',
       DSH_TELEMETRY_DISABLED: '1',
+      TMPDIR: '/tmp/native-home',
       WEBKIT_DISABLE_DMABUF_RENDERER: '1',
     },
+  );
+});
+
+test('redacts the per-boot loopback credential from failure diagnostics', () => {
+  assert.equal(
+    redactNativeUiDiagnostics('ready http://127.0.0.1:1234/?dsh_token=secret&view=main DSH_WEB_TOKEN: second'),
+    'ready http://127.0.0.1:1234/?dsh_token=<redacted>&view=main DSH_WEB_TOKEN: <redacted>',
+  );
+});
+
+test('acknowledges the fresh-home testing notice in either supported locale', () => {
+  let clicks = 0;
+  const documentRoot = {
+    querySelectorAll: () => [{ textContent: '继续', disabled: false, click: () => { clicks += 1; } }],
+  };
+  assert.deepEqual(
+    advanceWelcomeNotice(documentRoot),
+    { present: true, disabled: false, clicked: true },
+  );
+  assert.equal(clicks, 1);
+  assert.deepEqual(
+    advanceWelcomeNotice({ querySelectorAll: () => [] }),
+    { present: false, disabled: false, clicked: false },
   );
 });
 

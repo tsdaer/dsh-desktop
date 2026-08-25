@@ -14,6 +14,8 @@ import { runCommand as run } from './run-command.mjs';
 const here = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(here, '../../..');
 const defaultFixture = resolve(repositoryRoot, 'apps/web/tests/snapshots/navigation-panes/seed.jsonl');
+const sensitiveEnvironmentName = /(KEY|SECRET|TOKEN|PASSWORD)/i;
+const driverOutputLimit = 64 * 1024;
 
 /**
  * Parse the Linux native WebView smoke options.
@@ -93,6 +95,41 @@ export function projectKey(cwd) {
 }
 
 /**
+ * Turn a recorded Web fixture into one directly readable persistence log.
+ * Web tests rebuild the header before seeding; the installed-package smoke
+ * must supply the same required metadata when it writes the fixture itself.
+ *
+ * @param {string} fixtureText Recorded session fixture.
+ * @param {string} workspace Temporary workspace root.
+ * @param {string} sessionId Stable smoke session id.
+ * @returns {string} Plaintext JSONL with a current persisted-session header.
+ */
+export function realizePersistedFixture(fixtureText, workspace, sessionId) {
+  const lines = fixtureText.split('\n');
+  const recordedHeader = JSON.parse(lines.shift() ?? 'null');
+  if (recordedHeader?.type !== 'session'
+    || !Number.isSafeInteger(recordedHeader.version)
+    || !Number.isSafeInteger(recordedHeader.createdAt)) {
+    throw new Error('native UI fixture must start with a versioned session header');
+  }
+  const persistedHeader = {
+    type: 'session',
+    version: recordedHeader.version,
+    id: sessionId,
+    createdAt: recordedHeader.createdAt,
+    cwd: join(workspace, 'workspace'),
+    delegationDepth: 0,
+    agentPreset: 'standard',
+  };
+  const escapedSessionId = JSON.stringify(sessionId).slice(1, -1);
+  const escapedWorkspace = JSON.stringify(workspace).slice(1, -1);
+  const events = lines.join('\n')
+    .split('{{sessionId}}').join(escapedSessionId)
+    .split('{{cwd}}').join(escapedWorkspace);
+  return `${JSON.stringify(persistedHeader)}\n${events}`;
+}
+
+/**
  * Materialize a committed session fixture in the runtime's plaintext JSONL
  * mode. The temporary home patch selects the same compression explicitly;
  * this keeps the fixture writer independent of private Zstandard APIs.
@@ -116,9 +153,7 @@ export function materializeFixture(home, fixturePath) {
     '',
   ].join('\n'), { encoding: 'utf8' });
 
-  const contents = readFileSync(fixturePath, 'utf8')
-    .split('{{sessionId}}').join(sessionId)
-    .split('{{cwd}}').join(workspace);
+  const contents = realizePersistedFixture(readFileSync(fixturePath, 'utf8'), workspace, sessionId);
   const sessionPath = join(
     home,
     'sessions',
@@ -140,13 +175,29 @@ export function materializeFixture(home, fixturePath) {
  * @returns {NodeJS.ProcessEnv} Environment that makes the shell pass the fixture overlay to dsh.
  */
 export function nativeUiDriverEnvironment(home, patchPath, environment = process.env) {
+  const inherited = Object.fromEntries(
+    Object.entries(environment).filter(([name]) => !sensitiveEnvironmentName.test(name)),
+  );
   return {
-    ...environment,
+    ...inherited,
     DSH_HOME: home,
     DSH_PATCH: patchPath,
     DSH_TELEMETRY_DISABLED: '1',
+    TMPDIR: home,
     WEBKIT_DISABLE_DMABUF_RENDERER: '1',
   };
+}
+
+/**
+ * Remove the per-boot loopback credential from retained native diagnostics.
+ *
+ * @param {string} output Driver and installed-process output.
+ * @returns {string} Diagnostic text safe to print in CI.
+ */
+export function redactNativeUiDiagnostics(output) {
+  return output
+    .replace(/([?&]dsh_token=)[^&\s]+/gi, '$1<redacted>')
+    .replace(/(DSH_WEB_TOKEN(?:=|:\s*))\S+/gi, '$1<redacted>');
 }
 
 /**
@@ -181,6 +232,23 @@ export function seededSessionRowSelector() {
  */
 export function seededSessionGroupSelector() {
   return '[role="tree"]:not([aria-label="Search results"]) [role="treeitem"][aria-expanded]';
+}
+
+/**
+ * Acknowledge the product notice that appears for a fresh DSH_HOME.
+ *
+ * @param {{querySelectorAll(selector: string): Iterable<{textContent?: string, disabled?: boolean, click(): void}>}} documentRoot DOM-like root.
+ * @returns {{present: boolean, disabled: boolean, clicked: boolean}} Notice state after this attempt.
+ */
+export function advanceWelcomeNotice(documentRoot) {
+  const button = Array.from(documentRoot.querySelectorAll('button')).find((candidate) => {
+    const label = candidate.textContent?.trim();
+    return label === 'Continue' || label === '继续';
+  });
+  if (button === undefined) return { present: false, disabled: false, clicked: false };
+  const disabled = button.disabled === true;
+  if (!disabled) button.click();
+  return { present: true, disabled, clicked: !disabled };
 }
 
 /**
@@ -380,6 +448,19 @@ async function click(port, sessionId, selector) {
   if (clicked !== true) throw new Error(`native Tauri UI selector did not match: ${selector}`);
 }
 
+async function dismissWelcomeNotice(port, sessionId) {
+  const deadline = Date.now() + 30_000;
+  let lastState;
+  while (Date.now() < deadline) {
+    lastState = await execute(port, sessionId, `
+      return (${advanceWelcomeNotice.toString()})(document);
+    `);
+    if (lastState?.present === false) return;
+    await new Promise((resolveWait) => setTimeout(resolveWait, 250));
+  }
+  throw new Error(`native Tauri UI could not acknowledge the testing notice: ${JSON.stringify(lastState)}`);
+}
+
 async function openSeededSession(port, sessionId) {
   const rowSelector = seededSessionRowSelector();
   const groupSelector = seededSessionGroupSelector();
@@ -431,6 +512,8 @@ async function main() {
   let driver;
   let sessionId;
   let driverCleanupError;
+  let driverOutput = '';
+  let failure;
   let installed = false;
   try {
     const fixture = materializeFixture(home, options.fixture);
@@ -441,9 +524,11 @@ async function main() {
       env: nativeUiDriverEnvironment(home, fixture.patchPath),
       stdio: ['ignore', 'pipe', 'pipe'],
     });
-    let driverOutput = '';
-    driver.stdout?.on('data', (chunk) => { driverOutput += String(chunk); });
-    driver.stderr?.on('data', (chunk) => { driverOutput += String(chunk); });
+    const appendDriverOutput = (chunk) => {
+      driverOutput = `${driverOutput}${String(chunk)}`.slice(-driverOutputLimit);
+    };
+    driver.stdout?.on('data', appendDriverOutput);
+    driver.stderr?.on('data', appendDriverOutput);
     await waitForPort(options.port, driver);
     const session = await webdriverRequest(options.port, '/session', 'POST', webdriverCapabilities(executable));
     sessionId = session.value?.sessionId ?? session.sessionId;
@@ -451,6 +536,7 @@ async function main() {
       throw new Error(`WebDriver did not return a session id: ${JSON.stringify(session)}`);
     }
     const initial = await waitForUi(options.port, sessionId);
+    await dismissWelcomeNotice(options.port, sessionId);
     await openSeededSession(options.port, sessionId);
     const terminal = await assertTerminalCard(options.port, sessionId);
     if (options.screenshot !== undefined) {
@@ -458,6 +544,9 @@ async function main() {
     }
     console.log(`[tauri-ui-smoke] ready=${initial.ready} terminal=${terminal.output}`);
     if (driverOutput.includes('error')) console.error(`[tauri-ui-smoke] driver output: ${driverOutput}`);
+  } catch (error) {
+    failure = error;
+    throw error;
   } finally {
     if (typeof sessionId === 'string' && options.screenshot !== undefined && !existsSync(options.screenshot)) {
       try {
@@ -472,6 +561,16 @@ async function main() {
     if (driver !== undefined) {
       const stopped = await terminateProcess(driver);
       if (!stopped) driverCleanupError = new Error('tauri-driver did not exit after SIGTERM and SIGKILL');
+    }
+    if (failure !== undefined) {
+      const splashLog = join(home, 'dsh-desktop-splash.log');
+      if (driverOutput.trim().length > 0) {
+        console.error(`[tauri-ui-smoke] driver output:\n${redactNativeUiDiagnostics(driverOutput.trim())}`);
+      }
+      if (existsSync(splashLog)) {
+        const contents = redactNativeUiDiagnostics(readFileSync(splashLog, 'utf8').trim());
+        console.error(`[tauri-ui-smoke] native splash log:\n${contents}`);
+      }
     }
     if (installed) run('sudo', ['dpkg', '--purge', packageName], { stdio: 'inherit' });
     if (!existsSync(marker) || statSync(marker).size === 0) {
