@@ -123,7 +123,24 @@ export function realizePersistedFixture(fixtureText, workspace, sessionId) {
   };
   const escapedSessionId = JSON.stringify(sessionId).slice(1, -1);
   const escapedWorkspace = JSON.stringify(workspace).slice(1, -1);
-  const events = lines.join('\n')
+  // Projected web fixtures omit event envelopes; the JSONL backend requires
+  // contiguous seq (and integer time) on every committed event, so synthesize
+  // them here exactly as llm-replay's parseSessionLog does: packed chunk rows
+  // take seq0/time0, ordinary events take seq/time, and nextSeq advances by
+  // the decoded member count so packed rows cannot break contiguity.
+  let nextSeq = 0;
+  const rows = lines.map((line) => {
+    if (line.trim().length === 0) return line;
+    const record = JSON.parse(line);
+    const packed = record.type === 'text-chunks' || record.type === 'reasoning-chunks' || record.type === 'tool-call-chunks';
+    const seqKey = packed ? 'seq0' : 'seq';
+    const timeKey = packed ? 'time0' : 'time';
+    if (!Object.hasOwn(record, seqKey)) record[seqKey] = nextSeq;
+    if (!Object.hasOwn(record, timeKey)) record[timeKey] = 0;
+    nextSeq += packed ? record.data.texts?.length ?? record.data.args?.length ?? 1 : 1;
+    return JSON.stringify(record);
+  });
+  const events = rows.join('\n')
     .split('{{sessionId}}').join(escapedSessionId)
     .split('{{cwd}}').join(escapedWorkspace);
   return `${JSON.stringify(persistedHeader)}\n${events}`;

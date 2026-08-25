@@ -72,6 +72,20 @@ test('materializes the committed session fixture without path tokens', () => {
     });
     assert.equal(stored.includes('{{sessionId}}'), false);
     assert.equal(stored.includes('{{cwd}}'), false);
+    // Projected fixtures omit envelopes; the realized log must carry contiguous
+    // seq on every event (packed chunk rows advance by their member count) so
+    // the JSONL backend can commit the whole session.
+    const storedEvents = stored.split(String.fromCharCode(10)).slice(1).filter(line => line.trim().length > 0);
+    assert.ok(storedEvents.length > 0, 'realized fixture must contain events');
+    let nextSeq = 0;
+    for (const line of storedEvents) {
+      const record = JSON.parse(line);
+      const packed = record.type === 'text-chunks' || record.type === 'reasoning-chunks' || record.type === 'tool-call-chunks';
+      const seq = packed ? record.seq0 : record.seq;
+      assert.equal(seq, nextSeq, record.type + ' must carry contiguous seq');
+      nextSeq += packed ? record.data.texts?.length ?? record.data.args?.length ?? 1 : 1;
+    }
+    assert.ok(nextSeq > storedEvents.length, 'packed rows must expand past their line count');
     assert.equal(materialized.patchPath, join(home, 'cordis.patch.yml'));
     assert.match(readFileSync(materialized.patchPath, 'utf8'), /compression: none/);
     assert.match(materialized.sessionPath, new RegExp(`${projectKey(join(home, 'workspace', 'workspace'))}`));
