@@ -4,6 +4,12 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.27] - 2026-08-25
+
+### Fixed
+
+- The Linux native UI smoke retries the transient closed-window state while the Tauri splash hands control to the main WebView.
+
 ## [0.3.26] - 2026-08-25
 
 ### Fixed

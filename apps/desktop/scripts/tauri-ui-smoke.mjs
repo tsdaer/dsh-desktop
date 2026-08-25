@@ -447,26 +447,47 @@ async function selectMainWindow(port, sessionId) {
         return document.querySelector('[data-composer-seat]') !== null
           && document.querySelector('textarea') !== null;
       `);
-      if (ready === true) return;
+      if (ready === true) return true;
     } catch {
       // The splash window may close while the main window becomes visible.
     }
   }
+  return false;
+}
+
+/**
+ * Identify a WebDriver failure caused by a splash or WebView window closing.
+ *
+ * @param {unknown} error WebDriver request failure.
+ * @returns {boolean} Whether another window enumeration can recover the request.
+ */
+export function isClosedWindowError(error) {
+  return error instanceof Error && error.message.includes('"error":"no such window"');
 }
 
 async function waitForUi(port, sessionId) {
   const deadline = Date.now() + 120_000;
   let lastState = undefined;
   while (Date.now() < deadline) {
-    await selectMainWindow(port, sessionId);
-    lastState = await execute(port, sessionId, `
-      const body = document.body?.innerText ?? '';
-      return {
-        ready: document.querySelector('[data-composer-seat]') !== null
-          && document.querySelector('textarea') !== null,
-        body,
-      };
-    `);
+    const selected = await selectMainWindow(port, sessionId);
+    if (!selected) {
+      await new Promise((resolveWait) => setTimeout(resolveWait, 250));
+      continue;
+    }
+    try {
+      lastState = await execute(port, sessionId, `
+        const body = document.body?.innerText ?? '';
+        return {
+          ready: document.querySelector('[data-composer-seat]') !== null
+            && document.querySelector('textarea') !== null,
+          body,
+        };
+      `);
+    } catch (error) {
+      if (!isClosedWindowError(error)) throw error;
+      await new Promise((resolveWait) => setTimeout(resolveWait, 250));
+      continue;
+    }
     if (lastState?.ready) return lastState;
     await new Promise((resolveWait) => setTimeout(resolveWait, 250));
   }

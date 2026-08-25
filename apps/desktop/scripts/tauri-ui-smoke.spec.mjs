@@ -11,6 +11,7 @@ import {
   advanceWelcomeNotice,
   advanceSeededSessionNavigation,
   encodeSegment,
+  isClosedWindowError,
   materializeFixture,
   nativeUiDriverEnvironment,
   parseArguments,
@@ -154,6 +155,16 @@ test('uses the W3C Tauri application capability without an ambient browser', () 
       },
     },
   });
+});
+
+test('retries only the WebDriver error produced by a closing splash window', () => {
+  assert.equal(isClosedWindowError(new Error(
+    'WebDriver POST /session/id/execute/sync failed: {"value":{"error":"no such window","message":""}}',
+  )), true);
+  assert.equal(isClosedWindowError(new Error(
+    'WebDriver POST /session/id/execute/sync failed: {"value":{"error":"javascript error"}}',
+  )), false);
+  assert.equal(isClosedWindowError('no such window'), false);
 });
 
 test('selects persisted rows from the main session tree in either selection state', () => {
