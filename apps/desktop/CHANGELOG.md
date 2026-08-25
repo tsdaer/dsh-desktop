@@ -4,6 +4,12 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.23] - 2026-08-25
+
+### Fixed
+
+- The Linux native Tauri UI smoke passes its plaintext session fixture overlay through `DSH_PATCH`, so the installed Web profile discovers the seeded transcript; failed WebDriver assertions retain a WebView screenshot.
+
 ## [0.3.22] - 2026-08-25
 
 ### Fixed

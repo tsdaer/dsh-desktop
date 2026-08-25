@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-08-23-desktop-linux-native-tauri-ui-smoke.md
-2026-08-23-desktop-linux-native-tauri-ui-smoke.md: 3a577c01a9b70ea295f1db209d64bf702157bba1
-2026-08-23-desktop-linux-native-tauri-ui-smoke.zh.md: 8f85ece1544c62b89144f7fd32b33fc4b6f777ff
+2026-08-23-desktop-linux-native-tauri-ui-smoke.md: 9583e2a0a1e8a516fc5d3fb3ad85d620c9ec346b
+2026-08-23-desktop-linux-native-tauri-ui-smoke.zh.md: d289dcc7a2fc026423e7fef22619a1212e1a1455

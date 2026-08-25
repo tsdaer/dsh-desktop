@@ -99,15 +99,16 @@ export function projectKey(cwd) {
  *
  * @param {string} home Temporary DSH_HOME.
  * @param {string} fixturePath Committed session fixture.
- * @returns {{workspace: string, sessionId: string, sessionPath: string}}
+ * @returns {{workspace: string, sessionId: string, sessionPath: string, patchPath: string}}
  */
 export function materializeFixture(home, fixturePath) {
   const workspace = join(home, 'workspace');
   const sessionId = 'dsh-desktop-native-ui';
+  const patchPath = join(home, 'cordis.patch.yml');
   mkdirSync(join(workspace, 'workspace'), { recursive: true });
   writeFileSync(join(workspace, 'workspace', 'nav-a.md'), '# alpha nav\n');
   writeFileSync(join(workspace, 'workspace', 'nav-b.md'), '# beta nav\n');
-  writeFileSync(join(home, 'cordis.patch.yml'), [
+  writeFileSync(patchPath, [
     '- id: session-persistence-jsonl',
     '  config:',
     `    root: ${JSON.stringify(join(home, 'sessions'))}`,
@@ -127,7 +128,25 @@ export function materializeFixture(home, fixturePath) {
   );
   mkdirSync(dirname(sessionPath), { recursive: true });
   writeFileSync(sessionPath, contents, { encoding: 'utf8' });
-  return { workspace, sessionId, sessionPath };
+  return { workspace, sessionId, sessionPath, patchPath };
+}
+
+/**
+ * Build the environment inherited by tauri-driver and the installed app.
+ *
+ * @param {string} home Temporary DSH_HOME.
+ * @param {string} patchPath Plaintext fixture persistence overlay.
+ * @param {NodeJS.ProcessEnv} [environment] Ambient runner environment.
+ * @returns {NodeJS.ProcessEnv} Environment that makes the shell pass the fixture overlay to dsh.
+ */
+export function nativeUiDriverEnvironment(home, patchPath, environment = process.env) {
+  return {
+    ...environment,
+    DSH_HOME: home,
+    DSH_PATCH: patchPath,
+    DSH_TELEMETRY_DISABLED: '1',
+    WEBKIT_DISABLE_DMABUF_RENDERER: '1',
+  };
 }
 
 /**
@@ -307,6 +326,14 @@ async function execute(port, sessionId, script, args = []) {
   return response.value;
 }
 
+async function captureScreenshot(port, sessionId, output) {
+  const screenshot = await webdriverRequest(port, `/session/${sessionId}/screenshot`, 'GET');
+  const encoded = screenshot.value?.value ?? screenshot.value;
+  if (typeof encoded !== 'string') throw new Error('WebDriver screenshot response has no base64 payload');
+  mkdirSync(dirname(output), { recursive: true });
+  writeFileSync(output, Buffer.from(encoded, 'base64'));
+}
+
 async function selectMainWindow(port, sessionId) {
   const handlesResponse = await webdriverRequest(port, `/session/${sessionId}/window/handles`, 'GET');
   const handles = Array.isArray(handlesResponse.value) ? handlesResponse.value : [];
@@ -406,17 +433,12 @@ async function main() {
   let driverCleanupError;
   let installed = false;
   try {
-    materializeFixture(home, options.fixture);
+    const fixture = materializeFixture(home, options.fixture);
     run('sudo', ['dpkg', '--install', options.artifact], { stdio: 'inherit' });
     installed = true;
     const executable = installedExecutable(packageName);
     driver = spawn('tauri-driver', ['--port', String(options.port)], {
-      env: {
-        ...process.env,
-        DSH_HOME: home,
-        DSH_TELEMETRY_DISABLED: '1',
-        WEBKIT_DISABLE_DMABUF_RENDERER: '1',
-      },
+      env: nativeUiDriverEnvironment(home, fixture.patchPath),
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     let driverOutput = '';
@@ -432,15 +454,18 @@ async function main() {
     await openSeededSession(options.port, sessionId);
     const terminal = await assertTerminalCard(options.port, sessionId);
     if (options.screenshot !== undefined) {
-      const screenshot = await webdriverRequest(options.port, `/session/${sessionId}/screenshot`, 'GET');
-      const encoded = screenshot.value?.value ?? screenshot.value;
-      if (typeof encoded !== 'string') throw new Error('WebDriver screenshot response has no base64 payload');
-      mkdirSync(dirname(options.screenshot), { recursive: true });
-      writeFileSync(options.screenshot, Buffer.from(encoded, 'base64'));
+      await captureScreenshot(options.port, sessionId, options.screenshot);
     }
     console.log(`[tauri-ui-smoke] ready=${initial.ready} terminal=${terminal.output}`);
     if (driverOutput.includes('error')) console.error(`[tauri-ui-smoke] driver output: ${driverOutput}`);
   } finally {
+    if (typeof sessionId === 'string' && options.screenshot !== undefined && !existsSync(options.screenshot)) {
+      try {
+        await captureScreenshot(options.port, sessionId, options.screenshot);
+      } catch (error) {
+        console.error(`[tauri-ui-smoke] could not capture failure screenshot: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
     if (typeof sessionId === 'string') {
       await webdriverRequest(options.port, `/session/${sessionId}`, 'DELETE').catch(() => {});
     }

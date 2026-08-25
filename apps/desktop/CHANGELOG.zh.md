@@ -4,6 +4,12 @@ dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a
 
 ## [未发布]
 
+## [0.3.23] - 2026-08-25
+
+### 修复
+
+- Linux 原生 Tauri UI 冒烟测试会通过 `DSH_PATCH` 传入明文会话 fixture 覆盖，使已安装的 Web profile 能发现植入的 transcript；WebDriver 断言失败时会保留 WebView 截图。
+
 ## [0.3.22] - 2026-08-25
 
 ### 修复

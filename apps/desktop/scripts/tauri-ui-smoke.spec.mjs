@@ -10,6 +10,7 @@ import {
   advanceSeededSessionNavigation,
   encodeSegment,
   materializeFixture,
+  nativeUiDriverEnvironment,
   parseArguments,
   projectKey,
   seededSessionGroupSelector,
@@ -55,12 +56,30 @@ test('materializes the committed session fixture without path tokens', () => {
     const stored = readFileSync(materialized.sessionPath, 'utf8');
     assert.equal(stored.includes('{{sessionId}}'), false);
     assert.equal(stored.includes('{{cwd}}'), false);
-    assert.match(readFileSync(join(home, 'cordis.patch.yml'), 'utf8'), /compression: none/);
+    assert.equal(materialized.patchPath, join(home, 'cordis.patch.yml'));
+    assert.match(readFileSync(materialized.patchPath, 'utf8'), /compression: none/);
     assert.match(materialized.sessionPath, new RegExp(`${projectKey(join(home, 'workspace', 'workspace'))}`));
     assert.match(materialized.sessionPath, new RegExp(encodeSegment(materialized.sessionId)));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test('passes the plaintext fixture overlay through the installed shell environment', () => {
+  assert.deepEqual(
+    nativeUiDriverEnvironment('/tmp/native-home', '/tmp/native-home/cordis.patch.yml', {
+      PATH: '/usr/bin',
+      DSH_HOME: '/ambient/home',
+      DSH_PATCH: '/ambient/patch.yml',
+    }),
+    {
+      PATH: '/usr/bin',
+      DSH_HOME: '/tmp/native-home',
+      DSH_PATCH: '/tmp/native-home/cordis.patch.yml',
+      DSH_TELEMETRY_DISABLED: '1',
+      WEBKIT_DISABLE_DMABUF_RENDERER: '1',
+    },
+  );
 });
 
 test('uses the W3C Tauri application capability without an ambient browser', () => {
