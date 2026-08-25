@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-08-12-required-python-runtime-pull-request-ci.md
 2026-08-12-required-python-runtime-pull-request-ci.md: 89227304682b69df9d4eac90c2f54df32400d892
-2026-08-12-required-python-runtime-pull-request-ci.zh.md: 4ff26584b30593ff419519baf85420918ffe2620
+2026-08-12-required-python-runtime-pull-request-ci.zh.md: c552a7ea1ed4dde4edec19d84813e6a8085f374e

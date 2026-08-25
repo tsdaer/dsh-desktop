@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { packageManagerInvocation } from '../../../scripts/package-manager.ts';
+import { pnpmInvocation } from '../../../scripts/pnpm-invocation.ts';
 import { resolveTargetFromArgs } from './target-spec.mjs';
 import { effectiveTauriConfig, tauriBuildArgs, updaterEndpointConfig } from './tauri-config.mjs';
 
@@ -34,7 +34,7 @@ function run(command, commandArgs) {
 }
 
 function runPnpm(commandArgs) {
-  const invocation = packageManagerInvocation(commandArgs, 'desktop bundle');
+  const invocation = pnpmInvocation(commandArgs);
   run(invocation.command, invocation.args);
 }
 

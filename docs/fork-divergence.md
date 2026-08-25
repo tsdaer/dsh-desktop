@@ -41,7 +41,7 @@ The [root standing orders](../AGENTS.md) carry the obligation, and [the README](
 
 ## Removed upstream automation
 
-This fork keeps no inherited workflow. `build-exe-for-python-sdk.yml`, `ci.yml`, `docs-pages.yml`, `e2b-e2e.yml`, `e2e.yml`, `expected-filenames.yml`, `issue-lifecycle.yml`, `issue-policy.yml`, `landlock-run.yml`, `landlock-run-release.yml`, `pi-ai-provider-e2e.yml`, `python-release.yml`, `release.yml`, `release-vendor.yml`, and `sandbox.yml` are all absent, and none of them is restored.
+This fork keeps no inherited workflow. `build-exe-for-python-sdk.yml`, `ci.yml`, `ci-master.yml`, `docs-pages.yml`, `e2b-e2e.yml`, `e2e.yml`, `expected-filenames.yml`, `issue-lifecycle.yml`, `issue-policy.yml`, `landlock-run.yml`, `landlock-run-release.yml`, `pi-ai-provider-e2e.yml`, `python-release.yml`, `release.yml`, `release-publish.yml`, `release-vendor.yml`, `release-vendor-publish.yml`, and `sandbox.yml` are all absent, and none of them is restored.
 
 One consequence is load-bearing: `scripts/ci-workflow.spec.ts` reads those files, so it fails here with `ENOENT` on `.github/workflows/ci.yml`. That failure is expected in this fork and is not evidence of a defect. Do not silence it by restoring upstream automation.
 

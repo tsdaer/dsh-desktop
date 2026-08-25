@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-07-10-single-file-executable-sdk-runtime-distribution.md
 2026-07-10-single-file-executable-sdk-runtime-distribution.md: a08072265823c4394bc98e4d95914028b6d3d82d
-2026-07-10-single-file-executable-sdk-runtime-distribution.zh.md: bea245c1ab74d3c156d894307436c942e659d570
+2026-07-10-single-file-executable-sdk-runtime-distribution.zh.md: b172def6b25918a79bc5fde644ddd82d90c94184

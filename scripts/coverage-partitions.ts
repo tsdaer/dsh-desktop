@@ -2,7 +2,7 @@
 import { spawn } from 'node:child_process'
 import { lstat, mkdir, readdir, rm, unlink } from 'node:fs/promises'
 import { join, relative, sep } from 'node:path'
-import type { PackageManagerInvocation } from './package-manager.ts'
+import { pnpmInvocation } from './pnpm-invocation.ts'
 
 /** Environment variable selecting the number of instrumented coverage processes. */
 export const COVERAGE_PARTITIONS_ENV = 'DSH_COVERAGE_PARTITIONS'
@@ -17,9 +17,9 @@ export const COVERAGE_TEST_TIMEOUT_ENV = 'DSH_COVERAGE_TEST_TIMEOUT_MS'
 export interface CoverageCommand {
   /** Diagnostic identity. */
   label: string
-  /** Executable to spawn. */
+  /** Executable launched without a platform shell. */
   command: string
-  /** Complete argument list for {@link CoverageCommand.command}. */
+  /** Arguments passed to the executable. */
   args: string[]
   /** Environment additions for the child. */
   env: Record<string, string | undefined>
@@ -50,8 +50,8 @@ export interface CoveragePartitionCoordinatorOptions {
   root: string
   /** Number of concurrent single-worker Vitest processes. */
   partitions: number
-  /** Package-manager invocation each partition re-enters. */
-  packageManager: PackageManagerInvocation
+  /** pnpm JavaScript or executable entrypoint from `npm_execpath`. */
+  pnpmEntrypoint: string
   /** Additional arguments shared by every partition. */
   vitestArgs?: string[]
   /** Child executor, injectable for scheduler tests. */
@@ -87,7 +87,7 @@ export function forwardedCoverageArgs(args: readonly string[]): string[] {
 export class CoveragePartitionCoordinator {
   private readonly root: string
   private readonly partitions: number
-  private readonly packageManager: PackageManagerInvocation
+  private readonly pnpmEntrypoint: string
   private readonly vitestArgs: string[]
   private readonly runCommand: CoverageCommandRunner
   private readonly temporaryRoot: string
@@ -100,7 +100,7 @@ export class CoveragePartitionCoordinator {
     }
     this.root = options.root
     this.partitions = options.partitions
-    this.packageManager = options.packageManager
+    this.pnpmEntrypoint = options.pnpmEntrypoint
     this.vitestArgs = options.vitestArgs ?? []
     this.runCommand = options.runCommand ?? runCoverageCommand
     this.temporaryRoot = join(this.root, 'coverage', '.partitioned')
@@ -145,24 +145,23 @@ export class CoveragePartitionCoordinator {
   private partitionCommand(index: number): CoverageCommand {
     const blobPath = join(this.blobsRoot, `partition-${index}.json`)
     const reportsDirectory = join(this.temporaryRoot, `coverage-${index}`)
+    const invocation = pnpmInvocation([
+      'exec',
+      'vitest',
+      'run',
+      '--coverage',
+      '--coverage.reportOnFailure',
+      '--maxWorkers=1',
+      `--shard=${index}/${this.partitions}`,
+      '--reporter=default',
+      '--reporter=blob',
+      `--outputFile.blob=${this.relativePath(blobPath)}`,
+      `--coverage.reportsDirectory=${this.relativePath(reportsDirectory)}`,
+      ...this.vitestArgs,
+    ], { npm_execpath: this.pnpmEntrypoint })
     return {
       label: `partition ${index}/${this.partitions}`,
-      command: this.packageManager.command,
-      args: [
-        ...this.packageManager.args,
-        'exec',
-        'vitest',
-        'run',
-        '--coverage',
-        '--coverage.reportOnFailure',
-        '--maxWorkers=1',
-        `--shard=${index}/${this.partitions}`,
-        '--reporter=default',
-        '--reporter=blob',
-        `--outputFile.blob=${this.relativePath(blobPath)}`,
-        `--coverage.reportsDirectory=${this.relativePath(reportsDirectory)}`,
-        ...this.vitestArgs,
-      ],
+      ...invocation,
       env: {
         [COVERAGE_PARTITIONS_ENV]: undefined,
         [COVERAGE_PARTITION_MODE_ENV]: '1',
@@ -173,16 +172,15 @@ export class CoveragePartitionCoordinator {
   }
 
   private mergeCommand(): CoverageCommand {
+    const invocation = pnpmInvocation([
+      'exec',
+      'vitest',
+      `--merge-reports=${this.relativePath(this.blobsRoot)}`,
+      '--coverage',
+    ], { npm_execpath: this.pnpmEntrypoint })
     return {
       label: 'merged coverage report',
-      command: this.packageManager.command,
-      args: [
-        ...this.packageManager.args,
-        'exec',
-        'vitest',
-        `--merge-reports=${this.relativePath(this.blobsRoot)}`,
-        '--coverage',
-      ],
+      ...invocation,
       env: {
         [COVERAGE_PARTITIONS_ENV]: undefined,
         [COVERAGE_PARTITION_MODE_ENV]: undefined,
