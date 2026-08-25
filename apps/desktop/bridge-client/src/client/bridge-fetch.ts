@@ -6,7 +6,12 @@
 // exactly as before.
 
 const loopbackToken = (() => {
-  const token = new URLSearchParams(window.location.search).get('dsh_token')
+  // Module-scope capture so the token is frozen before the first bridge
+  // request; a non-browser import (node unit tests) simply sees no URL.
+  const query = typeof window === 'undefined'
+    ? null
+    : new URLSearchParams(window.location.search).get('dsh_token')
+  const token = query
     ?? (globalThis as { __DSH_LOOPBACK_TOKEN__?: unknown }).__DSH_LOOPBACK_TOKEN__
   return typeof token === 'string' && token.length > 0 ? token : undefined
 })()

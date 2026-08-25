@@ -16,7 +16,7 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::mpsc;
@@ -185,6 +185,10 @@ struct RuntimePaths {
     /// profile (packaged, offline); empty in dev where the repository
     /// checkout supplies the bridge packages.
     bridge_copy: Vec<PathBuf>,
+    /// Whether the runtime wiring came from the dev launcher (DSH_CLI env) or
+    /// from packaged resources. A packaged runtime also carries a CLI path,
+    /// so "has a CLI" cannot be the dev signal.
+    dev: bool,
 }
 
 impl RuntimePaths {
@@ -194,14 +198,15 @@ impl RuntimePaths {
             cli: std::env::var("DSH_CLI").unwrap_or_default(),
             module_base: std::env::var("DSH_BARE_MODULE_BASE").ok(),
             bridge_copy: Vec::new(),
+            dev: true,
         }
     }
 
-    /// Dev mode: a DSH_CLI was set (the dev launcher points it at the
-    /// repository's built CLI), so the repository checkout supplies the
-    /// bridge packages.
+    /// Dev mode: the dev launcher set DSH_CLI, so the repository checkout
+    /// supplies the bridge packages. The mode is tracked explicitly because a
+    /// packaged runtime also carries a CLI path (its own resources).
     fn is_dev(&self) -> bool {
-        !self.cli.is_empty()
+        self.dev
     }
 
     fn packaged(handle: &tauri::AppHandle) -> Option<Self> {
@@ -242,6 +247,7 @@ impl RuntimePaths {
             cli: resource_cli.to_string_lossy().into_owned(),
             module_base,
             bridge_copy,
+            dev: false,
         })
     }
 }
@@ -745,19 +751,6 @@ fn ensure_bridge(node: &str, cli: &str, paths: &RuntimePaths) -> Vec<String> {
         format!("{base}/.dsh")
     });
     let profile = std::path::Path::new(&home).join("profiles").join("web");
-    let marker = profile
-        .join("node_modules")
-        .join("@deepseek-ai")
-        .join("dsh-desktop-bridge");
-    if marker.join("package.json").exists() && !paths.is_dev() {
-        // Packaged mode keeps the profile's bridge in lockstep with the
-        // runtime's on every boot: the bridge lib is a build artifact that
-        // source changes refresh, so a one-time copy would leave the profile
-        // on stale behavior after an upgrade (missing routes, dead plugin).
-        // Dev mode copies on every boot below for the same reason.
-        copy_bridge_packages(&profile, &paths.bridge_copy);
-        return patches;
-    }
     if !profile.exists() {
         // First boot: let the CLI initialize the web profile template.
         let _ = Command::new(node)
@@ -779,11 +772,22 @@ fn ensure_bridge(node: &str, cli: &str, paths: &RuntimePaths) -> Vec<String> {
     } else {
         paths.bridge_copy.clone()
     };
-    let installed = !sources.is_empty() && copy_bridge_packages(&profile, &sources);
-    if installed {
-        eprintln!("[dsh-desktop] bridge installed into {}", profile.display());
-        install_profile_patch(&profile);
+    if sources.is_empty() {
+        splash_log("[dsh-desktop] bridge sources unavailable; profile bridge left untouched");
+        return patches;
     }
+    // Both modes keep the profile's bridge packages in lockstep with the
+    // running source on every boot: the bridge lib is a build artifact that
+    // source changes refresh, so a one-time copy would leave the profile on
+    // stale behavior after an upgrade (missing routes, dead plugin).
+    if !copy_bridge_packages(&profile, &sources) {
+        splash_log("[dsh-desktop] bridge package refresh FAILED; profile bridge may be stale");
+        return patches;
+    }
+    splash_log("[dsh-desktop] bridge packages refreshed");
+    // Update-time repair: re-sync the profile patch rows and remove legacy
+    // residue whenever the desktop version or the bridge patch advanced.
+    sync_bridge_patch(&profile, env!("CARGO_PKG_VERSION"));
     patches
 }
 
@@ -880,50 +884,222 @@ fn copy_dir_recursive(source: &Path, target: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
-/// Append the bridge rows (installed bridge package's cordis.patch.yml) to
-/// the profile's user patch layer, idempotently. Rows must live in the user
+/// Update-time repair for the profile's bridge rows: bring the shell-owned
+/// bridge entries of `cordis.patch.yml` in lockstep with the installed bridge
+/// package's own patch, remove legacy package residue, and record the sync
+/// marker. The rewrite runs only when the marker is missing or the desktop
+/// version / bridge patch hash advanced, so a user's manual edits to the
+/// bridge config survive until the next upgrade. Rows must live in the user
 /// layer: a `--patch` overlay applies after it, so profile patches could not
 /// configure bridge rows inserted there.
-fn install_profile_patch(profile: &std::path::Path) {
+fn sync_bridge_patch(profile: &std::path::Path, version: &str) -> bool {
     let bridge_patch = profile
         .join("node_modules")
         .join("@deepseek-ai")
         .join("dsh-desktop-bridge")
         .join("cordis.patch.yml");
     let profile_patch = profile.join("cordis.patch.yml");
+    let marker = profile.join(".dsh-desktop-bridge-sync");
     let Ok(source) = std::fs::read_to_string(&bridge_patch) else {
-        eprintln!("[dsh-desktop] bridge patch file missing; skipping profile patch install");
-        return;
+        eprintln!("[dsh-desktop] bridge patch file missing; profile patch sync skipped");
+        return false;
     };
-    let existing = std::fs::read_to_string(&profile_patch).unwrap_or_default();
-    if existing.contains("id: desktop-bridge") {
-        return;
-    }
-    // The profile template ships a comment header plus an empty `[]` list.
-    // Replace that empty list with the bridge rows so they join the existing
-    // array; appending after it would emit a second YAML document and break
-    // the profile parse.
-    let merged = if existing.contains("[]") {
-        existing.replacen("[]", &source, 1)
-    } else {
-        let mut merged = existing;
-        if !merged.is_empty() && !merged.ends_with('\n') {
-            merged.push('\n');
+    let hash = format!("{:016x}", fnv1a64(source.as_bytes()));
+    if let Some((marker_version, marker_hash)) = read_sync_marker(&marker) {
+        if marker_version == version && marker_hash == hash {
+            return true;
         }
-        merged.push_str(&source);
-        merged
+    }
+    // Drop the shell-owned bridge entries (with their comment runs) and any
+    // bare `[]` placeholder; everything else — the user's own rows and
+    // comments — survives untouched.
+    let existing = std::fs::read_to_string(&profile_patch).unwrap_or_default();
+    let lines: Vec<&str> = existing.lines().collect();
+    let entries = collect_patch_entries(&lines);
+    let mut kept: Vec<&str> = Vec::with_capacity(lines.len());
+    let mut cursor = 0;
+    for entry in &entries {
+        let owned = is_bridge_entry(&lines, entry) || lines[entry.start] == "[]";
+        if !owned {
+            continue;
+        }
+        // The bare `[]` placeholder carries no owned comments: the template
+        // preamble above it survives the rewrite. A comment run already
+        // swallowed by a previously removed entry's span clamps to the
+        // cursor instead of slicing backwards.
+        let comment_start = if lines[entry.start] == "[]" {
+            entry.start
+        } else {
+            entry.comment_start.max(cursor)
+        };
+        kept.extend_from_slice(&lines[cursor..comment_start]);
+        cursor = entry.end;
+    }
+    kept.extend_from_slice(&lines[cursor..]);
+    let mut result = kept.join("\n");
+    while result.contains("\n\n\n") {
+        result = result.replace("\n\n\n", "\n\n");
+    }
+    let trimmed = result.trim();
+    let merged = if trimmed.is_empty() {
+        format!("{}\n", source.trim_end())
+    } else {
+        format!("{}\n\n{}\n", trimmed, source.trim_end())
     };
-    if std::fs::write(&profile_patch, merged).is_ok() {
+    if std::fs::write(&profile_patch, merged).is_err() {
         eprintln!(
-            "[dsh-desktop] bridge rows appended to {}; edit the desktop-bridge config there",
+            "[dsh-desktop] failed to write profile patch {}",
             profile_patch.display()
         );
-    } else {
+        return false;
+    }
+    // Legacy residue: directory names an old copy path derived from the
+    // source folder instead of the manifest name; nothing references them.
+    for legacy in ["bridge", "bridge-client"] {
+        let dir = profile
+            .join("node_modules")
+            .join("@deepseek-ai")
+            .join(legacy);
+        if dir.exists() {
+            match std::fs::remove_dir_all(&dir) {
+                Ok(()) => splash_log(&format!(
+                    "[dsh-desktop] removed legacy profile package {legacy}"
+                )),
+                Err(err) => eprintln!(
+                    "[dsh-desktop] failed to remove legacy profile package {legacy}: {err}"
+                ),
+            }
+        }
+    }
+    if std::fs::write(&marker, format!("version={version}\npatch={hash}\n")).is_err() {
         eprintln!(
-            "[dsh-desktop] failed to append bridge rows to {}",
-            profile_patch.display()
+            "[dsh-desktop] failed to record bridge sync marker {}",
+            marker.display()
         );
     }
+    splash_log(&format!("[dsh-desktop] profile bridge rows synced to {version}"));
+    true
+}
+
+/// FNV-1a 64-bit hash over the bridge patch bytes: a stable change
+/// fingerprint for the sync marker, independent of the std hash algorithm.
+fn fnv1a64(bytes: &[u8]) -> u64 {
+    let mut hash = 0xcbf2_9ce4_8422_2325u64;
+    for byte in bytes {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    hash
+}
+
+/// Read the profile's bridge-sync marker: the desktop version and bridge
+/// patch hash of the last successful row sync.
+fn read_sync_marker(marker: &std::path::Path) -> Option<(String, String)> {
+    let text = std::fs::read_to_string(marker).ok()?;
+    let mut version: Option<&str> = None;
+    let mut hash: Option<&str> = None;
+    for line in text.lines() {
+        if let Some(value) = line.strip_prefix("version=") {
+            version = Some(value);
+        } else if let Some(value) = line.strip_prefix("patch=") {
+            hash = Some(value);
+        }
+    }
+    Some((version?.to_owned(), hash?.to_owned()))
+}
+
+/// Whether one line starts a top-level profile-patch list entry: a `- ` row
+/// at column zero, or the bare `[]` empty-list placeholder.
+fn is_top_level_entry(line: &str) -> bool {
+    line.starts_with("- ") || line.trim_end() == "[]"
+}
+
+/// One top-level profile-patch entry: the entry line, its span, and the
+/// contiguous comment run directly above it (no blank line in between).
+struct PatchEntry {
+    /// Index of the first comment line directly above the entry.
+    comment_start: usize,
+    /// Index of the entry line itself.
+    start: usize,
+    /// Index one past the last line of the entry.
+    end: usize,
+}
+
+/// Collect the top-level entries of a profile patch file.
+fn collect_patch_entries(lines: &[&str]) -> Vec<PatchEntry> {
+    let mut entries = Vec::new();
+    let mut index = 0;
+    while index < lines.len() {
+        if !is_top_level_entry(lines[index]) {
+            index += 1;
+            continue;
+        }
+        let mut comment_start = index;
+        while comment_start > 0 && lines[comment_start - 1].trim_start().starts_with('#') {
+            comment_start -= 1;
+        }
+        let mut end = index + 1;
+        while end < lines.len() && !is_top_level_entry(lines[end]) && lines[end] != "---" {
+            end += 1;
+        }
+        entries.push(PatchEntry {
+            comment_start,
+            start: index,
+            end,
+        });
+        index = end;
+    }
+    entries
+}
+
+/// Whether an entry is shell-owned bridge content: a row that mentions the
+/// desktop-bridge plugin ids (the `- insert:` roster or the config entry).
+fn is_bridge_entry(lines: &[&str], entry: &PatchEntry) -> bool {
+    lines[entry.start..entry.end].iter().any(|line| {
+        let trimmed = line.trim_start();
+        trimmed.starts_with("- id: desktop-bridge")
+            || trimmed.starts_with("- id: desktop-bridge-client")
+    })
+}
+
+/// One bounded bridge-health check: fetch `/dsh-bridge/config` over the
+/// loopback with the bearer token and return the HTTP status line (or a
+/// short failure description). The shell runs this once the runtime is
+/// ready, so a bridge that never loaded (stale profile copy, dead plugin)
+/// is recorded in the boot log instead of failing silently later.
+/// @param port - the runtime's loopback port.
+/// @param token - the per-boot loopback token.
+/// @returns the first status line, or a failure description.
+fn probe_bridge(port: u16, token: &str) -> String {
+    let request = format!(
+        "GET /dsh-bridge/config HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nAuthorization: Bearer {token}\r\nConnection: close\r\n\r\n"
+    );
+    let mut last_error = String::from("no response");
+    for _ in 0..2 {
+        let result = std::net::TcpStream::connect(("127.0.0.1", port)).and_then(|mut stream| {
+            stream.set_read_timeout(Some(Duration::from_secs(1)))?;
+            stream.write_all(request.as_bytes())?;
+            let mut response = Vec::new();
+            stream.read_to_end(&mut response)?;
+            Ok(response)
+        });
+        match result {
+            Ok(response) => {
+                let head = String::from_utf8_lossy(&response);
+                let status = head.lines().next().unwrap_or("").trim().to_owned();
+                return if status.is_empty() {
+                    String::from("empty response")
+                } else {
+                    status
+                };
+            }
+            Err(err) => {
+                last_error = err.to_string();
+                std::thread::sleep(Duration::from_millis(500));
+            }
+        }
+    }
+    format!("unreachable: {last_error}")
 }
 
 /// Append a diagnostic line to the splash log file. A Windows GUI-subsystem app
@@ -979,6 +1155,7 @@ fn resolve_paths(handle: &tauri::AppHandle) -> RuntimePaths {
             cli: String::new(),
             module_base: None,
             bridge_copy: Vec::new(),
+            dev: false,
         }
     }
 }
@@ -1285,6 +1462,16 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
                                     .append_pair("dsh_token", &loopback_token);
                                 println!("[dsh-desktop] ready at {url}");
                                 push_status(&handle, "boot", "ok", "dsh 服务就绪", None);
+                                // Verify the bridge route end-to-end with the
+                                // loopback token: a missing or stale bridge
+                                // surfaces here in the log instead of failing
+                                // silently inside the settings page.
+                                if let Some(port) = url.port() {
+                                    let status = probe_bridge(port, &loopback_token);
+                                    splash_log(&format!(
+                                        "[dsh-desktop] bridge probe: {status}"
+                                    ));
+                                }
                                 if let Some(splash) = handle.get_webview_window("splashscreen") {
                                     let _ = splash.close();
                                 }
@@ -1413,6 +1600,228 @@ mod tests {
         assert_eq!(packaged_node_basename(), "dsh-node.exe");
         #[cfg(not(windows))]
         assert_eq!(packaged_node_basename(), "dsh-node");
+    }
+
+    #[test]
+    fn dev_mode_is_the_dsh_cli_launcher_not_any_cli_path() {
+        // A packaged runtime also carries a CLI path (its own resources), so
+        // the mode must not be inferred from `cli` being non-empty: the
+        // packaged bridge copy would otherwise never run and every upgrade
+        // would keep a stale profile bridge. The dev launcher's constructor
+        // is dev by contract; the packaged constructor carries `dev: false`.
+        std::env::remove_var("DSH_CLI");
+        assert!(RuntimePaths::from_env().is_dev());
+        let packaged = RuntimePaths {
+            node: "node".to_owned(),
+            cli: "G:/Apps/dsh-desktop/runtime/lib/bin.js".to_owned(),
+            module_base: None,
+            bridge_copy: Vec::new(),
+            dev: false,
+        };
+        assert!(!packaged.is_dev());
+    }
+
+    #[test]
+    fn packaged_bridge_refresh_copies_the_runtime_packages_into_the_profile() {
+        use std::fs;
+        let temp = std::env::temp_dir().join(format!("dsh-desktop-bridge-test-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&temp);
+        let home = temp.join("home");
+        let profile = home.join("profiles").join("web");
+        let marker = profile
+            .join("node_modules")
+            .join("@deepseek-ai")
+            .join("dsh-desktop-bridge");
+        fs::create_dir_all(marker.join("lib")).unwrap();
+        fs::write(marker.join("package.json"), "{}").unwrap();
+        fs::write(marker.join("lib").join("index.js"), "stale").unwrap();
+        let source = temp
+            .join("runtime")
+            .join("node_modules")
+            .join("@deepseek-ai")
+            .join("dsh-desktop-bridge");
+        fs::create_dir_all(source.join("lib")).unwrap();
+        fs::write(
+            source.join("package.json"),
+            "{\"name\":\"@deepseek-ai/dsh-desktop-bridge\"}",
+        )
+        .unwrap();
+        fs::write(source.join("lib").join("index.js"), "fresh").unwrap();
+        let paths = RuntimePaths {
+            node: "node".to_owned(),
+            cli: "G:/Apps/dsh-desktop/runtime/lib/bin.js".to_owned(),
+            module_base: None,
+            bridge_copy: vec![source],
+            dev: false,
+        };
+        std::env::set_var("DSH_HOME", home.to_string_lossy().into_owned());
+        let patches = ensure_bridge("node", &paths.cli, &paths);
+        std::env::remove_var("DSH_HOME");
+        assert!(patches.is_empty());
+        let refreshed = fs::read_to_string(marker.join("lib").join("index.js")).unwrap();
+        assert_eq!(refreshed, "fresh");
+        fs::remove_dir_all(&temp).ok();
+    }
+
+    #[test]
+    fn fnv1a64_matches_the_reference_vector() {
+        // FNV-1a 64-bit reference vector for "hello".
+        assert_eq!(fnv1a64(b"hello"), 0xa430d84680aabd0b);
+    }
+
+    #[test]
+    fn sync_bridge_patch_replaces_stale_rows_and_preserves_user_rows() {
+        use std::fs;
+        let temp = std::env::temp_dir().join(format!("dsh-desktop-sync-rows-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&temp);
+        let profile = temp.join("profile");
+        let pkg = profile
+            .join("node_modules")
+            .join("@deepseek-ai")
+            .join("dsh-desktop-bridge");
+        fs::create_dir_all(&pkg).unwrap();
+        let source = [
+            "# dsh-desktop-bridge rows. The shell appends this file to the profile's",
+            "# cordis.patch.yml at install time so the rows compose in the user layer",
+            "- insert:",
+            "    - id: desktop-bridge",
+            "      name: '@deepseek-ai/dsh-desktop-bridge'",
+            "",
+            "    - id: desktop-bridge-client",
+            "      name: '@deepseek-ai/dsh-desktop-bridge-client'",
+            "",
+            "# Desktop settings defaults: edit this entry to change the out-of-box",
+            "# behavior (the in-app settings page overrides these).",
+            "- id: desktop-bridge",
+            "  config:",
+            "    closeToTray: false",
+            "    debugMode: false",
+            "    logoMotion: false",
+            "",
+        ]
+        .join("\n");
+        fs::write(pkg.join("cordis.patch.yml"), &source).unwrap();
+        let stale = [
+            "# Your patch layer for this dsh profile.",
+            "# dsh-desktop-bridge rows. The shell appends this file to the profile's",
+            "# cordis.patch.yml at install time so the rows compose in the user layer",
+            "- insert:",
+            "    - id: desktop-bridge",
+            "      name: '@deepseek-ai/dsh-desktop-bridge'",
+            "",
+            "    - id: desktop-bridge-client",
+            "      name: '@deepseek-ai/dsh-desktop-bridge-client'",
+            "",
+            "# Bridge policy: edit this entry to change which dropped files are accepted.",
+            "- id: desktop-bridge",
+            "  config:",
+            "    allowedExtensions: []",
+            "    maxBytes: 52428800",
+            "",
+            "- id: user-plugin",
+            "  config:",
+            "    key: value",
+            "",
+        ]
+        .join("\n");
+        fs::write(profile.join("cordis.patch.yml"), &stale).unwrap();
+        // Legacy residue dirs an old copy path left behind.
+        let legacy = profile.join("node_modules").join("@deepseek-ai");
+        fs::create_dir_all(legacy.join("bridge")).unwrap();
+        fs::create_dir_all(legacy.join("bridge-client")).unwrap();
+        fs::write(legacy.join("bridge").join("package.json"), "{}").unwrap();
+
+        assert!(sync_bridge_patch(&profile, "0.3.30"));
+        let out = fs::read_to_string(profile.join("cordis.patch.yml")).unwrap();
+        assert!(out.contains("- id: user-plugin"), "user rows survive: {out}");
+        assert!(out.contains("closeToTray: false"), "new bridge rows installed: {out}");
+        assert!(!out.contains("allowedExtensions"), "stale rows removed: {out}");
+        assert!(!legacy.join("bridge").exists(), "legacy residue removed");
+        assert!(!legacy.join("bridge-client").exists(), "legacy residue removed");
+        let marker = profile.join(".dsh-desktop-bridge-sync");
+        let marker_text = fs::read_to_string(&marker).unwrap();
+        assert!(marker_text.contains("version=0.3.30"), "marker records version");
+
+        // Same version + same patch: the rewrite is skipped, so edits made
+        // during this version survive a plain reboot — including edits to the
+        // bridge config entry itself.
+        let edited = out.replace("closeToTray: false", "closeToTray: true");
+        fs::write(profile.join("cordis.patch.yml"), &edited).unwrap();
+        assert!(sync_bridge_patch(&profile, "0.3.30"));
+        assert_eq!(
+            fs::read_to_string(profile.join("cordis.patch.yml")).unwrap(),
+            edited,
+            "no rewrite when the marker matches"
+        );
+
+        // A version advance re-syncs the bridge rows (an edit made during the
+        // old version is refreshed) while user-owned rows keep their edits.
+        assert!(sync_bridge_patch(&profile, "0.3.31"));
+        let resynced = fs::read_to_string(profile.join("cordis.patch.yml")).unwrap();
+        assert!(resynced.contains("closeToTray: false"), "upgrade refresh replaces bridge rows");
+        assert!(!resynced.contains("closeToTray: true"), "stale bridge edit removed");
+        assert!(resynced.contains("- id: user-plugin"), "user rows survive the upgrade");
+        fs::remove_dir_all(&temp).ok();
+    }
+
+    #[test]
+    fn sync_bridge_patch_replaces_the_empty_template_list() {
+        use std::fs;
+        let temp = std::env::temp_dir().join(format!("dsh-desktop-sync-empty-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&temp);
+        let profile = temp.join("profile");
+        let pkg = profile
+            .join("node_modules")
+            .join("@deepseek-ai")
+            .join("dsh-desktop-bridge");
+        fs::create_dir_all(&pkg).unwrap();
+        fs::write(
+            pkg.join("cordis.patch.yml"),
+            "- insert:\n    - id: desktop-bridge\n      name: '@deepseek-ai/dsh-desktop-bridge'\n",
+        )
+        .unwrap();
+        let template = [
+            "# Your patch layer for this dsh profile, applied after every bundle layer:",
+            "# a top-level YAML array of loader patch entries.",
+            "[]",
+            "",
+        ]
+        .join("\n");
+        fs::write(profile.join("cordis.patch.yml"), &template).unwrap();
+        assert!(sync_bridge_patch(&profile, "0.3.30"));
+        let out = fs::read_to_string(profile.join("cordis.patch.yml")).unwrap();
+        assert!(out.contains("- insert:"), "rows join the patch: {out}");
+        assert!(!out.contains("[]"), "placeholder replaced: {out}");
+        assert!(out.starts_with("# Your patch layer"), "template preamble survives: {out}");
+        fs::remove_dir_all(&temp).ok();
+    }
+
+    #[test]
+    fn probe_bridge_reports_the_http_status_line() {
+        use std::io::Read;
+        use std::io::Write;
+        let listener = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let port = listener.local_addr().unwrap().port();
+        std::thread::spawn(move || {
+            if let Ok((mut stream, _)) = listener.accept() {
+                let mut buf = [0u8; 512];
+                let _ = stream.read(&mut buf);
+                let _ = stream.write_all(
+                    b"HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: 2\r\n\r\n{}",
+                );
+            }
+        });
+        let status = probe_bridge(port, "test-token");
+        assert!(status.contains("200"), "got: {status}");
+    }
+
+    #[test]
+    fn probe_bridge_reports_an_unreachable_runtime() {
+        let listener = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let port = listener.local_addr().unwrap().port();
+        drop(listener);
+        let status = probe_bridge(port, "test-token");
+        assert!(status.contains("unreachable"), "got: {status}");
     }
 
     #[test]

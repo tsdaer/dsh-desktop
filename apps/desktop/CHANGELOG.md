@@ -4,6 +4,13 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.30] - 2026-08-25
+
+### Fixed
+
+- Packaged boots now install and refresh the desktop bridge packages in the web profile; packaged mode was previously misdetected as dev mode, so an upgrade kept a stale profile bridge that could not authenticate against the loopback token (Desktop settings, balance, and close-to-tray requests failed with HTTP 401).
+- Updating the app also repairs the profile: when the desktop version or the bridge patch advances, the shell re-syncs the shell-owned bridge rows in the profile patch (preserving user rows and in-version edits), removes legacy profile residue, records the sync state, and probes the authenticated bridge route after boot so a broken bridge is logged instead of failing silently.
+
 ## [0.3.29] - 2026-08-25
 
 ### Fixed
