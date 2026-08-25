@@ -4,6 +4,12 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
+## [0.3.29] - 2026-08-25
+
+### Fixed
+
+- Desktop bridge compilation no longer fails on an unused settings-bootstrap import.
+
 ## [0.3.28] - 2026-08-25
 
 ### Fixed

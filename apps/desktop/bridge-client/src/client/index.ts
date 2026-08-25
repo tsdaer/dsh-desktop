@@ -7,7 +7,6 @@ import { BridgeSection } from './BridgeSection.tsx'
 import { createDesktopWorkspaceWorkbench } from './DesktopWorkspaceWorkbench.tsx'
 import { mountDesktopUpdater } from './DesktopUpdater.ts'
 import { formatWorktreePath, normalizeWorktreePath, WORKTREE_PATH_POINTER_EVENT } from './DesktopWorkspacePathDrop.ts'
-import { bridgeFetch } from './bridge-fetch.ts'
 import { en, zh } from './locales.ts'
 
 // @deepseek-ai/dsh-desktop-bridge-client — browser half of the shell bridge.
