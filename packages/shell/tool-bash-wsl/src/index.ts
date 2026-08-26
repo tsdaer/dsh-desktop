@@ -22,7 +22,7 @@ import type {} from '@deepseek-ai/dsh-system-prompt'
 import type {} from '@deepseek-ai/dsh-jobs'
 import type {} from '@deepseek-ai/dsh-shell-env'
 import { DSH_ENV_PREFIX, parseExitStatus } from '@deepseek-ai/dsh-shell'
-import type { SettingsNamespace } from '@deepseek-ai/dsh-settings'
+import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import type { CollectedOutput, ShellProcess, ShellProcessRead, ShellRunResult } from '@deepseek-ai/dsh-shell'
 
 export const name = 'tool-bash-wsl'
@@ -213,21 +213,35 @@ function canonicalBashResult(result: ShellRunResult) {
  * @param ctx - the client root context.
  * @param config - the resolved tool configuration.
  */
-export function apply(ctx: Context, config: Config): void {
+/** The settings namespace this tool reads its enablement from. */
+export const WSL_SETTINGS_NAMESPACE = settingsNamespace('bash-wsl')
+
+export function apply(ctx: Context, config: Config = {} as Config): void {
   // The tool mounts from the preset composition; its enablement is the desktop
   // setting (wslEnabled + a healthy distribution probe). The setting section
   // is read live so a settings change takes effect without a restart; absent
   // a settings service, the composition entry's `enabled` decides.
   const settings = ctx.get('settings')
-  const section = settings?.get('desktop-bridge' as SettingsNamespace) as { wslEnabled?: unknown; wslDistribution?: unknown } | undefined
+  // Register our own namespace so settings.get resolves it even in a
+  // composition without the desktop bridge (the settings-file document may
+  // already carry a stored bash-wsl section from the desktop card).
+  settings?.register(WSL_SETTINGS_NAMESPACE, z.object({
+    wslEnabled: z.boolean().default(false),
+    wslDistribution: z.string().default(''),
+  }))
+  const section = settings?.get(WSL_SETTINGS_NAMESPACE) as { wslEnabled?: unknown; wslDistribution?: unknown } | undefined
   // A settings section that exists is authoritative (the desktop card owns the
   // value); absent one, the composition entry decides.
-  const enabled = section === undefined ? config.enabled : section.wslEnabled === true
+  const enabled = section === undefined
+    ? config.enabled === true
+    : section.wslEnabled === true
   const distribution = section !== undefined
     && typeof section.wslDistribution === 'string'
     && section.wslDistribution.length > 0
     ? section.wslDistribution
-    : config.distribution
+    : typeof config.distribution === 'string' && config.distribution.length > 0
+      ? config.distribution
+      : ''
   if (!enabled) return
   const backgroundEnabled = config.enableRunInBackground ?? true
   // so a composition that omits them still runs.
@@ -241,13 +255,13 @@ export function apply(ctx: Context, config: Config): void {
   }
   const executor = new WslBashExecutor(ctx, executorConfig, distribution)
 
-  ctx.systemPrompt.section({
+  ctx.get('systemPrompt')?.section({
     name: 'tool:bash-wsl',
     order: 106,
     text: 'Check the [exit code: N] marker on every bash result; investigate failures before moving on.',
   })
 
-  ctx.tools.register(defineTool({
+  ctx.get('tools')?.register(defineTool({
     name: 'bash',
     description: bashDescription(),
     parameters: {
@@ -289,7 +303,7 @@ export function apply(ctx: Context, config: Config): void {
     async execute(args: BashToolArgs, exec) {
       validateBashArgs(args)
       const workdir = resolveWorkdir(args.workdir, exec)
-      const dshEnv = ctx.shellEnv.collect(exec)
+      const dshEnv = ctx.get('shellEnv')?.collect(exec) ?? {}
       const request = {
         command: args.command,
         ...workdir !== undefined ? { workdir } : {},

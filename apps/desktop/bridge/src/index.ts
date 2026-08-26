@@ -234,6 +234,12 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
         return
       }
       await settings.mutate(BRIDGE_SETTINGS_NS, ops)
+      // The WSL bash tool reads its enablement from the bash-wsl namespace;
+      // mirror the desktop card's value there so the tool catalog follows.
+      const wslOps = ops.filter(op => op.path[0] === 'wslEnabled' || op.path[0] === 'wslDistribution')
+      if (wslOps.length > 0) {
+        await settings.mutate('bash-wsl' as SettingsNamespace, wslOps)
+      }
       json(res, 200, { ok: true })
     } catch (err) {
       json(res, 500, { error: err instanceof Error ? err.message : String(err) })

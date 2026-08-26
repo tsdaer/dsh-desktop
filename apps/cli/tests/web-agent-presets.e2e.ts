@@ -893,3 +893,43 @@ describe('a session keeps the preset it was created with', () => {
     }
   })
 })
+// Windows-only assembled evidence for P4b (WSL 2 Bash): the desktop-bridge
+// settings section decides whether the bash tool joins the standard preset
+// catalog. This runs only on Windows, where wsl.exe exists and the preset
+// mounts tool-pwsh alongside the conditional tool-bash-wsl.
+describe.runIf(process.platform === 'win32')('WSL bash joins the standard catalog by setting', () => {
+  async function bootWithWsl(wslEnabled: boolean): Promise<{ ctx: Context; handle: { agent: Agent } & { dispose(): Promise<void> } }> {
+    const settingsFile = join(await mkdtemp(join(tmpdir(), 'dsh-wsl-presets-')), 'settings.yaml')
+    await writeFile(settingsFile, `bash-wsl:\n  wslEnabled: ${wslEnabled}\n  wslDistribution: ubuntu\n`)
+    const booted = await bootWeb(settingsFile)
+    const handle = await booted.agents.create({
+      sessionId: SessionId('preset-wsl'),
+      setup: agentCtx => booted.agentPresets.mount(agentCtx, 'standard').then(() => undefined),
+    })
+    return { ctx: booted, handle: handle as never }
+  }
+
+  it('adds bash to the standard catalog when wslEnabled is true', async () => {
+    const { ctx, handle } = await bootWithWsl(true)
+    try {
+      const tools = toolNames(ctx, handle.agent)
+      expect(tools).toContain('bash')
+      expect(tools).toContain('pwsh')
+    } finally {
+      await handle.dispose()
+      await ctx.fiber.dispose()
+    }
+  }, 120_000)
+
+  it('omits bash from the standard catalog when wslEnabled is false', async () => {
+    const { ctx, handle } = await bootWithWsl(false)
+    try {
+      const tools = toolNames(ctx, handle.agent)
+      expect(tools).not.toContain('bash')
+      expect(tools).toContain('pwsh')
+    } finally {
+      await handle.dispose()
+      await ctx.fiber.dispose()
+    }
+  }, 120_000)
+})
