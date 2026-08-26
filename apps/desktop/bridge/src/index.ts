@@ -11,11 +11,15 @@
 //   selection for the active session and query the selected provider's
 //   account summary through its adapter. The provider and credential never
 //   come from the browser.
+// - GET /dsh-bridge/wsl/detect — detect WSL 2 readiness (typed snapshot).
+// - POST /dsh-bridge/wsl/probe — probe one WSL 2 distribution for command
+//   execution.
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import z from '@deepseek-ai/schemastery'
 import { resolveAccountSummary } from './account-summary.ts'
+import { detectWsl, probeDistribution } from './wsl.ts'
 import type { SettingsNamespace } from '@deepseek-ai/dsh-settings'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-fs'
@@ -76,12 +80,18 @@ export interface Config {
   sourceControlTimeoutMs: number
   /** Maximum one-side diff bytes read for the Source Control diff route. */
   sourceControlMaxDiffBytes: number
+  /** Whether Bash over WSL 2 is enabled for this desktop profile. */
+  wslEnabled: boolean
+  /** The selected WSL 2 distribution for Bash, when enabled. */
+  wslDistribution: string
 }
 
 export const Config: z<Config> = z.object({
   closeToTray: z.boolean().default(false),
   debugMode: z.boolean().default(false),
   logoMotion: z.boolean().default(false),
+  wslEnabled: z.boolean().default(false),
+  wslDistribution: z.string().default(''),
   explorerMaxEntries: z.number().default(256),
   explorerMaxBytes: z.number().default(128 * 1024),
   explorerTimeoutMs: z.number().default(5_000),
@@ -148,6 +158,8 @@ function effectiveConfig(ctx: Context, config: Config): Config {
     closeToTray: section?.closeToTray ?? config.closeToTray,
     debugMode: section?.debugMode ?? config.debugMode,
     logoMotion: section?.logoMotion ?? config.logoMotion,
+    wslEnabled: section?.wslEnabled ?? config.wslEnabled,
+    wslDistribution: section?.wslDistribution ?? config.wslDistribution,
     explorerMaxEntries: config.explorerMaxEntries,
     explorerMaxBytes: config.explorerMaxBytes,
     explorerTimeoutMs: config.explorerTimeoutMs,
@@ -189,7 +201,13 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
       return
     }
     try {
-      const body = JSON.parse(await readBody(req)) as { closeToTray?: unknown; debugMode?: unknown; logoMotion?: unknown }
+      const body = JSON.parse(await readBody(req)) as {
+        closeToTray?: unknown
+        debugMode?: unknown
+        logoMotion?: unknown
+        wslEnabled?: unknown
+        wslDistribution?: unknown
+      }
       const settings = ctx.get('settings')
       if (settings === undefined) {
         json(res, 500, { error: 'settings service unavailable' })
@@ -204,6 +222,12 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
       }
       if (typeof body.logoMotion === 'boolean') {
         ops.push({ op: 'set', path: ['logoMotion'], value: body.logoMotion })
+      }
+      if (typeof body.wslEnabled === 'boolean') {
+        ops.push({ op: 'set', path: ['wslEnabled'], value: body.wslEnabled })
+      }
+      if (typeof body.wslDistribution === 'string') {
+        ops.push({ op: 'set', path: ['wslDistribution'], value: body.wslDistribution })
       }
       if (ops.length === 0) {
         json(res, 400, { error: 'no valid fields to save' })
@@ -222,7 +246,13 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
       res.end()
       return
     }
-    json(res, 200, { closeToTray: effective.closeToTray, debugMode: effective.debugMode, logoMotion: effective.logoMotion })
+    json(res, 200, {
+      closeToTray: effective.closeToTray,
+      debugMode: effective.debugMode,
+      logoMotion: effective.logoMotion,
+      wslEnabled: effective.wslEnabled,
+      wslDistribution: effective.wslDistribution,
+    })
     return
   }
   if (pathname === '/dsh-bridge/account-summary') {
@@ -232,6 +262,32 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
       return
     }
     await handleAccountSummary(req, res, ctx)
+    return
+  }
+  if (pathname === '/dsh-bridge/wsl/detect') {
+    if (req.method !== 'GET') {
+      res.statusCode = 405
+      res.end()
+      return
+    }
+    const snapshot = await detectWsl()
+    json(res, 200, snapshot)
+    return
+  }
+  if (pathname === '/dsh-bridge/wsl/probe') {
+    if (req.method !== 'POST') {
+      res.statusCode = 405
+      res.end()
+      return
+    }
+    const url = new URL(req.url ?? '/', 'http://localhost')
+    const distribution = url.searchParams.get('distribution') ?? ''
+    if (distribution.length === 0) {
+      json(res, 400, { error: 'distribution is required' })
+      return
+    }
+    const ok = await probeDistribution(distribution)
+    json(res, 200, { ok })
     return
   }
   if (pathname === '/dsh-bridge/worktree/explorer') {

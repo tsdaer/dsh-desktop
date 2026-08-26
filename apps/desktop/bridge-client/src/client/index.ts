@@ -5,6 +5,7 @@ import { buildMenuItems, classifyTarget, copyFromComposer, copySelection, cutFro
 import { openContextMenu } from './DesktopContextMenuPortal.ts'
 import { BridgeDebugRow } from './BridgeDebugRow.tsx'
 import { BridgeLogoMotionRow } from './BridgeLogoMotionRow.tsx'
+import { BridgeWslRow } from './BridgeWslRow.tsx'
 import css from './BridgeRow.module.css'
 import { BridgeSection } from './BridgeSection.tsx'
 import { createDesktopWorkspaceWorkbench } from './DesktopWorkspaceWorkbench.tsx'
@@ -513,6 +514,7 @@ export function apply(ctx: BridgeClientContext): () => void {
       'settings.bridge.item': { kind: 'list', scope: 'root' },
       'settings.bridge.item2': { kind: 'list', scope: 'root' },
       'settings.bridge.item3': { kind: 'list', scope: 'root' },
+      'settings.bridge.item4': { kind: 'list', scope: 'root' },
     },
   }, BridgeSection))
   ctx.slots.inject('settings.bridge.item', () => ctx.slots.register({
@@ -541,6 +543,12 @@ export function apply(ctx: BridgeClientContext): () => void {
     locale: NS,
     inject: () => ({ onLogoMotion: applyLogoMotion }),
   }, BridgeLogoMotionRow))
+  ctx.slots.inject('settings.bridge.item4', () => ctx.slots.register({
+    name: 'settings.bridge.item4',
+    id: 'bridge-wsl',
+    order: 0,
+    locale: NS,
+  }, BridgeWslRow))
   ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
     name: 'sidebar.footer.action',
     id: 'desktop-workspace-workbench',

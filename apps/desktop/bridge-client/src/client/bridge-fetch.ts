@@ -62,6 +62,10 @@ export interface BridgeConfig {
   debugMode: boolean
   /** Whether Logo hover motion may override reduced-motion preference. */
   logoMotion: boolean
+  /** Whether Bash over WSL 2 is enabled for this desktop profile. */
+  wslEnabled?: boolean
+  /** The selected WSL 2 distribution for Bash, when enabled. */
+  wslDistribution?: string
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
