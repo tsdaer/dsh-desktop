@@ -16,15 +16,34 @@ beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn(() => new Promise<never>(() => {})))
 })
 
+const ACCOUNT_EVENT = 'dsh://account-summary'
+
 describe('desktop title bar', () => {
-  it('authenticates the balance request with the navigation token', () => {
+  it('no longer fetches balance itself; it renders pushed account summaries', () => {
     window.eval(titlebarSource)
     const fetchMock = vi.mocked(fetch)
-    expect(fetchMock).toHaveBeenCalledTimes(1)
-    const [, init] = fetchMock.mock.calls[0]!
-    expect(new Headers(init?.headers).get('authorization')).toBe('Bearer titlebar-secret')
-    expect((window as typeof window & { __DSH_LOOPBACK_TOKEN__?: string }).__DSH_LOOPBACK_TOKEN__)
-      .toBe('titlebar-secret')
+    expect(fetchMock).not.toHaveBeenCalled()
+    const balance = document.querySelector('.bar-balance') as HTMLButtonElement
+    expect(balance).not.toBeNull()
+  })
+
+  it('renders an available account summary pushed by the controller', () => {
+    window.eval(titlebarSource)
+    window.dispatchEvent(new CustomEvent(ACCOUNT_EVENT, {
+      detail: { ok: true, sessionId: 's1', providerId: 'deepseek-official', generation: '1', state: 'available', amount: '42.50', currency: 'CNY' },
+    }))
+    const balance = document.querySelector('.bar-balance') as HTMLButtonElement
+    expect(balance.hidden).toBe(false)
+    expect(balance.querySelector('.bar-balance-value')?.textContent).toBe('¥42.50')
+  })
+
+  it('keeps the amount hidden until an available summary arrives', () => {
+    window.eval(titlebarSource)
+    window.dispatchEvent(new CustomEvent(ACCOUNT_EVENT, {
+      detail: { ok: false, sessionId: 's1', providerId: 'pi-ai', generation: '1', state: 'unsupported' },
+    }))
+    const balance = document.querySelector('.bar-balance') as HTMLButtonElement
+    expect(balance.hidden).toBe(true)
   })
 
   it('follows the document locale after asynchronous locale resolution', async () => {

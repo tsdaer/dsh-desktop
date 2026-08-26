@@ -125,10 +125,7 @@
   load.append(loadEmoji, loadLabel);
   bar.appendChild(load);
 
-  var BALANCE_REFRESH_MS = 5 * 60 * 1000;
-  var balanceTimer = null;
   var balanceEverShown = false;
-  var balanceRequest = null;
 
   var balance = document.createElement('button');
   balance.type = 'button';
@@ -206,49 +203,43 @@
     return symbol + total;
   }
 
+  // The account controller lives in bridge-client (DesktopAccountSummary.ts):
+  // it subscribes to the active session's model selection, requests the
+  // provider-bound /dsh-bridge/account-summary route, and pushes each result
+  // here through this stable window event. This script keeps only the mount
+  // point and the click-to-refresh signal.
+  var ACCOUNT_EVENT = 'dsh://account-summary';
+  var ACCOUNT_REFRESH_REQUEST = 'dsh://account-summary-refresh';
+
   function applyBalance(data) {
-    var state = data && typeof data.state === 'string' ? data.state : (data && data.ok === true ? 'connected' : 'unavailable');
+    var state = data && typeof data.state === 'string' ? data.state : 'unavailable';
     applyApiState(state);
-    if (data && state === 'connected' && typeof data.totalBalance === 'string') {
+    if (data && state === 'available' && typeof data.amount === 'string') {
       balanceEverShown = true;
       balance.querySelector('.bar-balance-value').textContent =
-        formatBalance(data.currency, data.totalBalance);
+        formatBalance(data.currency, data.amount);
       balance.hidden = false;
     } else if (!balanceEverShown) {
       balance.hidden = true;
     }
   }
 
-  function refreshBalance() {
-    if (balanceRequest !== null) return balanceRequest;
-    if (balanceTimer !== null) {
-      clearTimeout(balanceTimer);
-      balanceTimer = null;
+  // The controller also marks in-flight fetches through this event so the
+  // control reflects checking state without duplicating the request logic.
+  window.addEventListener(ACCOUNT_EVENT, function (event) {
+    var detail = event && event.detail ? event.detail : null;
+    if (detail && detail.state === 'checking') {
+      balance.disabled = true;
+      balance.setAttribute('aria-busy', 'true');
+      applyApiState('checking');
+      return;
     }
-    applyApiState('checking');
-    balance.disabled = true;
-    balance.setAttribute('aria-busy', 'true');
-    var controller = new AbortController();
-    var abort = setTimeout(function () { controller.abort(); }, 8000);
-    var token = window.__DSH_LOOPBACK_TOKEN__;
-    var headers = token ? { authorization: 'Bearer ' + token } : undefined;
-    balanceRequest = fetch('/dsh-bridge/balance', { headers: headers, signal: controller.signal })
-      .then(function (response) { return response.json(); })
-      .then(applyBalance)
-      .catch(function () { applyApiState('unavailable'); })
-      .finally(function () {
-        clearTimeout(abort);
-        balanceRequest = null;
-        balance.disabled = false;
-        balance.removeAttribute('aria-busy');
-        balanceTimer = setTimeout(refreshBalance, BALANCE_REFRESH_MS);
-      });
-    return balanceRequest;
-  }
-  balance.addEventListener('click', refreshBalance);
-  refreshBalance();
-  document.addEventListener('visibilitychange', function () {
-    if (!document.hidden) refreshBalance();
+    balance.disabled = false;
+    balance.removeAttribute('aria-busy');
+    applyBalance(detail);
+  });
+  balance.addEventListener('click', function () {
+    window.dispatchEvent(new CustomEvent(ACCOUNT_REFRESH_REQUEST));
   });
 
   function refreshWorkload() {

@@ -1,5 +1,6 @@
 import { BridgeCloseRow } from './BridgeCloseRow.tsx'
-import { readBridgeConfig } from './bridge-fetch.ts'
+import { bridgeFetch, readBridgeConfig } from './bridge-fetch.ts'
+import { mountAccountController } from './DesktopAccountSummary.ts'
 import { BridgeDebugRow } from './BridgeDebugRow.tsx'
 import { BridgeLogoMotionRow } from './BridgeLogoMotionRow.tsx'
 import css from './BridgeRow.module.css'
@@ -578,6 +579,21 @@ export function apply(ctx: BridgeClientContext): () => void {
   document.addEventListener('pointermove', onWorktreePointerMove, true)
   document.addEventListener('pointerup', onWorktreePointerUp, true)
   document.addEventListener('pointercancel', onWorktreePointerUp, true)
+  // Title-bar account: subscribe to the active session and request the
+  // provider-bound account summary through the Host. The Host resolves the
+  // authoritative provider; the browser supplies only the session id (the
+  // provider id is best-effort and never trusted).
+  let disposeAccount: (() => void) | undefined
+  try {
+    disposeAccount = mountAccountController({
+      sessions: { list: ctx.sessions.list },
+      model: { getCurrentProvider: () => undefined },
+      fetch: (url, init) => bridgeFetch(url, init),
+      signal: () => new AbortController().signal,
+    })
+  } catch (err) {
+    console.warn('[dsh-desktop] account controller failed to mount', err)
+  }
   return () => {
     bound = false
     disposed = true
@@ -595,6 +611,7 @@ export function apply(ctx: BridgeClientContext): () => void {
     document.removeEventListener('pointermove', onWorktreePointerMove, true)
     document.removeEventListener('pointerup', onWorktreePointerUp, true)
     document.removeEventListener('pointercancel', onWorktreePointerUp, true)
+    disposeAccount?.()
     activeWorktreePointerDrag = null
     setComposerDropActive(false)
   }
