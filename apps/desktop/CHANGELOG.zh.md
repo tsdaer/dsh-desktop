@@ -2,6 +2,12 @@
 
 dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循[语义化版本](https://semver.org/spec/v2.0.0.html)。draft-release workflow 会把对应版本的章节复制到 GitHub release 的 notes 里。
 
+## [0.4.2] - 2026-08-26
+
+### 修复
+
+- WSL 环境卡片现在会出现在桌面设置中:此前桥接设置区只渲染前三个 item slot,导致已注册的 WSL 卡片(item4)不可见。现在设置区渲染全部四个 slot。
+
 ## [0.4.1] - 2026-08-26
 
 ### 修复
