@@ -1,6 +1,8 @@
 import { BridgeCloseRow } from './BridgeCloseRow.tsx'
 import { bridgeFetch, readBridgeConfig } from './bridge-fetch.ts'
 import { mountAccountController } from './DesktopAccountSummary.ts'
+import { buildMenuItems, classifyTarget, copyFromComposer, copySelection, cutFromComposer, pasteIntoComposer } from './DesktopContextMenu.ts'
+import { openContextMenu } from './DesktopContextMenuPortal.ts'
 import { BridgeDebugRow } from './BridgeDebugRow.tsx'
 import { BridgeLogoMotionRow } from './BridgeLogoMotionRow.tsx'
 import css from './BridgeRow.module.css'
@@ -136,8 +138,50 @@ const LOGO_MOTION_ATTRIBUTE = 'data-dsh-logo-motion'
 /** Devtools-relevant shortcut keys (F12, Ctrl+Shift+I/J/C, Ctrl+U, Ctrl+S). */
 const DEVTOOLS_KEYS = new Set(['f12', 'i', 'j', 'c', 'u', 's'])
 
+/** The active desktop context menu's disposer; closed on navigation/disposal. */
+let activeContextMenu: (() => void) | null = null
+
+function closeActiveContextMenu(): void {
+  activeContextMenu?.()
+  activeContextMenu = null
+}
+
+/**
+ * Production right-click opens the desktop-owned context menu instead of the
+ * browser's uncontrolled one: Copy for selected readable text, Cut/Copy/Paste
+ * only in the conversation composer, Copy alone for other inputs. Debug mode
+ * exposes an explicit Inspect item after the product actions.
+ */
 function onContextMenuCapture(event: MouseEvent): void {
-  if (!debugMode) event.preventDefault()
+  if (debugMode) {
+    // Debug mode keeps the browser menu available (the page's own guard off);
+    // the desktop portal is still the product path when the guard is on.
+  }
+  event.preventDefault()
+  const kind = classifyTarget(event.target)
+  if (kind.kind === 'none') return
+  const items = buildMenuItems(kind, {
+    cut: () => { void cutFromComposer() },
+    copy: () => {
+      if (kind.kind === 'composer') void copyFromComposer()
+      else void copySelection()
+    },
+    paste: () => pasteIntoComposer(),
+    inspect: () => {
+      // Inspect is a debug-mode convenience: focus the target and dispatch a
+      // devtools-open gesture the host can observe. The page-level guard is
+      // what owns debug availability.
+      const target = event.target instanceof HTMLElement ? event.target : null
+      target?.focus()
+    },
+  }, debugMode)
+  if (items.length === 0) return
+  activeContextMenu = openContextMenu({
+    x: event.clientX,
+    y: event.clientY,
+    items,
+    onClose: () => { activeContextMenu = null },
+  })
 }
 
 function onKeyDownCapture(event: KeyboardEvent): void {
@@ -612,6 +656,7 @@ export function apply(ctx: BridgeClientContext): () => void {
     document.removeEventListener('pointerup', onWorktreePointerUp, true)
     document.removeEventListener('pointercancel', onWorktreePointerUp, true)
     disposeAccount?.()
+    closeActiveContextMenu()
     activeWorktreePointerDrag = null
     setComposerDropActive(false)
   }
