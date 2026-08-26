@@ -2,7 +2,7 @@
 
 All notable changes to dsh-desktop are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The draft-release workflow copies the matching version's section into its GitHub release notes.
 
-## [Unreleased]
+## [0.4.0] - 2026-08-26
 
 ### Added
 
@@ -17,13 +17,14 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 - Version 0.4.0.
 
+## [0.3.30] - 2026-08-25
+
 ### Fixed
 
 - Packaged boots now install and refresh the desktop bridge packages in the web profile; packaged mode was previously misdetected as dev mode, so an upgrade kept a stale profile bridge that could not authenticate against the loopback token (Desktop settings, balance, and close-to-tray requests failed with HTTP 401).
 - Updating the app also repairs the profile: when the desktop version or the bridge patch advances, the shell re-syncs the shell-owned bridge rows in the profile patch (preserving user rows and in-version edits), removes legacy profile residue, records the sync state, and probes the authenticated bridge route after boot so a broken bridge is logged instead of failing silently.
 
 ## [0.3.29] - 2026-08-25
-
 ### Fixed
 
 - Desktop bridge compilation no longer fails on an unused settings-bootstrap import.
