@@ -34,7 +34,7 @@ describe('wsl executor argv', () => {
   it('wraps the command in the fixed wsl.exe argv', async () => {
     const ctx = new Context()
     const subprocess = {
-      spawn: vi.fn(() => ({
+      spawn: vi.fn((_spec: unknown) => ({
         done: Promise.resolve({ exitCode: 0, signal: null }),
         collected: { stdout: { readFrom: () => ({ text: '', truncated: false }) }, stderr: { readFrom: () => ({ text: '', truncated: false }) } },
       })),
