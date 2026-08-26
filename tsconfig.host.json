@@ -216,6 +216,7 @@
     { "path": "./packages/shell/bash-local" },
     { "path": "./packages/shell/bash-wsl" },
     { "path": "./packages/shell/shell-env" },
+    { "path": "./packages/shell/tool-bash-wsl" },
     { "path": "./packages/shell/pwsh-local" },
     { "path": "./packages/shell/pwsh-sandbox" },
     { "path": "./packages/shell/tool-pwsh" },
