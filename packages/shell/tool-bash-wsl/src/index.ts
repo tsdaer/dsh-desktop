@@ -220,8 +220,12 @@ export function apply(ctx: Context, config: Config): void {
   // a settings service, the composition entry's `enabled` decides.
   const settings = ctx.get('settings')
   const section = settings?.get('desktop-bridge' as SettingsNamespace) as { wslEnabled?: unknown; wslDistribution?: unknown } | undefined
-  const enabled = section?.wslEnabled === true ? true : config.enabled
-  const distribution = typeof section?.wslDistribution === 'string' && section.wslDistribution.length > 0
+  // A settings section that exists is authoritative (the desktop card owns the
+  // value); absent one, the composition entry decides.
+  const enabled = section === undefined ? config.enabled : section.wslEnabled === true
+  const distribution = section !== undefined
+    && typeof section.wslDistribution === 'string'
+    && section.wslDistribution.length > 0
     ? section.wslDistribution
     : config.distribution
   if (!enabled) return
