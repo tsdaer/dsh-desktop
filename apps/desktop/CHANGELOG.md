@@ -4,7 +4,14 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ## [Unreleased]
 
-## [0.3.30] - 2026-08-25
+### Added
+
+- The runtime supervisor owns the complete desktop runtime process tree: on Windows the runtime runs inside a private Job Object configured with JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE, on POSIX in its own process group. Every exit path (tray quit, ExitRequested, boot timeout, readiness disconnect, updater relaunch) funnels through the supervisor's idempotent terminate_and_join, so no owned descendant survives an abnormal runtime exit or application shutdown; close-to-tray keeps the runtime alive by design. Containment allocation failure is a fatal boot error with a diagnostic — the runtime never runs uncontained (apps/desktop/src-tauri/src/runtime_supervisor.rs).
+- A target-native fixture (src-tauri/tests/runtime_tree.rs) starts a root Node process, a Node child, and a detached grandchild, prints their identities, and asserts the complete tree is terminated without process-name matching. It self-skips with an explicit reason on hosts where an enclosing job refuses private containment.
+
+### Changed
+
+- Version 0.4.0.
 
 ### Fixed
 

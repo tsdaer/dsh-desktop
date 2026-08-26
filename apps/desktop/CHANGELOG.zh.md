@@ -4,7 +4,14 @@ dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a
 
 ## [未发布]
 
-## [0.3.30] - 2026-08-25
+### 新增
+
+- 运行时监督器拥有完整的桌面运行时进程树:Windows 上运行时运行在配置了 JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE 的私有 Job Object 内,POSIX 上运行在独立进程组内。所有退出路径(托盘退出、ExitRequested、启动超时、就绪断开、更新器重启)都汇入监督器幂等的 terminate_and_join,因此异常退出或应用关闭时不会有任何被拥有的后代进程存活;关闭到托盘按设计保持运行时存活。容器分配失败是带诊断的致命启动错误 —— 运行时绝不无容器运行(apps/desktop/src-tauri/src/runtime_supervisor.rs)。
+- 目标原生 fixture(src-tauri/tests/runtime_tree.rs)启动根 Node 进程、Node 子进程和分离的孙进程,打印身份并断言整棵树在不做进程名匹配的情况下被终止。在拒绝私有容器分配的外层 job 宿主上,它以明确原因自行跳过。
+
+### 变更
+
+- 版本号 0.4.0。
 
 ### 修复
 

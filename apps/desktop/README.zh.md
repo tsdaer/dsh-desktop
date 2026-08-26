@@ -92,6 +92,8 @@ WebView2 的获取是安装期的事:`bundle.windows.webviewInstallMode` 为 `em
 
 main.rs 的环境变量接线:DSH_CLI/DSH_NODE/DSH_BARE_MODULE_BASE/DSH_BRIDGE_TARBALL 优先(dev 启动器);没有 DSH_CLI 的 release 构建要求 resources/runtime/lib/bin.js 与应用可执行文件旁由 Tauri 安装的 `dsh-node.exe` 或 `dsh-node`,然后执行离线桥接拷贝。打包启动默认不设置 DSH_BARE_MODULE_BASE,使 profile 能解析用户 bundle;需要由宿主拥有完整插件集时仍可显式设置。
 
+被启动的运行时由壳的运行时监督器(apps/desktop/src-tauri/src/runtime_supervisor.rs)纳入容器:Windows 上运行在配置了 JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE 的私有 Job Object 内,POSIX 上运行在独立进程组内。所有退出路径 —— 托盘的退出、RunEvent::ExitRequested、启动超时、就绪通道断开和更新器重启 —— 都汇入监督器幂等的 terminate_and_join,因此异常退出或应用关闭时不会有任何被拥有的后代进程存活;关闭到托盘按设计保持运行时存活。容器单元就是精确的所有权:绝不使用进程名匹配。若宿主环境(不允许 breakaway 的 job 沙箱)拒绝私有 Job Object 分配,运行时拒绝启动并给出容器诊断,而不是无容器地运行。
+
 ## 自定义标题栏
 
 窗口是无边框的;标题栏是一个注入的元素,其源码是 apps/desktop/src/titlebar.js —— 加载页通过 script 标签加载,主 webview 每次页面完成加载后都会重新注入(main.rs 用 include_str! 内嵌该文件,脚本本身幂等)。API、负载和余额文案跟随实时的 `<html lang>` 值,因此异步解析语言偏好不会让桌面 chrome 停留在旧语言。

@@ -16,9 +16,11 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod runtime_supervisor;
+
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
+use std::process::Command;
 use std::sync::mpsc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
@@ -38,8 +40,47 @@ use windows::Win32::UI::WindowsAndMessaging::{
     SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, WINDOW_STYLE, WS_MAXIMIZEBOX, WS_THICKFRAME,
 };
 
-/// Holds the spawned runtime so it can be terminated at app exit.
-struct DshRuntime(Mutex<Option<Child>>);
+/// Owns the supervised desktop runtime. The shell state wraps the
+/// supervisor; every exit path funnels through terminate_and_join.
+struct DshRuntime(Mutex<runtime_supervisor::RuntimeSupervisor>);
+
+impl DshRuntime {
+    /// The current supervisor lifecycle state.
+    fn lifecycle(&self) -> runtime_supervisor::Lifecycle {
+        self.0.lock().unwrap().lifecycle()
+    }
+
+    /// The contained runtime's root pid, when one is running.
+    fn root_pid(&self) -> Option<u32> {
+        self.0.lock().unwrap().root_pid()
+    }
+
+    /// Spawn the contained runtime and hand over its stdout/stderr pipes.
+    /// The runtime stays supervised; only the pipe ownership moves out so
+    /// the boot thread can read the readiness line.
+    fn spawn(
+        &self,
+        spec: runtime_supervisor::SpawnSpec,
+    ) -> Result<(std::process::ChildStdout, std::process::ChildStderr), runtime_supervisor::SpawnError>
+    {
+        let mut guard = self.0.lock().unwrap();
+        let spawned = guard.spawn(spec)?;
+        let stdout = spawned.stdout();
+        let stderr = spawned.stderr();
+        Ok((stdout, stderr))
+    }
+
+    /// Terminate the contained runtime tree.
+    fn terminate_and_join(
+        &self,
+        reason: &'static str,
+    ) -> runtime_supervisor::TerminateReport {
+        self.0
+            .lock()
+            .unwrap()
+            .terminate_and_join(reason, RUNTIME_TERMINATE_BUDGET)
+    }
+}
 
 /// Ordered splash status board the splashscreen page polls via `splash_status`.
 /// The low-level `window.__TAURI_INTERNALS__` bridge is always injected, but the
@@ -330,10 +371,7 @@ fn runtime_status(app: tauri::AppHandle) -> serde_json::Value {
     let Some(sampler) = app.try_state::<WorkloadSampler>() else {
         return serde_json::json!({ "tier": "unknown" });
     };
-    let Some(runtime_pid) = app
-        .try_state::<DshRuntime>()
-        .and_then(|state| state.0.lock().unwrap().as_ref().map(|child| child.id()))
-    else {
+    let Some(runtime_pid) = app.try_state::<DshRuntime>().and_then(|state| state.root_pid()) else {
         return serde_json::json!({ "tier": "unknown" });
     };
 
@@ -482,16 +520,30 @@ fn show_main_window(app: &tauri::AppHandle) {
     }
 }
 
-/// Real exit: stop the runtime child and terminate the app. This is the tray's
-/// exit path; a plain window close may now hide instead (close-to-tray).
+/// Bounded grace for the runtime tree to join after termination.
+const RUNTIME_TERMINATE_BUDGET: Duration = Duration::from_secs(8);
+
+/// Real exit: terminate the contained runtime tree and terminate the app.
+/// This is the tray's exit path; a plain window close may now hide instead
+/// (close-to-tray). Every exit path funnels through terminate_and_join.
 fn quit_app(app: &tauri::AppHandle) {
+    terminate_runtime(app, "tray-quit");
+    app.exit(0);
+}
+
+/// Terminate the contained runtime tree through the supervisor. A missing
+/// supervisor is a no-op; a second call while termination is in flight
+/// returns the in-flight outcome.
+fn terminate_runtime(app: &tauri::AppHandle, reason: &'static str) {
     if let Some(state) = app.try_state::<DshRuntime>() {
-        if let Some(mut child) = state.0.lock().unwrap().take() {
-            let _ = child.kill();
-            let _ = child.wait();
+        let report = state.terminate_and_join(reason);
+        if report.timed_out {
+            eprintln!(
+                "[dsh-desktop] runtime termination ({reason}) timed out; root_exited={} containment_ok={}",
+                report.root_exited, report.containment_ok
+            );
         }
     }
-    app.exit(0);
 }
 
 /// Restore the native resize borders and Windows 11 snap-layout flyout on the
@@ -629,7 +681,7 @@ fn main() {
         }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .manage(DshRuntime(Mutex::new(None)))
+        .manage(DshRuntime(Mutex::new(runtime_supervisor::RuntimeSupervisor::new())))
         .manage(SplashBoard(Mutex::new(Vec::new())))
         .manage(CloseToTray(Mutex::new(false)))
         .manage(WorkloadSampler(Mutex::new(WorkloadSamplerState {
@@ -670,12 +722,7 @@ fn main() {
         .expect("failed to build the tauri app")
         .run(|app, event| {
             if let tauri::RunEvent::ExitRequested { .. } = event {
-                if let Some(state) = app.try_state::<DshRuntime>() {
-                    if let Some(mut child) = state.0.lock().unwrap().take() {
-                        let _ = child.kill();
-                        let _ = child.wait();
-                    }
-                }
+                terminate_runtime(app, "run-exit-requested");
             }
         });
 }
@@ -1380,31 +1427,36 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
         paths.module_base
     ));
     let loopback_token = generate_loopback_token();
-    let mut cmd = Command::new(&paths.node);
-    cmd.arg(&paths.cli).args(&args);
-    if let Some(module_base) = &paths.module_base {
-        cmd.env("DSH_BARE_MODULE_BASE", module_base);
-    }
-    cmd.env("DSH_WEB_TOKEN", &loopback_token);
-    // The runtime is a console-subsystem binary (node.exe); a GUI-subsystem
-    // parent would otherwise give it a visible console window. CREATE_NO_WINDOW
-    // keeps the spawn headless, and null stdin stops node from attaching to the
-    // absent console.
-    cmd.stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
-    }
-    let mut child = match cmd.spawn() {
-        Ok(child) => child,
+    let spec = runtime_supervisor::SpawnSpec {
+        program: std::path::PathBuf::from(&paths.node),
+        args: {
+            let mut spec_args = vec![paths.cli.clone()];
+            spec_args.extend(args.iter().cloned());
+            spec_args
+        },
+        env: {
+            let mut env = vec![("DSH_WEB_TOKEN".to_owned(), loopback_token.clone())];
+            if let Some(module_base) = &paths.module_base {
+                env.push(("DSH_BARE_MODULE_BASE".to_owned(), module_base.clone()));
+            }
+            env
+        },
+    };
+    // The supervisor owns the containment unit (Windows Job Object / POSIX
+    // process group): the runtime must never run uncontained, so a spawn or
+    // containment failure is fatal to boot. A retry is only safe once the
+    // previous runtime joined, so the log records the lifecycle before spawn.
+    splash_log(&format!(
+        "boot: supervisor lifecycle before spawn = {:?}",
+        handle.state::<DshRuntime>().lifecycle()
+    ));
+    let (stdout, stderr) = match handle.state::<DshRuntime>().spawn(spec) {
+        Ok(pipes) => pipes,
         Err(err) => {
             fail(
                 &handle,
                 &format!(
-                    "failed to spawn `{} {} {}`: {err}",
+                    "failed to spawn the contained runtime `{} {} {}`: {err}",
                     paths.node,
                     paths.cli,
                     args.join(" ")
@@ -1413,13 +1465,6 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
             return;
         }
     };
-
-    let stdout = child.stdout.take().expect("piped stdout");
-    let stderr = child.stderr.take().expect("piped stderr");
-
-    if let Some(state) = handle.try_state::<DshRuntime>() {
-        *state.0.lock().unwrap() = Some(child);
-    }
 
     // Forward the runtime's stderr to the log (and console in dev).
     std::thread::spawn(move || {
@@ -1476,6 +1521,7 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
                                     let _ = splash.close();
                                 }
                                 if let Err(err) = window.show() {
+                                    terminate_runtime(&handle, "boot-window-show-failed");
                                     fail(
                                         &handle,
                                         &format!("failed to show the main window: {err}"),
@@ -1483,6 +1529,7 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
                                     return;
                                 }
                                 if window.navigate(url).is_err() {
+                                    terminate_runtime(&handle, "boot-navigate-failed");
                                     fail(&handle, "window is gone; cannot navigate");
                                     return;
                                 }
@@ -1499,6 +1546,7 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
             }
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 if Instant::now() > deadline {
+                    terminate_runtime(&handle, "boot-timeout");
                     fail(
                         &handle,
                         "dsh runtime did not become ready within 120s (no `dsh web:` readiness line)",
@@ -1507,6 +1555,7 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
                 }
             }
             Err(mpsc::RecvTimeoutError::Disconnected) => {
+                terminate_runtime(&handle, "boot-readiness-disconnect");
                 fail(
                     &handle,
                     "dsh runtime exited before printing its readiness line",

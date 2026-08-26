@@ -1,6 +1,6 @@
 [package]
 name = "dsh-desktop"
-version = "0.3.30"
+version = "0.4.0"
 description = "Tauri 2 desktop shell for the dsh web profile"
 edition = "2021"
 license = "MIT"
@@ -18,9 +18,12 @@ dunce = "1"
 base64 = "0.22"
 sysinfo = "0.37"
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [target.'cfg(windows)'.dependencies]
 webview2-com = "0.38"
-windows = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }
+windows = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_System_ProcessStatus", "Win32_Security"] }
 windows-core = "0.61"
 
 [profile.release]
