@@ -27,9 +27,18 @@
 - [x] 启动界面、窗口、托盘和安装器共用同一套黑色应用图标
 - [x] 在标题栏用带无障碍文本的 emoji 显示本地应用负载
 
-“工作树”指以当前所选工作区为根目录的项目视图,不负责管理 Git worktree checkout。[桌面端 0.3 计划](../../.agents/notes/proposed/feature/2026-08-17-desktop-0.3-worktree-and-runtime-chrome.md)定义了范围与验收标准。
+计划在 0.4.0 交付:
 
-Source Control 请求会携带浏览器取消信号。切换 Workspace 或离开 Worktree 时,进行中的变更、提交与差异读取会被取消;已取消的响应不会更新新的视图。bridge 重连后,使用“刷新”发起新的 Git 状态请求。生命周期决策记录在 [Source Control 请求生命周期说明](../../.agents/notes/implemented/bug-fix/2026-08-22-desktop-source-control-request-lifecycle.md)中。
+- [x] 完整拥有桌面运行时进程树(Windows Job Object / POSIX 进程组),所有退出路径都汇入一个幂等的 terminate_and_join
+- [x] 跟随活跃会话模型选择的提供方绑定标题栏账户摘要
+- [x] 桌面拥有的右键菜单(处处 Copy;对话 composer 内 Cut/Copy/Paste)
+- [x] 桌面设置中的 WSL 2 发现,以及 Windows 上可选的 Bash 执行世界
+
+[桌面端 0.4 计划](../../.agents/notes/proposed/feature/2026-08-26-desktop-0.4-runtime-and-windows-integration.zh.md)定义了范围与验收标准。
+
+“工作树”指以当前所选工作区为根目录的项目视图,不负责管理 Git worktree checkout。[桌面端 0.3 计划](../../.agents/notes/proposed/feature/2026-08-17-desktop-0.3-worktree-and-runtime-chrome.zh.md)定义了范围与验收标准。
+
+Source Control 请求会携带浏览器取消信号。切换 Workspace 或离开 Worktree 时,进行中的变更、提交与差异读取会被取消;已取消的响应不会更新新的视图。bridge 重连后,使用“刷新”发起新的 Git 状态请求。生命周期决策记录在 [Source Control 请求生命周期说明](../../.agents/notes/implemented/bug-fix/2026-08-22-desktop-source-control-request-lifecycle.zh.md)中。
 
 该切换由 `bridge-client` 通过现有侧边栏插件生命周期贡献。它把桌面 chrome portal 到 Workspace 区域,不改变共享 `ui-workspace` package 及其浏览器注册;卸载桌面插件后,切换一并移除并恢复标准 web 组合。
 

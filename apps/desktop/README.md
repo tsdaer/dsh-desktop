@@ -27,6 +27,15 @@ Planned for 0.3.0:
 - [x] One black application icon shared by the splash screen, window, tray, and installer
 - [x] An accessible title-bar emoji that reports local application workload
 
+Planned for 0.4.0:
+
+- [x] Complete ownership of the desktop runtime process tree (Windows Job Object / POSIX process group), with every exit path through one idempotent terminate_and_join
+- [x] A provider-bound title-bar account summary that follows the active session's model selection
+- [x] A desktop-owned context menu (Copy everywhere; Cut/Copy/Paste in the conversation composer)
+- [x] WSL 2 discovery in Desktop settings with an optional Bash execution world on Windows
+
+The [Desktop 0.4 plan](../../.agents/notes/proposed/feature/2026-08-26-desktop-0.4-runtime-and-windows-integration.md) defines the scope and acceptance criteria.
+
 “Worktree” refers to a project view rooted in the selected Workspace; it does not manage Git worktree checkouts. The [Desktop 0.3 plan](../../.agents/notes/proposed/feature/2026-08-17-desktop-0.3-worktree-and-runtime-chrome.md) defines the scope and acceptance criteria.
 
 Source Control requests carry browser cancellation signals. Switching Workspaces or leaving Worktree cancels in-flight mutations, commits, and diff reads; canceled responses do not update the new view. If the bridge reconnects, use Refresh to issue a new Git status request. The lifecycle decision is recorded in the [Source Control request lifecycle note](../../.agents/notes/implemented/bug-fix/2026-08-22-desktop-source-control-request-lifecycle.md).

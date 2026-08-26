@@ -8,6 +8,10 @@ dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a
 
 - 运行时监督器拥有完整的桌面运行时进程树:Windows 上运行时运行在配置了 JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE 的私有 Job Object 内,POSIX 上运行在独立进程组内。所有退出路径(托盘退出、ExitRequested、启动超时、就绪断开、更新器重启)都汇入监督器幂等的 terminate_and_join,因此异常退出或应用关闭时不会有任何被拥有的后代进程存活;关闭到托盘按设计保持运行时存活。容器分配失败是带诊断的致命启动错误 —— 运行时绝不无容器运行(apps/desktop/src-tauri/src/runtime_supervisor.rs)。
 - 目标原生 fixture(src-tauri/tests/runtime_tree.rs)启动根 Node 进程、Node 子进程和分离的孙进程,打印身份并断言整棵树在不做进程名匹配的情况下被终止。在拒绝私有容器分配的外层 job 宿主上,它以明确原因自行跳过。
+- 标题栏账户摘要与提供方绑定:它通过新的账户摘要能力(dsh-llm)跟随活跃会话的模型选择,因此显示的账户状态绝不滞后于所选提供方,也绝不显示另一提供方的金额。旧的无条件余额端点已移除。
+- 桌面拥有的右键菜单取代生产右键抑制:选中可读文本处处提供 Copy,仅在对话 composer 提供 Cut/Copy/Paste,带键盘导航与 viewport 钳制。调试模式暴露显式 Inspect 项。
+- 桌面设置中的 WSL 2 发现(仅 Windows):类型化就绪快照、发行版选择、启用前执行探针,以及缺失环境时的微软安装链接。该设置绝不安装、修改或下载任何东西。
+- Windows 上可选的 WSL 2 Bash 执行世界(bash-wsl executor + tool-bash-wsl):PowerShell 保持可用,Bash 仅在 WSL 设置启用且发行版探针健康时加入工具目录,工作目录是经 /mnt 翻译的 Windows 路径,非盘符路径可见地失败。
 
 ### 变更
 
