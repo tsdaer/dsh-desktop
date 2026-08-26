@@ -2,6 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mountAccountController } from '../bridge-client/src/client/DesktopAccountSummary.ts'
+import type { AccountControllerDeps } from '../bridge-client/src/client/DesktopAccountSummary.ts'
 
 const ACCOUNT_EVENT = 'dsh://account-summary'
 const ACCOUNT_REFRESH_REQUEST = 'dsh://account-summary-refresh'
@@ -22,23 +23,24 @@ function controllerDeps(options: {
       },
     },
   }
+  const deps: AccountControllerDeps = {
+    sessions: sessions as AccountControllerDeps['sessions'],
+    model: { getCurrentProvider: () => options.provider ?? undefined },
+    fetch: vi.fn((url: string) => {
+      const response = options.respond === undefined
+        ? { state: 'available', amount: '1.00', currency: 'USD', providerId: 'deepseek-official', ok: true }
+        : options.respond(url)
+      return Promise.resolve({ json: () => Promise.resolve(response) } as Response)
+    }),
+    signal: () => new AbortController().signal,
+  }
   return {
     sessions,
     setCurrent(next: string | undefined) {
       current = next
       for (const listener of [...listeners]) listener()
     },
-    deps: {
-      sessions,
-      model: { getCurrentProvider: () => options.provider ?? undefined } as never,
-      fetch: vi.fn((url: string) => {
-        const response = options.respond === undefined
-          ? { state: 'available', amount: '1.00', currency: 'USD', providerId: 'deepseek-official', ok: true }
-          : options.respond(url)
-        return Promise.resolve({ json: () => Promise.resolve(response) } as Response)
-      }),
-      signal: () => new AbortController().signal,
-    } as never,
+    deps,
   }
 }
 
