@@ -45,6 +45,13 @@
   name: '@deepseek-ai/dsh-tool-bash'
   disabled: !!js process.platform === 'win32'
 
+# WSL 2 Bash: the desktop setting (wslEnabled + a healthy distribution probe)
+# decides inside apply(); the row mounts everywhere and registers only while
+# enabled, so PowerShell and WSL Bash coexist.
+- id: tool-bash-wsl
+  name: '@deepseek-ai/dsh-tool-bash-wsl'
+  disabled: !!js process.platform !== 'win32'
+
 - id: tool-pwsh
   name: '@deepseek-ai/dsh-tool-pwsh'
   disabled: !!js process.platform !== 'win32'

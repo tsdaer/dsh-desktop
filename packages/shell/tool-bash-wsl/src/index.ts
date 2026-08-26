@@ -22,6 +22,7 @@ import type {} from '@deepseek-ai/dsh-system-prompt'
 import type {} from '@deepseek-ai/dsh-jobs'
 import type {} from '@deepseek-ai/dsh-shell-env'
 import { DSH_ENV_PREFIX, parseExitStatus } from '@deepseek-ai/dsh-shell'
+import type { SettingsNamespace } from '@deepseek-ai/dsh-settings'
 import type { CollectedOutput, ShellProcess, ShellProcessRead, ShellRunResult } from '@deepseek-ai/dsh-shell'
 
 export const name = 'tool-bash-wsl'
@@ -213,9 +214,18 @@ function canonicalBashResult(result: ShellRunResult) {
  * @param config - the resolved tool configuration.
  */
 export function apply(ctx: Context, config: Config): void {
-  if (!config.enabled) return
+  // The tool mounts from the preset composition; its enablement is the desktop
+  // setting (wslEnabled + a healthy distribution probe). The setting section
+  // is read live so a settings change takes effect without a restart; absent
+  // a settings service, the composition entry's `enabled` decides.
+  const settings = ctx.get('settings')
+  const section = settings?.get('desktop-bridge' as SettingsNamespace) as { wslEnabled?: unknown; wslDistribution?: unknown } | undefined
+  const enabled = section?.wslEnabled === true ? true : config.enabled
+  const distribution = typeof section?.wslDistribution === 'string' && section.wslDistribution.length > 0
+    ? section.wslDistribution
+    : config.distribution
+  if (!enabled) return
   const backgroundEnabled = config.enableRunInBackground ?? true
-  // The executor needs a serviceable local config; defaults mirror bash-local
   // so a composition that omits them still runs.
   const executorConfig: LocalConfig = {
     timeoutMs: 120_000,
@@ -225,7 +235,7 @@ export function apply(ctx: Context, config: Config): void {
     graceMs: 3_000,
     ...config.executor,
   }
-  const executor = new WslBashExecutor(ctx, executorConfig, config.distribution)
+  const executor = new WslBashExecutor(ctx, executorConfig, distribution)
 
   ctx.systemPrompt.section({
     name: 'tool:bash-wsl',
