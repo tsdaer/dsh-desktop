@@ -2,6 +2,12 @@
 
 dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循[语义化版本](https://semver.org/spec/v2.0.0.html)。draft-release workflow 会把对应版本的章节复制到 GitHub release 的 notes 里。
 
+## [0.4.1] - 2026-08-26
+
+### 修复
+
+- 运行时监督器在宿主拒绝私有 Job Object 分配（无 breakaway 的外层 job——工具宿主、沙箱 shell、CI runner）时,现在会降级为直接子进程所有权,因此桌面能够启动而非以 "AssignProcessToJobObject: 拒绝访问" 失败。该降级绝不静默:启动日志记录原因,监督器在终止时报告 containment_ok=false。终止通过 taskkill /T 杀掉整个进程树,不留下任何运行时后代孤儿。
+
 ## [0.4.0] - 2026-08-26
 
 ### 新增

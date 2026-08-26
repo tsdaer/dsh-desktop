@@ -2,6 +2,12 @@
 
 All notable changes to dsh-desktop are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The draft-release workflow copies the matching version's section into its GitHub release notes.
 
+## [0.4.1] - 2026-08-26
+
+### Fixed
+
+- The runtime supervisor now degrades to direct-child ownership when the host refuses private Job Object allocation (an enclosing job without breakaway — tool hosts, sandboxed shells, CI runners), so the desktop boots instead of failing with "AssignProcessToJobObject: access denied". The degradation is never silent: the boot log records the reason and the supervisor reports containment_ok=false at termination. Termination kills the whole process tree via taskkill /T, so no runtime descendant is orphaned.
+
 ## [0.4.0] - 2026-08-26
 
 ### Added
