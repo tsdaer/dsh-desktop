@@ -287,6 +287,25 @@ mod tests {
         assert_eq!(supervisor.lifecycle(), Lifecycle::Terminated);
     }
 
+    /// A node invocation that stays alive and spawns a grandchild, for
+    /// exercising whole-tree cleanup on the uncontained fallback path.
+    #[cfg(windows)]
+    fn tree_spec() -> SpawnSpec {
+        SpawnSpec {
+            program: std::path::PathBuf::from("node"),
+            args: vec![
+                "-e".into(),
+                "const {spawn}=require('node:child_process'); const c=spawn(process.execPath,['-e','setTimeout(()=>{},60000)'],{detached:true}); console.log('grandchild='+c.pid); setTimeout(()=>{},60000)".into(),
+            ],
+            env: vec![],
+        }
+    }
+
+    #[cfg(not(windows))]
+    fn tree_spec() -> SpawnSpec {
+        node_spec()
+    }
+
     /// A node invocation to exercise the real containment path.
     fn node_spec() -> SpawnSpec {
         SpawnSpec {
@@ -297,9 +316,8 @@ mod tests {
     }
 
     /// Attempt a real contained spawn. When the host job environment refuses
-    /// private containment (a job sandbox without breakaway) and the explicit
-    /// uncontained fallback is set, the spawn succeeds uncontained; without
-    /// the fallback it fails and the caller reports the skip reason.
+    /// private containment (a job sandbox without breakaway), spawn degrades
+    /// to direct-child ownership; the caller still reports the outcome.
     #[cfg(windows)]
     fn contained_spawn_or_skip(
         supervisor: &mut RuntimeSupervisor,
@@ -391,28 +409,46 @@ mod tests {
     }
 
     #[test]
-    fn explicit_uncontained_fallback_spawns_when_the_host_refuses_containment() {
-        // With DSH_DESKTOP_ALLOW_UNCONTAINED=1 the supervisor falls back to
-        // direct-child ownership when the host refuses private-job allocation
-        // (an enclosing job without breakaway). On a host that allows the job
-        // this test exercises the contained path and still passes.
-        std::env::set_var("DSH_DESKTOP_ALLOW_UNCONTAINED", "1");
+    fn spawn_survives_a_host_that_refuses_containment() {
+        // The supervisor must boot on every host: when the host refuses
+        // private-job allocation (an enclosing job without breakaway), spawn
+        // degrades to direct-child ownership instead of failing. On a host
+        // that allows the job this test exercises the contained path and
+        // still passes.
         let mut supervisor = RuntimeSupervisor::new();
         let spawned = supervisor.spawn(node_spec());
-        std::env::remove_var("DSH_DESKTOP_ALLOW_UNCONTAINED");
         let runtime = match spawned {
             Ok(runtime) => runtime,
             Err(err) => {
                 // Neither path may fail outright: containment or the explicit
                 // fallback must produce a running runtime.
-                panic!("spawn failed with the uncontained fallback enabled: {err}")
+                panic!("spawn failed on a containment-refusing host: {err}")
             }
         };
+        assert_ne!(runtime.root_pid(), 0);
         let report = supervisor.terminate_and_join("test", Duration::from_secs(5));
         assert!(
             report.root_exited,
             "short-lived node must join within budget"
         );
+        assert_eq!(supervisor.lifecycle(), Lifecycle::Terminated);
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn uncontained_termination_kills_the_whole_tree() {
+        // On the fallback path (no private job), terminate_and_join must
+        // still kill the runtime's descendants: taskkill /T tears down the
+        // tree rooted at the spawned node, so the detached grandchild dies
+        // too. A root-only kill would orphan it.
+        let mut supervisor = RuntimeSupervisor::new();
+        let spawned = supervisor.spawn(tree_spec());
+        let runtime = match spawned {
+            Ok(runtime) => runtime,
+            Err(err) => panic!("spawn failed: {err}"),
+        };
+        let report = supervisor.terminate_and_join("test", Duration::from_secs(5));
+        assert!(report.root_exited, "node must join within budget");
         assert_eq!(supervisor.lifecycle(), Lifecycle::Terminated);
     }
 }

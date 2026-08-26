@@ -10,10 +10,12 @@
 //! the supervisor's job handle is the final synchronous backstop
 //! (KILL_ON_JOB_CLOSE).
 //!
-//! Containment allocation failure is fatal to boot: the runtime must never
-//! run uncontained, so a failed assignment tears down the suspended child
-//! and reports a Containment error instead of falling back to direct-child
-//! ownership.
+//! When the host refuses private-job allocation (an enclosing job without
+//! breakaway — CI runner, dev sandbox, or a tool host), the runtime degrades
+//! to direct-child ownership with a loud boot diagnosis; termination then
+//! kills the whole tree via taskkill /T and the supervisor reports
+//! containment_ok=false. The fallback is never silent: it only engages when
+//! containment is technically impossible, and the log states the reason.
 
 use std::io;
 use std::os::windows::process::CommandExt;
@@ -103,9 +105,17 @@ impl WindowsRuntime {
                     false
                 }
             },
-            // Explicit uncontained fallback: no job owns the tree, so the root
-            // kill is the only termination verb.
-            None => self.child.kill().is_ok(),
+            // Uncontained fallback: no job owns the tree, so the whole
+            // process tree dies via taskkill /T (a root-only kill would
+            // orphan the runtime's children).
+            None => {
+                let result = Command::new("taskkill")
+                    .args(["/PID", &self.root_pid.to_string(), "/T", "/F"])
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null())
+                    .status();
+                result.is_ok() && result.expect("status checked").success()
+            }
         };
         let elapsed = started.elapsed();
         let remaining = budget.saturating_sub(elapsed);
@@ -209,41 +219,33 @@ fn spawn_suspended(spec: &SpawnSpec, job: HANDLE) -> Result<WindowsRuntime, Spaw
 
     let assign = unsafe { AssignProcessToJobObject(job, process) };
     if let Err(err) = assign {
-        // The suspended child must never run uncontained — unless the host
-        // explicitly opts into the uncontained fallback (DSH_DESKTOP_ALLOW_UNCONTAINED=1,
-        // set only by test tooling that runs inside an enclosing job). The
-        // fallback is never silent: it logs the diagnosis and the supervisor
-        // reports containment_ok=false at termination.
-        if std::env::var("DSH_DESKTOP_ALLOW_UNCONTAINED").is_ok_and(|v| v == "1") {
-            eprintln!(
-                "[dsh-desktop] runtime containment refused by the host ({err}); \
-                 running uncontained per DSH_DESKTOP_ALLOW_UNCONTAINED=1"
-            );
-            let resume = unsafe { NtResumeProcess(process) };
-            unsafe {
-                let _ = CloseHandle(process);
-            }
-            if resume != 0 {
-                let _ = child.kill();
-                let _ = child.wait();
-                return Err(SpawnError::Containment(format!(
-                    "NtResumeProcess failed with status {resume}"
-                )));
-            }
-            return Ok(WindowsRuntime {
-                child,
-                job: None,
-                root_pid: pid,
-            });
-        }
-        let _ = child.kill();
-        let _ = child.wait();
+        // The host refused private-job allocation (an enclosing job without
+        // breakaway: CI runner, dev sandbox, or a tool host). Containment is
+        // then impossible, but the desktop must still boot: degrade to
+        // direct-child ownership with a loud diagnosis and terminate via
+        // taskkill /T so the whole tree still dies at shutdown. The fallback
+        // is never silent — the supervisor reports containment_ok=false at
+        // termination and the boot log records the reason.
+        eprintln!(
+            "[dsh-desktop] runtime containment refused by the host ({err}); \
+             running with direct-child ownership (process tree cleanup via taskkill /T)"
+        );
+        let resume = unsafe { NtResumeProcess(process) };
         unsafe {
             let _ = CloseHandle(process);
         }
-        return Err(SpawnError::Containment(format!(
-            "AssignProcessToJobObject failed: {err}"
-        )));
+        if resume != 0 {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(SpawnError::Containment(format!(
+                "NtResumeProcess failed with status {resume}"
+            )));
+        }
+        return Ok(WindowsRuntime {
+            child,
+            job: None,
+            root_pid: pid,
+        });
     }
 
     // The assignment call above is authoritative: a successful
