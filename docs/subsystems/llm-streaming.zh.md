@@ -754,11 +754,23 @@ declare abstract class LlmAdapter {
    * @returns the chunk stream, obeying the adapter contract documented on `StreamChunk`.
    */
   abstract stream(options: GenerateOptions): AsyncIterable<StreamChunk>;
+  /**
+   * Resolve one provider route's account summary. The default reports
+   * `unsupported`: most providers have no account API, and a provider that
+   * does must override this with a request through its own credential seam.
+   * @param provider - one provider route owned by this adapter.
+   * @param _signal - cancellation for the account request.
+   * @returns the provider-reported account state and optional amount.
+   */
+  accountSummary(
+    provider: string,
+    _signal?: AbortSignal,
+  ): Promise<AccountSummary>;
 }
 ```
 
-`ContentBlockType`（带 `index` 关联的块所携带的键集合）从上文的 [`ContentBlockMap`](#content-blocks-and-messages) 派生。
 
+`ContentBlockType`（带 `index` 关联的块所携带的键集合）从上文的 [`ContentBlockMap`](#content-blocks-and-messages) 派生。
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
 <a id="cordis-surface"></a>
@@ -843,6 +855,16 @@ providerRetryPolicy(provider: string): ResolvedRetryPolicy
  * @returns detached model metadata in adapter-preferred order.
  */
 async listModels(provider: string): Promise<LlmModelInfo[]>
+
+/**
+ * Resolve one registered provider account summary through its adapter.
+ * Providers without an account API report unsupported; the value is
+ * detached from adapter-owned state. The provider route must be registered.
+ * @param provider - registered provider route to inspect.
+ * @param signal - optional cancellation for the account request.
+ * @returns the provider-reported account state and optional amount.
+ */
+async accountSummary( provider: string, signal?: AbortSignal, ): Promise<AccountSummary>
 
 /**
  * Resolve and validate all metadata from the adapter that owns one exact

@@ -41,6 +41,7 @@ import * as SkillFileSystem from '@deepseek-ai/dsh-skill-filesystem'
 import LocalJobRegistry from '@deepseek-ai/dsh-jobs-local'
 import * as ToolAskUser from '@deepseek-ai/dsh-tool-ask-user'
 import * as ToolBash from '@deepseek-ai/dsh-tool-bash'
+import * as ToolBashWsl from '@deepseek-ai/dsh-tool-bash-wsl'
 import * as ToolPwsh from '@deepseek-ai/dsh-tool-pwsh'
 import * as ToolBashPersistent from '@deepseek-ai/dsh-tool-bash-persistent'
 import * as ToolPwshPersistent from '@deepseek-ai/dsh-tool-pwsh-persistent'
@@ -239,6 +240,20 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
     note:
       'The bash tool is the model-facing consumer of the bash executor seam. A `run_in_background` run registers with the generic `ctx.jobs` runtime and is collected/stopped through the `job_*` tools from `@deepseek-ai/dsh-tool-jobs`; the `enableRunInBackground` config (default true) removes the parameter entirely when disabled.',
+  },
+  {
+    pkg: '@deepseek-ai/dsh-tool-bash-wsl',
+    dir: 'tool-bash-wsl',
+    source: 'packages/shell/tool-bash-wsl/src/index.ts',
+    requires: ['ctx.tools', 'ctx.systemPrompt', 'ctx.shellEnv', 'ctx.jobs at call time for run_in_background'],
+    writes: ['tool/call', 'tool/result'],
+    async mount(ctx) {
+      await ctx.plugin(LocalSubprocessRuntime)
+      await ctx.plugin(BashEnvPlugin)
+      await ctx.plugin(ToolBashWsl, { distribution: 'docker-desktop', enabled: true })
+    },
+    note:
+      'The WSL bash tool is the model-facing consumer of the WSL Bash execution world: it registers the `bash` name only while the desktop WSL setting is enabled and the selected distribution probe is healthy, and it holds its own WslBashExecutor so PowerShell and WSL Bash coexist. Working directories are Windows paths translated under /mnt; a non-drive path fails visibly.',
   },
   {
     pkg: '@deepseek-ai/dsh-tool-pwsh',

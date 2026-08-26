@@ -397,6 +397,30 @@ export type Config = LocalConfig
 
 来源：[`packages/shell/bash-sandbox/src/index.ts:35`](../packages/shell/bash-sandbox/src/index.ts)
 
+<a id="deepseek-aidsh-bash-wsl"></a>
+
+## `@deepseek-ai/dsh-bash-wsl`
+
+```ts config-catalog
+/** Executor config: the local knobs (mirroring bash-local's Config). */
+export interface Config {
+  /** Default working directory for commands (default: process.cwd()). */
+  cwd?: string
+  /** Default foreground timeout in milliseconds. */
+  timeoutMs?: number
+  /** Upper bound for per-call timeout overrides. */
+  maxTimeoutMs?: number
+  /** Per-stream in-memory output cap; overflow spills to a temp file. */
+  maxOutputBytes?: number
+  /** Per-stream spill-file cap; larger streams retain only their in-memory tail. */
+  maxSpillBytes?: number
+  /** Grace period for kill escalation and inherited pipes. */
+  graceMs?: number
+}
+```
+
+来源：[`packages/shell/bash-wsl/src/index.ts:56`](../packages/shell/bash-wsl/src/index.ts)
+
 <a id="deepseek-aidsh-client-connection"></a>
 
 ## `@deepseek-ai/dsh-client-connection`
@@ -2551,6 +2575,30 @@ export interface Config {
 ```
 
 来源：[`packages/shell/tool-bash-persistent/src/index.ts:432`](../packages/shell/tool-bash-persistent/src/index.ts)
+
+<a id="deepseek-aidsh-tool-bash-wsl"></a>
+
+## `@deepseek-ai/dsh-tool-bash-wsl`
+
+需要：`tools` · `systemPrompt` · `shellEnv`
+
+```ts config-catalog
+/** Runtime configuration schema for the WSL bash tool. */
+export interface Config {
+  /** The WSL 2 distribution to execute Bash in. */
+  distribution: string
+  /** Whether the tool is currently enabled (setting + healthy probe). */
+  enabled: boolean
+  /** Whether to expose run_in_background (default true). */
+  enableRunInBackground?: boolean
+  /** The local executor's knobs, passed to WslBashExecutor. */
+  executor?: LocalConfig
+}
+```
+
+依赖：[`LocalConfig`](#deepseek-aidsh-bash-local)
+
+来源：[`packages/shell/tool-bash-wsl/src/index.ts:32`](../packages/shell/tool-bash-wsl/src/index.ts)
 
 <a id="deepseek-aidsh-tool-fs"></a>
 

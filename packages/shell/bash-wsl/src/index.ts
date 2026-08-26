@@ -91,7 +91,14 @@ export class WslBashExecutor {
     if (distribution.length === 0) throw new Error('bash-wsl: distribution must be a non-empty name')
   }
 
-  /** Resolve a request into a fully-specified spec (mirrors bash-local's resolve). */
+  /**
+   * Resolve a request into a fully-specified spec (mirrors bash-local's
+   * resolve): fill workdir from config.cwd (else process.cwd()) and timeoutMs
+   * from config.timeoutMs capped at config.maxTimeoutMs.
+   * @param request - the caller's request; omitted fields get this
+   *   implementation's defaults, capped fields are clamped.
+   * @returns the fully-specified spec to hand to run/start.
+   */
   resolve(request: ShellExecRequest): ShellExecSpec {
     const timeoutMs = Math.min(request.timeoutMs ?? this.config.timeoutMs ?? 120_000, this.config.maxTimeoutMs ?? 600_000)
     const stdoutMaxBytes = request.stdoutMaxBytes ?? this.config.maxOutputBytes ?? 64_000
@@ -158,7 +165,12 @@ export class WslBashExecutor {
     return spec
   }
 
-  /** Run one command in the foreground. */
+  /**
+   * Run one command in the foreground; resolves when it finishes.
+   * @param spec - a resolved spec from resolve, never a raw request.
+   * @returns the outcome; nonzero exits and abort kills resolve with a
+   * descriptive result rather than reject.
+   */
   async run(spec: ShellExecSpec): Promise<ShellRunResult> {
     const checked = this.checkCwd(spec)
     const subprocess = this.ctx.get('subprocess')
@@ -176,7 +188,11 @@ export class WslBashExecutor {
     }
   }
 
-  /** Start one command in the background and return its handle. */
+  /**
+   * Start one command in the background and return its handle immediately.
+   * @param spec - a resolved spec from resolve, never a raw request.
+   * @returns the live process handle (reads, kill, quiescence promise).
+   */
   start(spec: ShellExecSpec): ShellProcess {
     const checked = this.checkCwd(spec)
     const subprocess = this.ctx.get('subprocess')

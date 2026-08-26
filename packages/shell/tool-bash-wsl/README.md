@@ -13,11 +13,53 @@ Model-facing Consumer of the WSL Bash execution world (P4b of the [Desktop 0.4 p
 
 ## Model Experience
 
-The `bash` tool description names the WSL 2 execution world, fresh-shell semantics, /mnt working directories, and managed `DSH_*` environment facts. Nonzero exits are reported, not errored — the model decides how to react.
+### System prompt
+
+#### What the model sees
+
+Every request in this plugin's registration scope contains the WSL Bash guidance below, registered only while the tool is enabled (the WSL setting plus a healthy distribution probe).
+
+##### Bash guidance
+
+```markdown
+Check the [exit code: N] marker on every bash result; investigate failures before moving on.
+```
+
+#### Token effect
+
+Small fixed input cost per request while the plugin is active and enabled.
 
 #### KV Cache effect
 
-No direct invalidation; the tool's prompt section contributes to the system prompt but names no request-prefix cache.
+Prefix-stable while the registration scope and prompt text are unchanged. Plugin activation or disposal may invalidate reuse from this prompt section.
+
+### Tool schemas
+
+#### What the model sees
+
+The model sees the generated [`bash` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-bash-wsl) when the tool is enabled and mounted: command, description, optional timeoutMs and workdir (a Windows path translated under /mnt), and run_in_background when enabled. Agent-scoped tool restrictions can remove the definition for that agent.
+
+#### Token effect
+
+Fixed schema cost on every request where the tool is visible.
+
+#### KV Cache effect
+
+Prefix-stable while visibility and background support are unchanged. A restriction, config change, or enablement change may invalidate reuse from the changed tool definition.
+
+### Foreground result
+
+#### What the model sees
+
+A terminal card whose output body is stdout (with stderr in a marked section when present) and whose exit pill carries the `[exit code: N]`, `[timed out after Nms]`, or `[killed by signal: S]` marker. Nonzero exits are reported, not errored — the model decides how to react.
+
+#### Token effect
+
+Variable input cost proportional to the produced output; long output is truncated to the tail with a full-output spill path notice.
+
+#### KV Cache effect
+
+No direct invalidation; results are per-call and not prefix-stable.
 
 ## Known Limitations and Deferred Work
 

@@ -13,12 +13,53 @@ WSL Bash 执行世界的模型面对 Consumer([桌面 0.4 计划](../../../.agen
 
 ## 模型体验
 
-`bash` 工具描述点名 WSL 2 执行世界、新 shell 语义、/mnt 工作目录与受管理的 `DSH_*` 环境事实。非零退出被报告而非报错 —— 由模型决定如何应对。
+### 系统提示
+
+#### 模型看到什么
+
+本插件注册范围内的每个请求都包含下面的 WSL Bash 指引,仅在工具启用(WSL 设置加健康发行版探针)时注册。
+
+##### Bash 指引
+
+```markdown
+Check the [exit code: N] marker on every bash result; investigate failures before moving on.
+```
+
+#### Token 效应
+
+插件活跃且启用时,每个请求有少量固定输入成本。
 
 #### KV Cache 效应
 
-无直接失效;工具提示区贡献于系统提示但不点名任何请求前缀缓存。
+注册范围与提示文本不变时前缀稳定。插件激活或销毁可能使本提示段的复用失效。
 
+### 工具 schema
+
+#### 模型看到什么
+
+工具启用并挂载时,模型看到生成的 [`bash` schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-bash-wsl):command、description、可选的 timeoutMs 与 workdir(经 /mnt 翻译的 Windows 路径),以及启用时的 run_in_background。Agent 级工具限制可为该 agent 移除定义。
+
+#### Token 效应
+
+工具可见时每个请求有固定 schema 成本。
+
+#### KV Cache 效应
+
+可见性与后台支持不变时前缀稳定。限制、配置变更或启用状态变更可能使改动工具定义的复用失效。
+
+### 前台结果
+
+#### 模型看到什么
+
+终端卡片,输出体为 stdout(有 stderr 时以标记段呈现),退出药丸携带 `[exit code: N]`、`[timed out after Nms]` 或 `[killed by signal: S]` 标记。非零退出被报告而非报错 —— 由模型决定如何应对。
+
+#### Token 效应
+
+输入成本与产出输出成正比;长输出被截断为尾部并附完整输出 spill 路径提示。
+
+#### KV Cache 效应
+
+无直接失效;结果按调用计,不前缀稳定。
 ## 已知限制与延后工作
 
 - **仅 Windows** — wsl.exe 是 Windows 二进制;本工具在 POSIX 主机上不注册。

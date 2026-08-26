@@ -367,6 +367,12 @@ function isBalanceInfo(value: unknown): value is BalanceInfo {
   return typeof info.currency === 'string' && typeof info.total_balance === 'string'
 }
 
+/**
+ * Direct-fetch DeepSeek adapter: streams chat completions through the OpenAI-
+ * compatible endpoint and implements the account-summary capability over
+ * /user/balance. Connection facts arrive through a thunk resolved once per
+ * operation and the bearer token through a per-request resolver.
+ */
 export class DeepSeekAdapter extends LlmAdapter {
   private readonly files: DeepSeekFileStore
 

@@ -264,7 +264,7 @@ export abstract class LlmAdapter {
    * `unsupported`: most providers have no account API, and a provider that
    * does must override this with a request through its own credential seam.
    * @param provider - one provider route owned by this adapter.
-   * @param signal - cancellation for the account request.
+   * @param _signal - cancellation for the account request.
    * @returns the provider-reported account state and optional amount.
    */
   accountSummary(

@@ -24,6 +24,7 @@
 | `@deepseek-ai/dsh-plan-mode` | `exit_plan_mode` | `ctx.tools`、`ctx.systemPrompt`、`ctx.userQuestions (execution time, opportunistic)` | `tool/call`、`plan/mode inactive on an approved review`、`tool/result` | - | 规划未激活时，exit_plan_mode 仍保留在面向模型的 schema 中，这样状态转换不会在规划策略变更之外额外造成工具目录变动。其执行路径会拒绝规划模式之外的调用；在规划模式下，它通过用户交互 seam 提交计划（批准／根据反馈继续规划），批准后会在步骤边界记录规划模式已停用。 |
 | `@deepseek-ai/dsh-tool-bash` | `bash` | `ctx.tools`、`ctx.shell`、`ctx.systemPrompt`、`ctx.shellEnv`、`ctx.jobs at call time for run_in_background` | `tool/call`、`tool/result` | - | bash 工具是 bash 执行器 seam 面向模型的消费方。使用 `run_in_background` 的运行会注册到通用 `ctx.jobs` 运行时，并通过 `job_*` 工具（来自 `@deepseek-ai/dsh-tool-jobs`）收集／停止；禁用 `enableRunInBackground` 配置（默认为 true）后，该参数会被完全移除。 |
 | `@deepseek-ai/dsh-tool-pwsh` | `pwsh` | `ctx.tools`、`ctx.shell`、`ctx.systemPrompt`、`ctx.shellEnv`、`ctx.jobs at call time for run_in_background` | `tool/call`、`tool/result` | - | pwsh 工具是 Windows 组合中 bash 执行器 seam 的 PowerShell 方言消费方（由 `@deepseek-ai/dsh-pwsh-local` 等 PowerShell 执行器为 `ctx.shell` 提供后端）；除沙箱接口外，它逐项对应 bash 工具调用。使用 `run_in_background` 的运行会注册到通用 `ctx.jobs` 运行时，并通过 `job_*` 工具收集／停止；托管的 `DSH_*` 环境来自 `@deepseek-ai/dsh-shell-env`。每次调用都在新进程中运行，不使用持久 PTY 会话。路径采用原生 `C:\...` 形式，变量采用 `$env:NAME`。 |
+| `@deepseek-ai/dsh-tool-bash-wsl` | `bash` | `ctx.tools`、`ctx.systemPrompt`、`ctx.shellEnv`、调用 `run_in_background` 时的 `ctx.jobs` | `tool/call`、`tool/result` | - | WSL bash 工具是 WSL Bash 执行世界面向模型的消费方:仅在桌面 WSL 设置启用且所选发行版探针健康时注册 `bash` 名称,并持有自己的 WslBashExecutor,使 PowerShell 与 WSL Bash 共存。工作目录是经 /mnt 翻译的 Windows 路径;非盘符路径可见地失败。 |
 | `@deepseek-ai/dsh-tool-cordis` | `cordis_define`、`cordis_inspect_list`、`cordis_inspect_query`、`cordis_inspect_self`、`cordis_run`、`cordis_stop`、`cordis_undefine` | `ctx.tools`、`ctx.dynamicCordisRunner` | `tool/call`、`tool/result`、`process-local dynamic package lifecycle` | - | 不在任何随产品发布的树中，需要显式选择启用；动态 Package 代码可以访问真实运行时，见 .agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.md。该工具集注入 `@deepseek-ai/dsh-cordis-host-runner` 提供的 `ctx.dynamicCordisRunner`，后者拥有定义注册表和 vm 沙箱；组合缺少它时这些工具不会激活。运行中的 Package 在停止、undefine 或 DSH 重启前可以注册**额外的**模型可见工具；发生这类工具集变化时，系统会记录完整且有变动的请求头。 |
 | `@deepseek-ai/dsh-tool-bash-persistent` | `bash` | `ctx.tools`、`ctx.terminals`、`an owning Agent at execution time` | `tool/call`、`PTY shell state`、`tool/result` | - | 一个按所有者隔离的持久 bash 工具；部署组合提供 PTY 后端，并可覆盖面向模型的环境描述。 |
 | `@deepseek-ai/dsh-tool-pwsh-persistent` | `pwsh` | `ctx.tools`、`ctx.terminals`、`an owning Agent at execution time` | `tool/call`、`PTY shell state`、`tool/result` | - | 一个按所有者隔离的持久 pwsh 工具，持久 bash 工具的 Windows 对应物；部署组合提供 pwsh 方言的 PTY 后端，并可覆盖面向模型的环境描述。 |
@@ -223,8 +224,51 @@ ask_user_question 会暂停工具调用，直到当前 UI 提供方返回人类�
 
 bash 工具是 bash 执行器 seam 面向模型的消费方。使用 `run_in_background` 的运行会注册到通用 `ctx.jobs` 运行时，并通过 `job_*` 工具（来自 `@deepseek-ai/dsh-tool-jobs`）收集／停止；禁用 `enableRunInBackground` 配置（默认为 true）后，该参数会被完全移除。
 
-<a id="deepseek-aidsh-tool-pwsh"></a>
+<a id="deepseek-aidsh-tool-bash-wsl"></a>
 
+## `@deepseek-ai/dsh-tool-bash-wsl`
+
+### `bash`
+
+在 WSL 2 执行世界内执行 bash 命令（`bash -c`）并返回其 stdout/stderr。每次调用都在全新的 WSL Bash shell 中运行：调用之间不保留任何状态（cwd、变量、函数）——请改用 `workdir` 而非 `cd`。工作目录是经 /mnt 翻译的 Windows 路径。当前 harness 环境事实通过受管理的 `$DSH_*` 变量暴露；需要时检查它们。非零退出以 `[exit code: N]` 报告。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "command": {
+      "type": "string",
+      "description": "The bash command to execute."
+    },
+    "description": {
+      "type": "string",
+      "description": "Clear, concise description of what this command does in active voice, 5-10 words (shown in the UI)."
+    },
+    "timeoutMs": {
+      "type": "number",
+      "description": "Timeout in milliseconds. The executor applies its configured default and cap."
+    },
+    "workdir": {
+      "type": "string",
+      "description": "Working directory for this command (a Windows path translated under /mnt)."
+    },
+    "run_in_background": {
+      "type": "boolean",
+      "description": "Run in the background and return a job id immediately (collect with job_output, stop with job_kill). No timeout applies."
+    }
+  },
+  "required": [
+    "command",
+    "description"
+  ]
+}
+```
+
+来源：[`packages/shell/tool-bash-wsl/src/index.ts`](../packages/shell/tool-bash-wsl/src/index.ts)
+
+WSL bash 工具是 WSL Bash 执行世界面向模型的消费方：仅在桌面 WSL 设置启用且所选发行版探针健康时注册 `bash` 名称，并持有自己的 WslBashExecutor，使 PowerShell 与 WSL Bash 共存。工作目录是经 /mnt 翻译的 Windows 路径；非盘符路径可见地失败。
+
+<a id="deepseek-aidsh-tool-pwsh"></a>
 ## `@deepseek-ai/dsh-tool-pwsh`
 
 ### `pwsh`
