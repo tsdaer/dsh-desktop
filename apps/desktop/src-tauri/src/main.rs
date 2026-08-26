@@ -61,8 +61,10 @@ impl DshRuntime {
     fn spawn(
         &self,
         spec: runtime_supervisor::SpawnSpec,
-    ) -> Result<(std::process::ChildStdout, std::process::ChildStderr), runtime_supervisor::SpawnError>
-    {
+    ) -> Result<
+        (std::process::ChildStdout, std::process::ChildStderr),
+        runtime_supervisor::SpawnError,
+    > {
         let mut guard = self.0.lock().unwrap();
         let spawned = guard.spawn(spec)?;
         let stdout = spawned.stdout();
@@ -71,10 +73,7 @@ impl DshRuntime {
     }
 
     /// Terminate the contained runtime tree.
-    fn terminate_and_join(
-        &self,
-        reason: &'static str,
-    ) -> runtime_supervisor::TerminateReport {
+    fn terminate_and_join(&self, reason: &'static str) -> runtime_supervisor::TerminateReport {
         self.0
             .lock()
             .unwrap()
@@ -371,7 +370,10 @@ fn runtime_status(app: tauri::AppHandle) -> serde_json::Value {
     let Some(sampler) = app.try_state::<WorkloadSampler>() else {
         return serde_json::json!({ "tier": "unknown" });
     };
-    let Some(runtime_pid) = app.try_state::<DshRuntime>().and_then(|state| state.root_pid()) else {
+    let Some(runtime_pid) = app
+        .try_state::<DshRuntime>()
+        .and_then(|state| state.root_pid())
+    else {
         return serde_json::json!({ "tier": "unknown" });
     };
 
@@ -681,7 +683,9 @@ fn main() {
         }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .manage(DshRuntime(Mutex::new(runtime_supervisor::RuntimeSupervisor::new())))
+        .manage(DshRuntime(Mutex::new(
+            runtime_supervisor::RuntimeSupervisor::new(),
+        )))
         .manage(SplashBoard(Mutex::new(Vec::new())))
         .manage(CloseToTray(Mutex::new(false)))
         .manage(WorkloadSampler(Mutex::new(WorkloadSamplerState {
@@ -1024,7 +1028,9 @@ fn sync_bridge_patch(profile: &std::path::Path, version: &str) -> bool {
             marker.display()
         );
     }
-    splash_log(&format!("[dsh-desktop] profile bridge rows synced to {version}"));
+    splash_log(&format!(
+        "[dsh-desktop] profile bridge rows synced to {version}"
+    ));
     true
 }
 
@@ -1513,9 +1519,7 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
                                 // silently inside the settings page.
                                 if let Some(port) = url.port() {
                                     let status = probe_bridge(port, &loopback_token);
-                                    splash_log(&format!(
-                                        "[dsh-desktop] bridge probe: {status}"
-                                    ));
+                                    splash_log(&format!("[dsh-desktop] bridge probe: {status}"));
                                 }
                                 if let Some(splash) = handle.get_webview_window("splashscreen") {
                                     let _ = splash.close();
@@ -1673,7 +1677,8 @@ mod tests {
     #[test]
     fn packaged_bridge_refresh_copies_the_runtime_packages_into_the_profile() {
         use std::fs;
-        let temp = std::env::temp_dir().join(format!("dsh-desktop-bridge-test-{}", std::process::id()));
+        let temp =
+            std::env::temp_dir().join(format!("dsh-desktop-bridge-test-{}", std::process::id()));
         let _ = fs::remove_dir_all(&temp);
         let home = temp.join("home");
         let profile = home.join("profiles").join("web");
@@ -1721,7 +1726,8 @@ mod tests {
     #[test]
     fn sync_bridge_patch_replaces_stale_rows_and_preserves_user_rows() {
         use std::fs;
-        let temp = std::env::temp_dir().join(format!("dsh-desktop-sync-rows-{}", std::process::id()));
+        let temp =
+            std::env::temp_dir().join(format!("dsh-desktop-sync-rows-{}", std::process::id()));
         let _ = fs::remove_dir_all(&temp);
         let profile = temp.join("profile");
         let pkg = profile
@@ -1782,14 +1788,29 @@ mod tests {
 
         assert!(sync_bridge_patch(&profile, "0.3.30"));
         let out = fs::read_to_string(profile.join("cordis.patch.yml")).unwrap();
-        assert!(out.contains("- id: user-plugin"), "user rows survive: {out}");
-        assert!(out.contains("closeToTray: false"), "new bridge rows installed: {out}");
-        assert!(!out.contains("allowedExtensions"), "stale rows removed: {out}");
+        assert!(
+            out.contains("- id: user-plugin"),
+            "user rows survive: {out}"
+        );
+        assert!(
+            out.contains("closeToTray: false"),
+            "new bridge rows installed: {out}"
+        );
+        assert!(
+            !out.contains("allowedExtensions"),
+            "stale rows removed: {out}"
+        );
         assert!(!legacy.join("bridge").exists(), "legacy residue removed");
-        assert!(!legacy.join("bridge-client").exists(), "legacy residue removed");
+        assert!(
+            !legacy.join("bridge-client").exists(),
+            "legacy residue removed"
+        );
         let marker = profile.join(".dsh-desktop-bridge-sync");
         let marker_text = fs::read_to_string(&marker).unwrap();
-        assert!(marker_text.contains("version=0.3.30"), "marker records version");
+        assert!(
+            marker_text.contains("version=0.3.30"),
+            "marker records version"
+        );
 
         // Same version + same patch: the rewrite is skipped, so edits made
         // during this version survive a plain reboot — including edits to the
@@ -1807,16 +1828,26 @@ mod tests {
         // old version is refreshed) while user-owned rows keep their edits.
         assert!(sync_bridge_patch(&profile, "0.3.31"));
         let resynced = fs::read_to_string(profile.join("cordis.patch.yml")).unwrap();
-        assert!(resynced.contains("closeToTray: false"), "upgrade refresh replaces bridge rows");
-        assert!(!resynced.contains("closeToTray: true"), "stale bridge edit removed");
-        assert!(resynced.contains("- id: user-plugin"), "user rows survive the upgrade");
+        assert!(
+            resynced.contains("closeToTray: false"),
+            "upgrade refresh replaces bridge rows"
+        );
+        assert!(
+            !resynced.contains("closeToTray: true"),
+            "stale bridge edit removed"
+        );
+        assert!(
+            resynced.contains("- id: user-plugin"),
+            "user rows survive the upgrade"
+        );
         fs::remove_dir_all(&temp).ok();
     }
 
     #[test]
     fn sync_bridge_patch_replaces_the_empty_template_list() {
         use std::fs;
-        let temp = std::env::temp_dir().join(format!("dsh-desktop-sync-empty-{}", std::process::id()));
+        let temp =
+            std::env::temp_dir().join(format!("dsh-desktop-sync-empty-{}", std::process::id()));
         let _ = fs::remove_dir_all(&temp);
         let profile = temp.join("profile");
         let pkg = profile
@@ -1841,7 +1872,10 @@ mod tests {
         let out = fs::read_to_string(profile.join("cordis.patch.yml")).unwrap();
         assert!(out.contains("- insert:"), "rows join the patch: {out}");
         assert!(!out.contains("[]"), "placeholder replaced: {out}");
-        assert!(out.starts_with("# Your patch layer"), "template preamble survives: {out}");
+        assert!(
+            out.starts_with("# Your patch layer"),
+            "template preamble survives: {out}"
+        );
         fs::remove_dir_all(&temp).ok();
     }
 

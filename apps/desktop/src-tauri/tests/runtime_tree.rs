@@ -110,7 +110,9 @@ fn contained_tree_is_terminated_without_name_matching() {
         }
     }
     assert!(
-        identities.contains_key("ROOT") && identities.contains_key("CHILD") && identities.contains_key("GRANDCHILD"),
+        identities.contains_key("ROOT")
+            && identities.contains_key("CHILD")
+            && identities.contains_key("GRANDCHILD"),
         "fixture must print all three identities, got {:?}",
         identities
     );
