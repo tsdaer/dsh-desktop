@@ -7,13 +7,15 @@
 // - POST /dsh-bridge/policy — persist desktop settings through the runtime's
 //   settings seam (the dsh configuration boundary refuses browser writes to
 //   non-listed namespaces, so saves go through this route).
-// - GET /dsh-bridge/balance — resolve the DeepSeek key through the runtime's
-//   credentials seam and proxy the official /user/balance endpoint for the
-//   title bar's balance pill.
+// - GET /dsh-bridge/account-summary — resolve the authoritative model
+//   selection for the active session and query the selected provider's
+//   account summary through its adapter. The provider and credential never
+//   come from the browser.
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
-import { credentialRef } from '@deepseek-ai/dsh-credentials'
+import type { SessionId } from '@deepseek-ai/dsh-session'
 import z from '@deepseek-ai/schemastery'
+import { resolveAccountSummary } from './account-summary.ts'
 import type { SettingsNamespace } from '@deepseek-ai/dsh-settings'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-fs'
@@ -223,13 +225,13 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
     json(res, 200, { closeToTray: effective.closeToTray, debugMode: effective.debugMode, logoMotion: effective.logoMotion })
     return
   }
-  if (pathname === '/dsh-bridge/balance') {
+  if (pathname === '/dsh-bridge/account-summary') {
     if (req.method !== 'GET') {
       res.statusCode = 405
       res.end()
       return
     }
-    await handleBalance(res, ctx)
+    await handleAccountSummary(req, res, ctx)
     return
   }
   if (pathname === '/dsh-bridge/worktree/explorer') {
@@ -296,83 +298,28 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
   json(res, 404, { error: 'not found' })
 }
 
-/** One balance entry from the DeepSeek /user/balance response. */
-interface BalanceInfo {
-  currency: string
-  total_balance: string
-}
-
-function isBalanceInfo(value: unknown): value is BalanceInfo {
-  if (typeof value !== 'object' || value === null) return false
-  const info = value as Record<string, unknown>
-  return typeof info.currency === 'string' && typeof info.total_balance === 'string'
-}
-
-/** Timeout for the upstream DeepSeek balance request. */
-const BALANCE_TIMEOUT_MS = 10_000
-
-/** Public DeepSeek API base (the llm-deepseek provider default). */
-const PUBLIC_API_BASE = 'https://api.deepseek.com'
-
-/** Credential reference for balance reads: the llm-deepseek provider default. */
-const BALANCE_KEY_REF = credentialRef('DEEPSEEK_API_KEY')
-
 /**
- * Resolve the DeepSeek API key through the runtime's credentials seam (the
- * same reference and ordering the llm-deepseek provider uses: managed store
- * first, ambient environment as the no-seam fallback). The value never
- * leaves this process.
+ * Serve GET /dsh-bridge/account-summary: resolve the authoritative model
+ * selection for the active session, then query the selected provider
+ * adapter for its account summary.
+ *
+ * Query parameters: sessionId (current session), providerId (browser view
+ * of the selected provider), generation (browser-side selection counter
+ * echoed back so an older fetch cannot overwrite a newer selection).
  */
-async function resolveBalanceKey(ctx: Context): Promise<string | undefined> {
-  const credentials = ctx.get('credentials')
-  if (credentials !== undefined) {
-    return (await credentials.resolve(BALANCE_KEY_REF))?.value
+async function handleAccountSummary(req: IncomingMessage, res: ServerResponse, ctx: Context): Promise<void> {
+  const url = new URL(req.url ?? '/', 'http://localhost')
+  const sessionId = url.searchParams.get('sessionId') ?? ''
+  const requestedProvider = url.searchParams.get('providerId') ?? ''
+  const generation = url.searchParams.get('generation') ?? ''
+  if (sessionId.length === 0 || generation.length === 0) {
+    json(res, 400, { error: 'sessionId and generation are required' })
+    return
   }
-  const ambient = process.env.DEEPSEEK_API_KEY
-  return ambient !== undefined && ambient.length > 0 ? ambient : undefined
+  const body = await resolveAccountSummary(ctx, sessionId as SessionId, requestedProvider, generation)
+  json(res, 200, body)
 }
 
-/**
- * Serve GET /dsh-bridge/balance: proxy the DeepSeek /user/balance endpoint
- * with the runtime's own key and return a normalized amount. Failures stay
- * a 200 with a machine-readable reason so the title bar renders them as a
- * hidden/muted state instead of logging fetch errors.
- */
-async function handleBalance(res: ServerResponse, ctx: Context): Promise<void> {
-  try {
-    const key = await resolveBalanceKey(ctx)
-    if (key === undefined) {
-      json(res, 200, { ok: false, state: 'unconfigured', reason: 'unconfigured' })
-      return
-    }
-    const base = (process.env.DEEPSEEK_BASE_URL ?? PUBLIC_API_BASE).replace(/\/+$/, '')
-    const response = await fetch(base + '/user/balance', {
-      headers: { authorization: 'Bearer ' + key },
-      signal: AbortSignal.timeout(BALANCE_TIMEOUT_MS),
-    })
-    if (!response.ok) {
-      const reason = response.status === 401 || response.status === 403 ? 'auth' : 'api'
-      json(res, 200, { ok: false, state: 'unavailable', reason, status: response.status })
-      return
-    }
-    const body = await response.json() as { is_available?: unknown; balance_infos?: unknown }
-    const infos = Array.isArray(body.balance_infos) ? body.balance_infos : []
-    const first = infos.find(isBalanceInfo)
-    if (first === undefined) {
-      json(res, 200, { ok: false, state: 'unavailable', reason: 'api', message: 'balance response missing balance_infos' })
-      return
-    }
-    json(res, 200, {
-      ok: true,
-      state: 'connected',
-      available: body.is_available === true,
-      currency: first.currency,
-      totalBalance: first.total_balance,
-    })
-  } catch (err) {
-    json(res, 200, { ok: false, state: 'unavailable', reason: 'network', message: err instanceof Error ? err.message : String(err) })
-  }
-}
 
 /** Collect the request body up to {@link MAX_BODY_BYTES}. */
 function readBody(req: IncomingMessage): Promise<string> {

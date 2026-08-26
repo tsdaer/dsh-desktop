@@ -10,6 +10,7 @@
 
 import { attributionHeaders, contentHasImage, CONTEXT_WINDOW_EXCEEDED_CODE, isContextWindowExceededError, isQuotaExceededError, LlmAdapter, LlmError, offloadRequestImagesWithPolicy, ProviderRequestId, QUOTA_EXCEEDED_CODE, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import type {
+  AccountSummary,
   ContentBlock,
   GenerateOptions,
   LlmModelInfo,
@@ -351,6 +352,21 @@ export function httpErrorCode(status: number, error?: WireError['error']): strin
  * One stable signal reaches both initial fetch and body reads. Caller aborts
  * map to `ABORTED`; the configured per-read idle watchdog maps to `TIMEOUT`.
  */
+/** Timeout for the upstream DeepSeek account-balance request. */
+const ACCOUNT_SUMMARY_TIMEOUT_MS = 10_000
+
+/** One balance entry from the DeepSeek /user/balance response. */
+interface BalanceInfo {
+  currency: string
+  total_balance: string
+}
+
+function isBalanceInfo(value: unknown): value is BalanceInfo {
+  if (typeof value !== 'object' || value === null) return false
+  const info = value as Record<string, unknown>
+  return typeof info.currency === 'string' && typeof info.total_balance === 'string'
+}
+
 export class DeepSeekAdapter extends LlmAdapter {
   private readonly files: DeepSeekFileStore
 
@@ -369,6 +385,44 @@ export class DeepSeekAdapter extends LlmAdapter {
 
   override listModels(provider: string): Promise<readonly LlmModelInfo[]> {
     return Promise.resolve(this.config.options().models.map(model => modelInfo(provider, model)))
+  }
+
+  override async accountSummary(
+    provider: string,
+    signal?: AbortSignal,
+  ): Promise<AccountSummary> {
+    const connection = this.config.options()
+    const base = connection.baseURL.replace(/\/+$/, '')
+    try {
+      const key = await this.config.resolveApiKey(connection)
+      const response = await fetch(base + '/user/balance', {
+        headers: { authorization: 'Bearer ' + key },
+        signal: signal ?? AbortSignal.timeout(ACCOUNT_SUMMARY_TIMEOUT_MS),
+      })
+      if (!response.ok) {
+        const status = response.status
+        if (status === 401 || status === 403) {
+          return { provider, state: 'unconfigured' }
+        }
+        return { provider, state: 'unavailable' }
+      }
+      const body = await response.json() as { is_available?: unknown; balance_infos?: unknown }
+      const infos = Array.isArray(body.balance_infos) ? body.balance_infos : []
+      const first = infos.find(isBalanceInfo)
+      if (first === undefined) {
+        return { provider, state: 'unavailable' }
+      }
+      return {
+        provider,
+        state: 'available',
+        amount: first.total_balance,
+        currency: first.currency,
+      }
+    } catch {
+      // Every failure of the account probe is a transient unavailable: the
+      // title bar keeps the provider named and shows no stale amount.
+      return { provider, state: 'unavailable' }
+    }
   }
 
   override resolveModel(

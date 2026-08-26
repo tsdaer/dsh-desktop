@@ -17,6 +17,7 @@ import LlmRuntime, {
   createUserMessage,
 } from '@deepseek-ai/dsh-llm'
 import type {
+  AccountSummary,
   LlmModelContext,
   LlmModelInfo,
   LlmModelReasoningInfo,
@@ -1329,5 +1330,73 @@ describe('LlmRuntime', () => {
     expect(ctx.llm.listProviders()).toEqual([{ id: 'm2', name: 'm2' }])
     handle()
     expect(ctx.llm.listProviders()).toEqual([])
+  })
+
+  describe('accountSummary', () => {
+    it('reports unsupported for an adapter without an account API', async () => {
+      const ctx = new Context()
+      await ctx.plugin(LlmRuntime)
+      ctx.llm.registerAdapter(['plain'], new ScriptedAdapter(SCRIPT))
+      await expect(ctx.llm.accountSummary('plain')).resolves.toEqual({ provider: 'plain', state: 'unsupported' })
+    })
+
+    it('forwards an available summary with amount and currency', async () => {
+      class BalanceAdapter extends ScriptedAdapter {
+        override accountSummary(provider: string): Promise<AccountSummary> {
+          return Promise.resolve({ provider, state: 'available', amount: '12.34', currency: 'CNY' })
+        }
+      }
+      const ctx = new Context()
+      await ctx.plugin(LlmRuntime)
+      ctx.llm.registerAdapter(['deepseek-official'], new BalanceAdapter(SCRIPT))
+      await expect(ctx.llm.accountSummary('deepseek-official')).resolves.toEqual({
+        provider: 'deepseek-official',
+        state: 'available',
+        amount: '12.34',
+        currency: 'CNY',
+      })
+    })
+
+    it('rejects an amount carried by a non-available state', async () => {
+      class BadAdapter extends ScriptedAdapter {
+        override accountSummary(provider: string): Promise<AccountSummary> {
+          return Promise.resolve({ provider, state: 'unconfigured', amount: '12.34' })
+        }
+      }
+      const ctx = new Context()
+      await ctx.plugin(LlmRuntime)
+      ctx.llm.registerAdapter(['bad'], new BadAdapter(SCRIPT))
+      await expect(ctx.llm.accountSummary('bad')).rejects.toMatchObject({ code: 'INVALID_ACCOUNT_SUMMARY' })
+    })
+
+    it('rejects an available state without an amount', async () => {
+      class BadAdapter extends ScriptedAdapter {
+        override accountSummary(provider: string): Promise<AccountSummary> {
+          return Promise.resolve({ provider, state: 'available' })
+        }
+      }
+      const ctx = new Context()
+      await ctx.plugin(LlmRuntime)
+      ctx.llm.registerAdapter(['bad'], new BadAdapter(SCRIPT))
+      await expect(ctx.llm.accountSummary('bad')).rejects.toMatchObject({ code: 'INVALID_ACCOUNT_SUMMARY' })
+    })
+
+    it('rejects a summary whose provider does not match the route', async () => {
+      class BadAdapter extends ScriptedAdapter {
+        override accountSummary(_provider: string): Promise<AccountSummary> {
+          return Promise.resolve({ provider: 'other', state: 'available', amount: '1', currency: 'USD' })
+        }
+      }
+      const ctx = new Context()
+      await ctx.plugin(LlmRuntime)
+      ctx.llm.registerAdapter(['bad'], new BadAdapter(SCRIPT))
+      await expect(ctx.llm.accountSummary('bad')).rejects.toMatchObject({ code: 'INVALID_ACCOUNT_SUMMARY' })
+    })
+
+    it('rejects an unknown provider route', async () => {
+      const ctx = new Context()
+      await ctx.plugin(LlmRuntime)
+      await expect(ctx.llm.accountSummary('missing')).rejects.toMatchObject({ code: 'NO_ADAPTER' })
+    })
   })
 })

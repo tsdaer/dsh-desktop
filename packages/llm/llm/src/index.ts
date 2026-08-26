@@ -8,6 +8,7 @@
 
 import { Context, Service } from '@deepseek-ai/cordis'
 import type {
+  AccountSummary,
   GenerateOptions,
   LlmConfigurableProvider,
   LlmDiscoveredModel,
@@ -257,6 +258,21 @@ export abstract class LlmAdapter {
    * @returns the chunk stream, obeying the adapter contract documented on `StreamChunk`.
    */
   abstract stream(options: GenerateOptions): AsyncIterable<StreamChunk>
+
+  /**
+   * Resolve one provider route's account summary. The default reports
+   * `unsupported`: most providers have no account API, and a provider that
+   * does must override this with a request through its own credential seam.
+   * @param provider - one provider route owned by this adapter.
+   * @param signal - cancellation for the account request.
+   * @returns the provider-reported account state and optional amount.
+   */
+  accountSummary(
+    provider: string,
+    _signal?: AbortSignal,
+  ): Promise<AccountSummary> {
+    return Promise.resolve({ provider, state: 'unsupported' })
+  }
 }
 
 /**
@@ -632,6 +648,47 @@ export class LlmRuntime extends Service {
         ...inputModalities === undefined ? {} : { inputModalities },
       }
     })
+  }
+
+  /**
+   * Resolve one registered provider account summary through its adapter.
+   * Providers without an account API report unsupported; the value is
+   * detached from adapter-owned state. The provider route must be registered.
+   * @param provider - registered provider route to inspect.
+   * @param signal - optional cancellation for the account request.
+   * @returns the provider-reported account state and optional amount.
+   */
+  async accountSummary(
+    provider: string,
+    signal?: AbortSignal,
+  ): Promise<AccountSummary> {
+    const adapter = this.registration(provider).adapter
+    const summary = await adapter.accountSummary(provider, signal)
+    if (summary === undefined || summary === null
+      || typeof summary.provider !== 'string' || summary.provider !== provider
+      || !['available', 'unsupported', 'unconfigured', 'unavailable'].includes(summary.state)) {
+      throw new LlmError(
+        `adapter returned an invalid account summary for provider "${provider}"`,
+        'INVALID_ACCOUNT_SUMMARY',
+      )
+    }
+    if (summary.state === 'available') {
+      if (typeof summary.amount !== 'string' || summary.amount.length === 0
+        || typeof summary.currency !== 'string' || summary.currency.length === 0) {
+        throw new LlmError(
+          `adapter returned an available account summary without an amount and currency for provider "${provider}"`,
+          'INVALID_ACCOUNT_SUMMARY',
+        )
+      }
+      return { provider, state: 'available', amount: summary.amount, currency: summary.currency }
+    }
+    if (summary.amount !== undefined || summary.currency !== undefined) {
+      throw new LlmError(
+        `adapter returned an amount for a non-available account state for provider "${provider}"`,
+        'INVALID_ACCOUNT_SUMMARY',
+      )
+    }
+    return { provider, state: summary.state }
   }
 
   /**

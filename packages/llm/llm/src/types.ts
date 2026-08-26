@@ -148,6 +148,31 @@ export interface LlmProviderInfo {
   name: string
 }
 
+/** Account-status states a provider can report for one registered route. */
+export type AccountSummaryState =
+  | 'available'
+  | 'unsupported'
+  | 'unconfigured'
+  | 'unavailable'
+
+/**
+ * One provider's account summary, resolved per request through the runtime's
+ * credential seam. `unsupported` names a provider without an account API;
+ * `unconfigured` means the provider needs credentials that are absent;
+ * `unavailable` covers every transient failure (network, provider error).
+ * Only `available` carries an amount.
+ */
+export interface AccountSummary {
+  /** The provider route this summary belongs to. */
+  provider: string
+  /** The provider-reported account state. */
+  state: AccountSummaryState
+  /** Display amount, present exactly when {@link state} is `available`. */
+  amount?: string
+  /** ISO 4217 currency code, present exactly when {@link state} is `available`. */
+  currency?: string
+}
+
 /** Merge-extensible provider model modality vocabulary. */
 export interface ModelModalityMap {
   text: 'text'
