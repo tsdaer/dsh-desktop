@@ -751,6 +751,13 @@ async function main() {
       ...process.env,
       APPIMAGE_EXTRACT_AND_RUN: '1',
       DSH_HOME: home,
+      // The smoke runs the packaged shell inside the CI runner's enclosing job,
+      // which refuses private Job Object allocation; the explicit uncontained
+      // fallback keeps the smoke meaningful on such hosts (production installs
+      // never set this).
+      ...(options.target.productTarget === 'windows-x64' ? {
+        DSH_DESKTOP_ALLOW_UNCONTAINED: '1',
+      } : {}),
       ...(options.target.productTarget === 'macos-arm64' ? {
         DSH_PACKAGED_SMOKE_SPLASH_DIR: nativeTemp,
         TMPDIR: nativeTemp,

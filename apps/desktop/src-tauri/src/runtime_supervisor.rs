@@ -16,10 +16,10 @@
 
 use std::time::{Duration, Instant};
 
-#[cfg(windows)]
-mod platform_windows;
 #[cfg(not(windows))]
 mod platform_posix;
+#[cfg(windows)]
+mod platform_windows;
 
 /// Lifecycle states of the supervised runtime.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -156,7 +156,11 @@ impl RuntimeSupervisor {
     /// there, so no graceful signal channel exists. The Job Object's
     /// KILL_ON_JOB_CLOSE remains the final synchronous backstop when the
     /// handle drops.
-    pub fn terminate_and_join(&mut self, reason: &'static str, budget: Duration) -> TerminateReport {
+    pub fn terminate_and_join(
+        &mut self,
+        reason: &'static str,
+        budget: Duration,
+    ) -> TerminateReport {
         if self.lifecycle == Lifecycle::Terminating {
             return self.pending_report(reason);
         }
@@ -292,9 +296,10 @@ mod tests {
         }
     }
 
-    /// Attempt a real contained spawn; reports the skip reason when the host
-    /// job environment refuses private containment (a job sandbox without
-    /// breakaway), and returns None so the test can report rather than fail.
+    /// Attempt a real contained spawn. When the host job environment refuses
+    /// private containment (a job sandbox without breakaway) and the explicit
+    /// uncontained fallback is set, the spawn succeeds uncontained; without
+    /// the fallback it fails and the caller reports the skip reason.
     #[cfg(windows)]
     fn contained_spawn_or_skip(
         supervisor: &mut RuntimeSupervisor,
@@ -333,7 +338,10 @@ mod tests {
         assert_ne!(runtime.root_pid(), 0);
         assert_eq!(supervisor.lifecycle(), Lifecycle::Running);
         let report = supervisor.terminate_and_join("test", Duration::from_secs(5));
-        assert!(report.root_exited, "short-lived node must join within budget");
+        assert!(
+            report.root_exited,
+            "short-lived node must join within budget"
+        );
         assert_eq!(supervisor.lifecycle(), Lifecycle::Terminated);
     }
 
@@ -380,5 +388,31 @@ mod tests {
         supervisor.terminate_and_join("test", Duration::from_secs(5));
         assert_eq!(supervisor.lifecycle(), Lifecycle::Terminated);
         assert_ne!(first_pid, 0);
+    }
+
+    #[test]
+    fn explicit_uncontained_fallback_spawns_when_the_host_refuses_containment() {
+        // With DSH_DESKTOP_ALLOW_UNCONTAINED=1 the supervisor falls back to
+        // direct-child ownership when the host refuses private-job allocation
+        // (an enclosing job without breakaway). On a host that allows the job
+        // this test exercises the contained path and still passes.
+        std::env::set_var("DSH_DESKTOP_ALLOW_UNCONTAINED", "1");
+        let mut supervisor = RuntimeSupervisor::new();
+        let spawned = supervisor.spawn(node_spec());
+        std::env::remove_var("DSH_DESKTOP_ALLOW_UNCONTAINED");
+        let runtime = match spawned {
+            Ok(runtime) => runtime,
+            Err(err) => {
+                // Neither path may fail outright: containment or the explicit
+                // fallback must produce a running runtime.
+                panic!("spawn failed with the uncontained fallback enabled: {err}")
+            }
+        };
+        let report = supervisor.terminate_and_join("test", Duration::from_secs(5));
+        assert!(
+            report.root_exited,
+            "short-lived node must join within budget"
+        );
+        assert_eq!(supervisor.lifecycle(), Lifecycle::Terminated);
     }
 }

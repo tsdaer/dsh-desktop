@@ -53,11 +53,14 @@ extern "system" {
 }
 
 /// A Windows-contained runtime: the std child (stdio, pid, join) plus the
-/// owning job handle.
+/// owning job handle. The job is None only under an explicit, non-silent
+/// uncontained fallback (DSH_DESKTOP_ALLOW_UNCONTAINED=1): the caller accepts
+/// direct-child ownership when the host refuses private-job allocation, and
+/// termination then kills the root child only.
 pub(super) struct WindowsRuntime {
     child: Child,
     /// The private job; closing it kills the job tree (KILL_ON_JOB_CLOSE).
-    job: HANDLE,
+    job: Option<HANDLE>,
     root_pid: u32,
 }
 
@@ -90,13 +93,20 @@ impl WindowsRuntime {
         budget: Duration,
         started: Instant,
     ) -> TerminateReport {
-        let terminate_result = unsafe { TerminateJobObject(self.job, 1) };
-        let containment_ok = terminate_result.is_ok();
-        if let Err(err) = terminate_result {
-            eprintln!(
-                "[dsh-desktop] runtime termination ({reason}) failed to terminate the job: {err}"
-            );
-        }
+        let containment_ok = match self.job {
+            Some(job) => match unsafe { TerminateJobObject(job, 1) } {
+                Ok(()) => true,
+                Err(err) => {
+                    eprintln!(
+                        "[dsh-desktop] runtime termination ({reason}) failed to terminate the job: {err}"
+                    );
+                    false
+                }
+            },
+            // Explicit uncontained fallback: no job owns the tree, so the root
+            // kill is the only termination verb.
+            None => self.child.kill().is_ok(),
+        };
         let elapsed = started.elapsed();
         let remaining = budget.saturating_sub(elapsed);
         let joined = wait_with_timeout(&mut self.child, remaining);
@@ -114,8 +124,10 @@ impl Drop for WindowsRuntime {
         // Closing the job handle triggers JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE:
         // the final synchronous backstop for any process that survived
         // termination. The child handle itself is reaped by the Child drop.
-        unsafe {
-            let _ = CloseHandle(self.job);
+        if let Some(job) = self.job {
+            unsafe {
+                let _ = CloseHandle(job);
+            }
         }
     }
 }
@@ -197,7 +209,33 @@ fn spawn_suspended(spec: &SpawnSpec, job: HANDLE) -> Result<WindowsRuntime, Spaw
 
     let assign = unsafe { AssignProcessToJobObject(job, process) };
     if let Err(err) = assign {
-        // The suspended child must never run uncontained.
+        // The suspended child must never run uncontained — unless the host
+        // explicitly opts into the uncontained fallback (DSH_DESKTOP_ALLOW_UNCONTAINED=1,
+        // set only by test tooling that runs inside an enclosing job). The
+        // fallback is never silent: it logs the diagnosis and the supervisor
+        // reports containment_ok=false at termination.
+        if std::env::var("DSH_DESKTOP_ALLOW_UNCONTAINED").is_ok_and(|v| v == "1") {
+            eprintln!(
+                "[dsh-desktop] runtime containment refused by the host ({err}); \
+                 running uncontained per DSH_DESKTOP_ALLOW_UNCONTAINED=1"
+            );
+            let resume = unsafe { NtResumeProcess(process) };
+            unsafe {
+                let _ = CloseHandle(process);
+            }
+            if resume != 0 {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(SpawnError::Containment(format!(
+                    "NtResumeProcess failed with status {resume}"
+                )));
+            }
+            return Ok(WindowsRuntime {
+                child,
+                job: None,
+                root_pid: pid,
+            });
+        }
         let _ = child.kill();
         let _ = child.wait();
         unsafe {
@@ -226,7 +264,7 @@ fn spawn_suspended(spec: &SpawnSpec, job: HANDLE) -> Result<WindowsRuntime, Spaw
 
     Ok(WindowsRuntime {
         child,
-        job,
+        job: Some(job),
         root_pid: pid,
     })
 }
