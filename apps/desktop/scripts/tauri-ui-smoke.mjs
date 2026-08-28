@@ -462,7 +462,7 @@ async function selectMainWindow(port, sessionId) {
       await webdriverRequest(port, `/session/${sessionId}/window`, 'POST', { handle });
       const ready = await execute(port, sessionId, `
         return document.querySelector('[data-composer-seat]') !== null
-          && document.querySelector('textarea') !== null;
+          && document.querySelector('[data-composer-input]') !== null;
       `);
       if (ready === true) return true;
     } catch {
@@ -496,7 +496,7 @@ async function waitForUi(port, sessionId) {
         const body = document.body?.innerText ?? '';
         return {
           ready: document.querySelector('[data-composer-seat]') !== null
-            && document.querySelector('textarea') !== null,
+            && document.querySelector('[data-composer-input]') !== null,
           body,
         };
       `);
