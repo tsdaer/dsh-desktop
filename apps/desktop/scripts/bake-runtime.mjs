@@ -25,7 +25,7 @@
 // The resulting directory is the Tauri `resources` payload; the shell spawns
 // `<runtime>/lib/bin.js` with the bundled Node. See apps/desktop/README.md.
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -36,6 +36,16 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '../../..');
 const cliBin = resolve(repoRoot, 'apps/cli/lib/bin.js');
 const webDist = resolve(repoRoot, 'apps/web/dist/index.html');
+
+/// Dev toolchain packages that must never ship in the runtime. pnpm deploy
+/// --prod can leak them when a workspace package declares them as regular
+/// dependencies (typert-generator depends on typescript); the runtime never
+/// executes them, so strip them after baking to keep the payload clean and
+/// the size gate green.
+const FORBIDDEN_PACKAGES = [
+  'typescript', 'mermaid', 'oxlint', 'eslint', 'lefthook', 'tsx', 'rolldown',
+  'esbuild', 'vitest', 'jsdom', 'jscpd', 'knip', 'publint', '@yarnpkg',
+];
 
 const args = process.argv.slice(2);
 const target = resolveTargetFromArgs(args);
@@ -113,6 +123,8 @@ async function main() {
   if (missing.size > 0) {
     fail('runtime still missing packages after ' + maxBakeRounds + ' rounds: ' + [...missing].join(', '));
   }
+  resolveSymlinkedPackages(deployDir, sources);
+  removeForbiddenPackages(deployDir);
 
   // The desktop bridge packages are produced by scripts/build-bridge.mjs
   // (they are not workspace members, so the repo build never rebuilds them);
@@ -207,6 +219,40 @@ function bakePackage(root, name, sourceDir) {
     copyRecursive(from, join(target, entry));
   }
   console.log('[bake-runtime] baked ' + name + ' from ' + relative(repoRoot, sourceDir));
+}
+
+/// Replace symlinked @deepseek-ai packages with real workspace copies. pnpm
+/// deploy with nodeLinker=hoisted leaves some packages as symlinks back into
+/// the checkout; the Tauri resources payload does not follow symlinks, so an
+/// installed runtime would carry a dangling link (e.g. schemastery) and fail
+/// module resolution at boot. Bake every symlinked package into a real copy.
+function resolveSymlinkedPackages(root, sources) {
+  const packagesRoot = join(root, 'node_modules', '@deepseek-ai');
+  if (!existsSync(packagesRoot)) return;
+  for (const name of readdirSafe(packagesRoot)) {
+    const full = join(packagesRoot, name);
+    let isLink = false;
+    try { isLink = lstatSync(full).isSymbolicLink(); } catch { continue; }
+    if (!isLink) continue;
+    const pkgName = '@deepseek-ai/' + name;
+    const sourceDir = sources.get(pkgName);
+    if (sourceDir === undefined) {
+      console.warn('[bake-runtime] no workspace source for symlinked ' + pkgName + '; leaving the link');
+      continue;
+    }
+    bakePackage(root, pkgName, sourceDir);
+  }
+}
+
+/// Dev toolchain packages that must never ship in the runtime. pnpm deploy
+/// --prod can leak them when a workspace package declares them as regular
+/// dependencies (typert-generator depends on typescript); the runtime never
+/// executes them, so strip them after baking to keep the payload clean and
+/// the size gate green.
+function removeForbiddenPackages(root) {
+  for (const name of FORBIDDEN_PACKAGES) {
+    rmSync(join(root, 'node_modules', name), { recursive: true, force: true });
+  }
 }
 
 /// Map every workspace package name to its source directory.
