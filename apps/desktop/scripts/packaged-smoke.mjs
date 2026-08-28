@@ -587,8 +587,24 @@ export async function runPackagedWebSmoke(url, options = {}) {
     if (response === null || !response.ok()) {
       throw new Error(`packaged web UI returned ${response?.status() ?? 'no response'} at ${url}`);
     }
-    await page.locator('[data-composer-seat]').waitFor({ state: 'attached', timeout: 30_000 });
-    await page.locator('textarea').waitFor({ state: 'attached', timeout: 30_000 });
+    try {
+      await page.locator('[data-composer-seat]').waitFor({ state: 'attached', timeout: 30_000 });
+      await page.locator('textarea').waitFor({ state: 'attached', timeout: 30_000 });
+    } catch (error) {
+      // Surface the packaged page's actual state so a boot failure or a hung
+      // loader is diagnosable from the run log instead of a bare timeout.
+      const state = await page.evaluate(() => ({
+        boot: document.querySelector('[data-dsh-boot]') !== null,
+        spinner: document.querySelector('[data-dsh-boot-spinner]') !== null,
+        failure: document.querySelector('[data-dsh-boot]')?.textContent?.slice(0, 300) ?? null,
+        body: document.body?.textContent?.slice(0, 300) ?? null,
+      })).catch(() => ({}));
+      console.error('[packaged-smoke] web UI did not render the composer:', JSON.stringify(state));
+      if (options.screenshotPath !== undefined) {
+        await page.screenshot({ path: options.screenshotPath, fullPage: true }).catch(() => {});
+      }
+      throw error;
+    }
     const title = await page.title();
     if (!/DeepSeek Harness|DSH Local Build/.test(title)) {
       throw new Error(`packaged web UI has unexpected document title: ${title}`);
