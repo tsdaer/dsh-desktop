@@ -47,6 +47,22 @@ const FORBIDDEN_PACKAGES = [
   'esbuild', 'vitest', 'jsdom', 'jscpd', 'knip', 'publint', '@yarnpkg',
 ];
 
+/// Source and build-input file extensions that must never ship in the runtime.
+/// The deployed CLI closure contains full npm package sources (TS, sourcemaps,
+/// tests, docs); the runtime executes only the compiled JS entry points, and
+/// shipping the rest balloons the payload and breaks the Tauri resource walk
+/// (tauri_build emits rerun-if-changed per file; tens of thousands of entries
+/// panic the build script on Linux/macOS). Strip them after baking.
+const PRUNE_EXTENSIONS = new Set([
+  '.ts', '.mts', '.cts', '.d.ts', '.d.mts', '.d.cts',
+  '.map', '.md', '.markdown', '.json5', '.tsbuildinfo',
+]);
+
+const PRUNE_DIRECTORIES = new Set([
+  'test', 'tests', '__tests__', '.github', '.git', 'docs', 'examples',
+  'demo', 'coverage', 'bench', 'benchmarks', 'fixtures',
+]);
+
 const args = process.argv.slice(2);
 const target = resolveTargetFromArgs(args);
 const defaultDeployDir = resolve(here, '..', target.runtimeRelativeDir);
@@ -125,6 +141,7 @@ async function main() {
   }
   resolveSymlinkedPackages(deployDir, sources);
   removeForbiddenPackages(deployDir);
+  pruneNodeModules(deployDir);
 
   // The desktop bridge packages are produced by scripts/build-bridge.mjs
   // (they are not workspace members, so the repo build never rebuilds them);
@@ -253,6 +270,47 @@ function removeForbiddenPackages(root) {
   for (const name of FORBIDDEN_PACKAGES) {
     rmSync(join(root, 'node_modules', name), { recursive: true, force: true });
   }
+}
+
+function pruneNodeModules(root) {
+  const nm = join(root, 'node_modules');
+  if (!existsSync(nm)) return;
+  // @deepseek-ai packages are baked from workspace files entries (exact copies
+  // of what ships); only third-party packages carry the full source tree.
+  const scoped = join(nm, '@deepseek-ai');
+  const thirdParty = readdirSafe(nm).filter((name) => name !== '@deepseek-ai');
+  let removedFiles = 0;
+  let removedDirs = 0;
+  const walk = (dir) => {
+    let entries;
+    try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      const full = join(dir, entry.name);
+      let isLink = false;
+      try { isLink = lstatSync(full).isSymbolicLink(); } catch { continue; }
+      if (entry.isDirectory() && !isLink) {
+        if (PRUNE_DIRECTORIES.has(entry.name)) {
+          rmSync(full, { recursive: true, force: true });
+          removedDirs += 1;
+        } else {
+          walk(full);
+        }
+      } else if (entry.isFile() && !isLink) {
+        const dot = entry.name.lastIndexOf('.');
+        if (dot >= 0 && PRUNE_EXTENSIONS.has(entry.name.slice(dot).toLowerCase())) {
+          rmSync(full, { force: true });
+          removedFiles += 1;
+        }
+      }
+    }
+  };
+  for (const name of thirdParty) {
+    const full = join(nm, name);
+    try {
+      if (lstatSync(full).isDirectory() && !lstatSync(full).isSymbolicLink()) walk(full);
+    } catch { continue; }
+  }
+  console.log('[bake-runtime] pruned ' + removedFiles + ' source files and ' + removedDirs + ' source dirs from node_modules');
 }
 
 /// Map every workspace package name to its source directory.
