@@ -10,7 +10,7 @@ Status: implemented
 
 ## Decision
 
-`packaged-smoke.mjs` 接受仅限 Linux 的 `--web-smoke`。已安装包保持运行期间,检查会用 Chromium 打开它的就绪 URL,要求文档响应成功,等待 conversation composer 和 textarea 挂载,校验文档标题,并可通过 `DSH_PACKAGED_WEB_SMOKE_SCREENSHOT` 写出截图。检查会关闭 Chromium,并在移除安装包前停止已打包进程树。
+`packaged-smoke.mjs` 接受仅限 Linux 的 `--web-smoke`。已安装包保持运行期间,检查会用 Chromium 打开它的就绪 URL,要求文档响应成功,等待 conversation composer seat 及其 `data-composer-input` 编辑器挂载,校验文档标题,并可通过 `DSH_PACKAGED_WEB_SMOKE_SCREENSHOT` 写出截图。稳定的 composer 属性使已安装包检查与当前 Lexical 编辑器保持一致,且不依赖编辑器的元素类型。检查会关闭 Chromium,并在移除安装包前停止已打包进程树。
 
 生产运行时烘焙会移除工作区的开发依赖。Linux release job 会先恢复锁定的开发依赖安装,再安装 Chromium,并对已安装的 deb 包运行这项检查以及目标运行时 PTY 探针。截图作为独立证据上传,与组装 Web 回放、基线记录和可安装发布资产分开。
 

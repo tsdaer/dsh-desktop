@@ -2,6 +2,12 @@
 
 dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循[语义化版本](https://semver.org/spec/v2.0.0.html)。draft-release workflow 会把对应版本的章节复制到 GitHub release 的 notes 里。
 
+## [0.5.2] - 2026-08-28
+
+### 修复
+
+- 已安装 Linux 包的冒烟检查现在识别 Lexical composer 稳定的 `data-composer-input` 元素,不再等待编辑器迁移时已移除的 textarea。
+
 ## [0.5.1] - 2026-08-28
 
 ### 修复

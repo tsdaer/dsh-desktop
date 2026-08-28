@@ -10,7 +10,7 @@ The installed-package smoke verified readiness and a target-runtime PTY command,
 
 ## Decision
 
-`packaged-smoke.mjs` accepts Linux-only `--web-smoke`. While the installed package remains running, the check opens its readiness URL in Chromium, requires a successful document response, waits for the conversation composer and textarea to mount, validates the document title, and optionally writes a screenshot through `DSH_PACKAGED_WEB_SMOKE_SCREENSHOT`. The check closes Chromium and stops the packaged process tree before package removal.
+`packaged-smoke.mjs` accepts Linux-only `--web-smoke`. While the installed package remains running, the check opens its readiness URL in Chromium, requires a successful document response, waits for the conversation composer seat and its `data-composer-input` editor to mount, validates the document title, and optionally writes a screenshot through `DSH_PACKAGED_WEB_SMOKE_SCREENSHOT`. The stable composer attributes keep this installed-package check aligned with the current Lexical editor without depending on its element type. The check closes Chromium and stops the packaged process tree before package removal.
 
 Production runtime baking removes the workspace's development dependencies. The Linux release job restores the frozen development install before installing Chromium and running this check against the installed deb package together with the target-runtime PTY probe. Its screenshot is uploaded as evidence separate from the assembled Web replay, baseline record, and installable release assets.
 

@@ -595,7 +595,7 @@ export async function runPackagedWebSmoke(url, options = {}) {
     }
     try {
       await page.locator('[data-composer-seat]').waitFor({ state: 'attached', timeout: 30_000 });
-      await page.locator('textarea').waitFor({ state: 'attached', timeout: 30_000 });
+      await page.locator('[data-composer-input]').waitFor({ state: 'attached', timeout: 30_000 });
     } catch (error) {
       // Surface the packaged page's actual state so a boot failure or a hung
       // loader is diagnosable from the run log instead of a bare timeout.
