@@ -1,8 +1,24 @@
+---
+description: "The WSL Bash Consumer for the shell seam on Windows desktops: conditionally registers the bash tool while the WSL setting and distribution probe are healthy."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-tool-bash-wsl
 
 English | [中文](README.zh.md)
 
+## Summary
+
 Model-facing Consumer of the WSL Bash execution world (P4b of the [Desktop 0.4 plan](../../../.agents/notes/proposed/feature/2026-08-26-desktop-0.4-runtime-and-windows-integration.md)). Registers the `bash` tool only while the WSL setting is enabled and the selected distribution's probe is healthy; a disabled or unhealthy configuration removes Bash from tool assembly.
+
+## Table of Contents
+
+- [Behavior](#behavior)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
+
+-----
 
 ## Behavior
 
@@ -65,3 +81,7 @@ No direct invalidation; results are per-call and not prefix-stable.
 
 - **Windows-only** — wsl.exe is the Windows binary; this tool is not registered on POSIX hosts.
 - **No sandbox escalation** — the WSL execution world enforces the /mnt restriction at the executor boundary; sandbox-permissions escalation is not advertised.
+
+### Dev Note
+
+This package is part of the desktop fork's WSL integration (P4b). It is Windows-only and gates the bash tool on the live WSL setting and distribution health; see the [Desktop 0.4 plan](../../../.agents/notes/proposed/feature/2026-08-26-desktop-0.4-runtime-and-windows-integration.md) for the roadmap.

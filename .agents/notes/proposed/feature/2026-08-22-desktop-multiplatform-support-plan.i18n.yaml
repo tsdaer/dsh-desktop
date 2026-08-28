@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-08-22-desktop-multiplatform-support-plan.md
 2026-08-22-desktop-multiplatform-support-plan.md: 331e204f6ca563c630cc3de74c27ea78032f9eac
-2026-08-22-desktop-multiplatform-support-plan.zh.md: 77f7ba5b41d3ca99ad91ac3ac62c6a00651d4c66
+2026-08-22-desktop-multiplatform-support-plan.zh.md: 4d9745bcdbc5acd6fd6d10efc3f95063f611c776

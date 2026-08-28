@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-23-desktop-packaged-smoke-inherited-stdio.md
 2026-08-23-desktop-packaged-smoke-inherited-stdio.md: 3337d94907261cf59efdbe64df6af31adc2d9f20
-2026-08-23-desktop-packaged-smoke-inherited-stdio.zh.md: 3ab0fffa788535c7504702d06f64c0471f9fcc7c
+2026-08-23-desktop-packaged-smoke-inherited-stdio.zh.md: 3aefbbf7ebf02ecb229eeda7fae678820e5ade67

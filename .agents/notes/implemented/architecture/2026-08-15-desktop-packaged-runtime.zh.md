@@ -17,7 +17,7 @@ dsh-desktop 的 Tauri 壳子通过 spawn 一个跑着 CLI 的 Node 进程来启�
 3. 单平台化原生预编译产物:`node-pty` 会带上所有平台、Windows `.pdb` 符号和构建期源码;`pruneRuntime` 只保留 `win32-x64` 预编译(62.6 MB → 2.6 MB)。`scripts/size-report.mjs --check`(预算 + dev 工具泄漏断言)在每次 bake 后钉住负载。
 4. 用一次性 `DSH_HOME` 启动部署出的 CLI 验证,要求出现 `dsh web:` 就绪行。
 
-内置裸插件名通过修复后的 `$DSH_HOME/profiles/node_modules` 回退目录解析,其中的链接指向打包运行时。打包桌面启动默认不设置 `DSH_BARE_MODULE_BASE`,使 profile 安装的 bundle 从 profile 自己的 `node_modules` 解析;由宿主拥有完整插件集的场景仍可显式设置。 [profile 自有 bundle 解析修正](../bug-fix/2026-08-20-desktop-profile-bundle-resolution.md)记录了打包默认值不能使用仅运行时锚点的原因。
+内置裸插件名通过修复后的 `$DSH_HOME/profiles/node_modules` 回退目录解析,其中的链接指向打包运行时。打包桌面启动默认不设置 `DSH_BARE_MODULE_BASE`,使 profile 安装的 bundle 从 profile 自己的 `node_modules` 解析;由宿主拥有完整插件集的场景仍可显式设置。 [profile 自有 bundle 解析修正](../bug-fix/2026-08-20-desktop-profile-bundle-resolution.zh.md)记录了打包默认值不能使用仅运行时锚点的原因。
 
 `main.rs` 的打包解析:环境变量接线(`DSH_CLI`/`DSH_NODE`/`DSH_BARE_MODULE_BASE`/`DSH_BRIDGE_TARBALL`)优先(dev 启动器);没有 `DSH_CLI` 的构建回退到 `resources/runtime/lib/bin.js`、产品自有 sidecar `dsh-node.exe` 或 `dsh-node`(Tauri `externalBin`,gitignore,由 `scripts/fetch-node-sidecar.mjs` 拉取)和离线桥接拷贝。桥接包随运行时携带,首次启动拷入 profile —— 打包应用没有 npm,dev 的 npm tarball 路径仅保留给 dev 启动器。
 

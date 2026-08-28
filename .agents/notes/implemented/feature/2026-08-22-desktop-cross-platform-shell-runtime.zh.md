@@ -22,7 +22,7 @@ WebView2 controller 访问只在 Windows 编译。其他目标保留页面级调
 
 ## 相关记录
 
-目标原生文件裁剪与校验由[桌面目标原生运行时](2026-08-22-desktop-target-native-runtime.md)记录定义。源码 sidecar 名与安装后名称的更正由[桌面打包 sidecar 命名](../bug-fix/2026-08-23-desktop-packaged-sidecar-naming.md)记录。
+目标原生文件裁剪与校验由[桌面目标原生运行时](2026-08-22-desktop-target-native-runtime.zh.md)记录定义。源码 sidecar 名与安装后名称的更正由[桌面打包 sidecar 命名](../bug-fix/2026-08-23-desktop-packaged-sidecar-naming.zh.md)记录。
 
 ## Alternatives considered
 

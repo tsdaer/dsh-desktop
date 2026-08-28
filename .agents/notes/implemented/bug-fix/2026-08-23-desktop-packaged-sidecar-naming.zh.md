@@ -24,7 +24,7 @@ Tauri 外部二进制使用产品自有的基础名称 `dsh-node`,因此 Linux d
 
 ## 相关记录
 
-壳子的自包含运行时要求仍由[桌面跨平台壳运行时接线](../feature/2026-08-22-desktop-cross-platform-shell-runtime.md)定义。目标行的所有权仍由[桌面目标规格](../feature/2026-08-22-desktop-target-specification.md)定义。
+壳子的自包含运行时要求仍由[桌面跨平台壳运行时接线](../feature/2026-08-22-desktop-cross-platform-shell-runtime.zh.md)定义。目标行的所有权仍由[桌面目标规格](../feature/2026-08-22-desktop-target-specification.zh.md)定义。
 
 ## 考虑过的方案
 

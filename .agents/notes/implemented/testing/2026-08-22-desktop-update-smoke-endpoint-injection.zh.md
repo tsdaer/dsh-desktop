@@ -30,4 +30,4 @@ Status: implemented
 
 ## Related
 
-[受控更新 smoke 清单 URL 记录](2026-08-22-desktop-update-smoke-manifest-base.md)定义已签名 fixture URL 机制。整体发布顺序和支持标准由[桌面多平台实现计划](../../proposed/feature/2026-08-22-desktop-multiplatform-support-plan.md)定义。
+[受控更新 smoke 清单 URL 记录](2026-08-22-desktop-update-smoke-manifest-base.zh.md)定义已签名 fixture URL 机制。整体发布顺序和支持标准由[桌面多平台实现计划](../../proposed/feature/2026-08-22-desktop-multiplatform-support-plan.zh.md)定义。

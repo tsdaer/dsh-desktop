@@ -12,9 +12,9 @@ Status: implemented
 
 ## 决策
 
-[docs/fork-divergence.md](../../../../docs/fork-divergence.md) 即登记表：每个上游所有的路径占一行，写明差异并链接持有原因的 Agent Note。它把"上游所有"定义为 `apps/desktop/` 之外的一切，指明桌面发布工作流是本 fork 自有的文件，并连同预期的 `ci-workflow.spec.ts` 失败一起记录被移除的上游自动化。
+[docs/fork-divergence.zh.md](../../../../docs/fork-divergence.zh.md) 即登记表：每个上游所有的路径占一行，写明差异并链接持有原因的 Agent Note。它把"上游所有"定义为 `apps/desktop/` 之外的一切，指明桌面发布工作流是本 fork 自有的文件，并连同预期的 `ci-workflow.spec.ts` 失败一起记录被移除的上游自动化。
 
-该义务写在根 [AGENTS.md](../../../../AGENTS.md) 的标准指令里，因为那是 agent 改代码前会读的文件。[README](../../../../README.md) 陈述立场并链接登记表，面向从不打开 `AGENTS.md` 的读者。行必须在触碰上游所有路径的同一次改动里补上。
+该义务写在根 [AGENTS.md](../../../../AGENTS.md) 的标准指令里，因为那是 agent 改代码前会读的文件。[README](../../../../README.zh.md) 陈述立场并链接登记表，面向从不打开 `AGENTS.md` 的读者。行必须在触碰上游所有路径的同一次改动里补上。
 
 ## 备选方案
 

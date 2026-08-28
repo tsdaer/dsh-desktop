@@ -30,4 +30,4 @@ Linux 原生 Tauri UI smoke 可能在 `tauri-driver` 先于清理代码退出时
 
 ## Related
 
-原生 WebKit 交互范围记录在 [Desktop Linux native Tauri UI smoke note](2026-08-23-desktop-linux-native-tauri-ui-smoke.md)。已打包应用后代进程清理由 [Desktop packaged process cleanup verification note](../bug-fix/2026-08-22-desktop-packaged-process-cleanup.md) 单独定义。
+原生 WebKit 交互范围记录在 [Desktop Linux native Tauri UI smoke note](2026-08-23-desktop-linux-native-tauri-ui-smoke.zh.md)。已打包应用后代进程清理由 [Desktop packaged process cleanup verification note](../bug-fix/2026-08-22-desktop-packaged-process-cleanup.zh.md) 单独定义。

@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-23-desktop-packaged-sidecar-naming.md
 2026-08-23-desktop-packaged-sidecar-naming.md: 3efb7d0ba1123191562a4177f5d09905bd7ddd9a
-2026-08-23-desktop-packaged-sidecar-naming.zh.md: 182572e26a493048bdf56f08a29f36041d11dd71
+2026-08-23-desktop-packaged-sidecar-naming.zh.md: 71ef1b1b55120d50b5cea6cb73c8c44ca4228e15

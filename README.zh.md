@@ -4,19 +4,23 @@
 
 DeepSeek Harness（`dsh`）是由 [DeepSeek AI](https://deepseek.com) 开发的开源 agent harness（智能体框架）。
 
-它采用**一切皆插件**的架构，并由 [Cordis](https://github.com/cordiverse/cordis) 驱动，其设计参见论文 [_A Programming Paradigm for Spatiotemporal Composability_](https://github.com/cordiverse/paper)。
+它构建于**一切皆插件**的架构之上，由 [Cordis](https://github.com/cordiverse/cordis) 驱动，其设计参见论文 [_A Programming Paradigm for Spatiotemporal Composability_](https://arxiv.org/abs/2608.25512)。
+
+文档：[https://deepseek-harness.github.io/deepseek-harness/](https://deepseek-harness.github.io/deepseek-harness/)
 
 ## 开发者预览
 
-DeepSeek Harness 目前处于 _开发者预览_ 阶段，正在快速迭代。**未来将出现破坏兼容性的变更。**
+DeepSeek Harness 处于 _开发者预览_ 阶段，正在快速迭代。**未来将出现破坏兼容性的变更。**
+
+运行本项目前，请阅读[安全说明](SAFETY.zh.md)。
 
 ## 桌面版
 
 本分支提供基于 Tauri 而非 Electron 的 Windows 桌面版。程序复用系统 WebView2，并以 sidecar 方式运行随应用打包的 Node.js，安装包无需再携带一套 Chromium 运行时。桌面版因此能以较低的内存占用和较小的安装包提供完整 Web UI 与本地 agent 运行时。
 
-支持的系统集成、开发方式、打包流程与路线图见[桌面端文档](apps/desktop/README.md)。
+支持的系统集成、开发方式、打包流程与路线图见[桌面端文档](apps/desktop/README.zh.md)。
 
-**桌面端开发必须保持在 `apps/desktop` 下，并使用插件架构。** 桌面端专用功能不得修改上游所有的文件；只有共享 harness 本身独立需要时才能修改上游共享代码，且该改动必须与桌面端组合保持可分离。每一处这样的改动都连同原因登记在 [docs/fork-divergence.md](docs/fork-divergence.md)，那里是本 fork 偏离上游的位置与原因的完整清单。
+**桌面端开发必须保持在 `apps/desktop` 下，并使用插件架构。** 桌面端专用功能不得修改上游所有的文件；只有共享 harness 本身独立需要时才能修改上游共享代码，且该改动必须与桌面端组合保持可分离。每一处这样的改动都连同原因登记在 [docs/fork-divergence.zh.md](docs/fork-divergence.zh.md)，那里是本 fork 偏离上游的位置与原因的完整清单。
 
 本分支不包含继承自上游的 CI 与 issue 管理工作流；仓库内只维护桌面发布工作流。继承的决策记录在描述这些自动化时链接到上游工作流源文件。
 
@@ -52,7 +56,7 @@ pnpm dsh web
 
 ## 社区与支持
 
-- 欢迎通过 [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions) 提交反馈或 bug 报告。
+- 通过 [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions) 提交反馈或 bug 报告。
 - 为你的插件仓库添加 [`dsh-plugin`](https://github.com/topics/dsh-plugin) 话题，便于被发现。
 - 欢迎加入 DeepSeek Harness 企微群：扫码添加企微小助手并填写入群问卷，完成后小助手会邀请你入群。
 

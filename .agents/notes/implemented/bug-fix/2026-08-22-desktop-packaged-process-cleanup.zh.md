@@ -22,7 +22,7 @@ Status: implemented
 
 ## 相关记录
 
-打包启动范围和剩余平台验收要求由[桌面多平台实现计划](../../proposed/feature/2026-08-22-desktop-multiplatform-support-plan.md)定义。安装包冒烟实现记录在[桌面 Linux 打包启动冒烟](../feature/2026-08-22-desktop-linux-packaged-smoke.md)中。
+打包启动范围和剩余平台验收要求由[桌面多平台实现计划](../../proposed/feature/2026-08-22-desktop-multiplatform-support-plan.zh.md)定义。安装包冒烟实现记录在[桌面 Linux 打包启动冒烟](../feature/2026-08-22-desktop-linux-packaged-smoke.zh.md)中。
 
 ## 考虑过的方案
 

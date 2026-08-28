@@ -20,14 +20,12 @@ The [root standing orders](../AGENTS.md) carry the obligation, and [the README](
 | [`packages/client/tsdown.client.ts`](../packages/client/tsdown.client.ts) | Resolves workspace manifests from `apps/*/*/package.json` as well, because the desktop bridge client is a workspace package outside `packages/` |
 | [`packages/client/ui-conversation/src/client/skeleton/HeroShell.module.css`](../packages/client/ui-conversation/src/client/skeleton/HeroShell.module.css) | Adds the `html[data-dsh-logo-motion]` hover rule the desktop opt-in drives, leaving browser users on the system reduced-motion preference ([note](../.agents/notes/implemented/feature/2026-08-20-desktop-logo-motion-opt-in.md)) |
 | [`packages/host/webserver/src/index.ts`](../packages/host/webserver/src/index.ts) | Optional `token` config: registered routes and upgrades require `Authorization: Bearer` (or the `dsh_token` query for WebSockets) while the static dist fallback stays open; omitted, the plain loopback posture is unchanged ([note](../.agents/notes/implemented/feature/2026-08-22-desktop-loopback-token.md)) |
-| [`packages/client/connection/src/client/web-api-client.ts`](../packages/client/connection/src/client/web-api-client.ts) | Picks up `?dsh_token` from the page URL once and attaches it to every `/api` fetch (header) and WebSocket (query); a plain browser without the query is unchanged ([note](../.agents/notes/implemented/feature/2026-08-22-desktop-loopback-token.md)) |
+| [`packages/client/connection/src/client/rpc.ts`](../packages/client/connection/src/client/rpc.ts) | Picks up `?dsh_token` from the page URL once and attaches it to every generic RPC fetch as an `Authorization: Bearer` header; a plain browser without the query is unchanged ([note](../.agents/notes/implemented/feature/2026-08-22-desktop-loopback-token.md)). Upstream deleted the old `web-api-client.ts` bearer path in the browser-auth rework; the desktop's bridge routes keep their own bearer pickup in `apps/desktop/bridge-client/src/client/bridge-fetch.ts` |
 
 ## Repository scripts
 
 | Path | Divergence |
 |---|---|
-| [`scripts/package-manager.ts`](../scripts/package-manager.ts), [`scripts/package-manager.spec.ts`](../scripts/package-manager.spec.ts) | Added as the single home for re-entering pnpm, accepting a native `npm_execpath` such as a standalone `pnpm.exe` ([note](../.agents/notes/implemented/bug-fix/2026-08-21-nested-pnpm-native-entrypoint.md)) |
-| [`scripts/build.ts`](../scripts/build.ts), [`scripts/run-gates.ts`](../scripts/run-gates.ts), [`scripts/run-web-snapshots.ts`](../scripts/run-web-snapshots.ts), [`scripts/coverage-partitions.ts`](../scripts/coverage-partitions.ts), [`scripts/run-coverage-partitions.ts`](../scripts/run-coverage-partitions.ts) | Consume that helper instead of spawning Node with the entrypoint directly |
 | [`scripts/install-lefthook.mjs`](../scripts/install-lefthook.mjs) | Imports lefthook's manifest lazily, so a production install that prunes the devDependency does not fail `postinstall` ([note](../.agents/notes/implemented/bug-fix/2026-08-16-root-postinstall-production-install.md)) |
 | [`scripts/desktop-release-workflow.spec.ts`](../scripts/desktop-release-workflow.spec.ts) | Added to pin the release workflow this fork owns |
 
@@ -41,7 +39,7 @@ The [root standing orders](../AGENTS.md) carry the obligation, and [the README](
 
 ## Removed upstream automation
 
-This fork keeps no inherited workflow. `build-exe-for-python-sdk.yml`, `ci.yml`, `ci-master.yml`, `docs-pages.yml`, `e2b-e2e.yml`, `e2e.yml`, `expected-filenames.yml`, `issue-lifecycle.yml`, `issue-policy.yml`, `landlock-run.yml`, `landlock-run-release.yml`, `pi-ai-provider-e2e.yml`, `python-release.yml`, `release.yml`, `release-publish.yml`, `release-vendor.yml`, `release-vendor-publish.yml`, and `sandbox.yml` are all absent, and none of them is restored.
+This fork keeps no inherited workflow. `build-exe-for-python-sdk.yml`, `build-preview-cloudflare.yml`, `ci.yml`, `ci-master.yml`, `docs-pages.yml`, `e2b-e2e.yml`, `e2e.yml`, `expected-filenames.yml`, `issue-lifecycle.yml`, `issue-policy.yml`, `landlock-run.yml`, `landlock-run-release.yml`, `pi-ai-provider-e2e.yml`, `python-release.yml`, `release.yml`, `release-publish.yml`, `release-vendor.yml`, `release-vendor-publish.yml`, and `sandbox.yml` are all absent, and none of them is restored.
 
 One consequence is load-bearing: `scripts/ci-workflow.spec.ts` reads those files, so it fails here with `ENOENT` on `.github/workflows/ci.yml`. That failure is expected in this fork and is not evidence of a defect. Do not silence it by restoring upstream automation.
 
@@ -50,8 +48,8 @@ One consequence is load-bearing: `scripts/ci-workflow.spec.ts` reads those files
 | Path | Divergence |
 |---|---|
 | [`AGENTS.md`](../AGENTS.md) | States the desktop and fork stance and the obligation to record divergence here; other lines are condensed to hold the word ceiling ([note](../.agents/notes/implemented/process/2026-08-21-fork-divergence-register.md)) |
-| [`README.md`](../README.md), [`README.zh.md`](../README.zh.md) | Add the desktop edition section and the fork stance |
-| [`docs/development.md`](development.md), [`docs/development.zh.md`](development.zh.md) | Link the CI workflow at its upstream URL, because the file is absent here |
+| [`README.md`](../README.md), `README.zh.md` | Add the desktop edition section and the fork stance |
+| [`docs/development.md`](development.md), `docs/development.zh.md` | Link the CI workflow at its upstream URL, because the file is absent here |
 | [`.agents/skills/dsh-pre-push-checks/SKILL.md`](../.agents/skills/dsh-pre-push-checks/SKILL.md) | Permits a push when a proven pre-existing failure lies outside the changed scope and the affected-surface evidence passes |
 | `.agents/notes/**` | Carries the desktop decision records; inherited notes that describe upstream automation link to the upstream sources |
 

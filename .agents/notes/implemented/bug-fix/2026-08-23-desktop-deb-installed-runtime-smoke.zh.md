@@ -24,7 +24,7 @@ Linux 安装证据观察 package manager 实际安装的文件,而不是第二�
 
 ## 相关记录
 
-安装包冒烟范围和剩余平台要求由[桌面多平台实现计划](../../proposed/feature/2026-08-22-desktop-multiplatform-support-plan.md)定义。更完整的 Linux 安装包检查记录在[桌面 Linux 安装包启动冒烟](../feature/2026-08-22-desktop-linux-packaged-smoke.md)中。
+安装包冒烟范围和剩余平台要求由[桌面多平台实现计划](../../proposed/feature/2026-08-22-desktop-multiplatform-support-plan.zh.md)定义。更完整的 Linux 安装包检查记录在[桌面 Linux 安装包启动冒烟](../feature/2026-08-22-desktop-linux-packaged-smoke.zh.md)中。
 
 ## 考虑过的方案
 

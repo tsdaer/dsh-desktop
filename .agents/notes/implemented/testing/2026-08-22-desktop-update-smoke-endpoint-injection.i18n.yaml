@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-08-22-desktop-update-smoke-endpoint-injection.md
 2026-08-22-desktop-update-smoke-endpoint-injection.md: db2f279d0a4b4877981d18b75c41b1229e5140e6
-2026-08-22-desktop-update-smoke-endpoint-injection.zh.md: 3fed289a4e1eb946de4aaf1e2b84e5394d20d318
+2026-08-22-desktop-update-smoke-endpoint-injection.zh.md: 442c8259dada762ace3a649061508c07b1fead1c

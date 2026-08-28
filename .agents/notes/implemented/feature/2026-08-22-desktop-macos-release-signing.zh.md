@@ -32,4 +32,4 @@ macOS arm64 在完成原生打包启动、安装、更新、卸载和 GUI 证据
 
 ## 相关记录
 
-目标行和 updater 清单由[桌面按目标 bundle 记录](2026-08-22-desktop-target-aware-bundles.md)定义。整体发布顺序和支持标准由[桌面多平台实现计划](../../proposed/feature/2026-08-22-desktop-multiplatform-support-plan.md)定义。现有 updater 行为由[桌面签名 updater 记录](2026-08-19-desktop-signed-updater.md)定义。
+目标行和 updater 清单由[桌面按目标 bundle 记录](2026-08-22-desktop-target-aware-bundles.zh.md)定义。整体发布顺序和支持标准由[桌面多平台实现计划](../../proposed/feature/2026-08-22-desktop-multiplatform-support-plan.zh.md)定义。现有 updater 行为由[桌面签名 updater 记录](2026-08-19-desktop-signed-updater.zh.md)定义。

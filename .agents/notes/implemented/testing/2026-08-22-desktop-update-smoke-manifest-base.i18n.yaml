@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-08-22-desktop-update-smoke-manifest-base.md
 2026-08-22-desktop-update-smoke-manifest-base.md: 480c233d54e229b02e1ea18d200b3c76ffc96a68
-2026-08-22-desktop-update-smoke-manifest-base.zh.md: 07d40a7364459de965669e864ccbcafd078df014
+2026-08-22-desktop-update-smoke-manifest-base.zh.md: ff385df37526b13c8b636ade7e5e74c0dcb79540

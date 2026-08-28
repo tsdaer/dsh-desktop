@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [English](2026-08-22-desktop-update-fixture-server.md)
+[English](2026-08-22-desktop-update-fixture-server.md) | 中文
 
 ## Problem
 

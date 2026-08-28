@@ -8,11 +8,12 @@
  * @module dsh-llm-deepseek/adapter
  */
 
-import { attributionHeaders, contentHasImage, CONTEXT_WINDOW_EXCEEDED_CODE, isContextWindowExceededError, isQuotaExceededError, LlmAdapter, LlmError, offloadRequestImagesWithPolicy, ProviderRequestId, QUOTA_EXCEEDED_CODE, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
+import { attributionHeaders, contentHasImage, CONTEXT_WINDOW_EXCEEDED_CODE, isContextWindowExceededError, isQuotaExceededError, LlmAdapter, LlmError, offloadedImageText, offloadRequestImagesWithPolicy, ProviderRequestId, QUOTA_EXCEEDED_CODE, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import type {
   AccountSummary,
   ContentBlock,
   GenerateOptions,
+  ImageAttachmentAccess,
   LlmModelInfo,
   LlmProviderInfo,
   PreparedAdapterCall,
@@ -25,14 +26,19 @@ import type {
   AttachmentId,
   AttachmentStore,
   ImageAttachmentRef,
-  ImageRequestPolicy,
   RequestImageAttachment,
 } from '@deepseek-ai/dsh-attachment'
 import type { CredentialRef } from '@deepseek-ai/dsh-credentials'
 import { deadline, idleWatchdog, timeoutOf } from '@deepseek-ai/dsh-timeout'
 import type { AnonymousUserId } from '@deepseek-ai/dsh-anonymous-user-id'
+import type {
+  DeepSeekLlmApiExtensionRequest,
+  DeepSeekLlmApiJson,
+  PreparedDeepSeekLlmApiExtensions,
+} from '@deepseek-ai/dsh-deepseek-llm-api-extensions'
 import { serializeRequest, serializeRequestWithImages } from './serialize.ts'
 import type { ImageWireLocation, RequestDefaults } from './serialize.ts'
+import { deepSeekImageRequestPricing, resolveRequestImagePolicy } from './request-pricing.ts'
 import { DeepSeekFileStore } from './file-store.ts'
 import type { DeepSeekFilePolicy } from './file-store.ts'
 import type { DeepSeekFileId } from './file-id.ts'
@@ -54,12 +60,10 @@ export interface DeepSeekCatalogModel {
   maxTokens?: number
   /** Accepted request modalities; omission is text-only. */
   inputModalities?: ModelModality[]
-  /** Total-pixel budget for one deterministic request preview. */
-  imagePixelBudget?: number
-  /** Encoded-byte cap for one deterministic request preview. */
+  /** Total-pixel budget for one deterministic request preview, or the 512-by-512 `low` preset. */
+  imagePixelBudget?: number | 'low'
+  /** Encoded-byte target for one deterministic request preview; the smallest quality-ladder output is used when no quality fits. */
   imageMaxBytes?: number
-  /** Provider detail tier; `low` uses the 512-by-512 total-pixel default. */
-  imageDetail?: 'auto' | 'low'
 }
 
 /**
@@ -123,8 +127,12 @@ export interface DeepSeekAdapterOptions {
   resolveUserId: () => AnonymousUserId
   /** Resolve the current durable attachment service; absence rejects image input. */
   resolveAttachments?: () => AttachmentStore | undefined
+  /** Bridge one attachment reference into the current model-tool execution world. */
+  resolveImageAccess?: (attachments: AttachmentStore, ref: ImageAttachmentRef) => ImageAttachmentAccess | undefined
   /** Resolve the process-wide upload reuse store. */
   resolveFiles?: () => DeepSeekFileStore
+  /** Prepare the official API's plugin-contributed top-level fields for one exact wire request. */
+  prepareExtensions: (request: DeepSeekLlmApiExtensionRequest) => Promise<PreparedDeepSeekLlmApiExtensions>
 }
 
 /** Default maximum idle interval while an adapter stream read is outstanding. */
@@ -133,18 +141,8 @@ export const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 300_000
 export const DEFAULT_CONTEXT_WINDOW = 1_000_000
 /** Default per-request output-token cap. */
 export const DEFAULT_MAX_TOKENS = 256_000
-/** Default bound on accumulated file-referenced image bytes per request. */
-export const DEFAULT_MAX_REQUEST_FILES_BYTES = 128 * 1024 * 1024
 /** Default bound on accumulated base64 image payload after Files API fallback. */
 export const DEFAULT_MAX_INLINE_REQUEST_IMAGE_BYTES = 20 * 1024 * 1024
-/** Provider request image-count limit. */
-export const DEFAULT_MAX_IMAGES_PER_REQUEST = 600
-/** Total-pixel budget matching DeepSeek's normal vision projection. */
-export const DEFAULT_REQUEST_IMAGE_PIXEL_BUDGET = 640_000
-/** Total-pixel budget matching provider low-detail image input. */
-export const DEFAULT_LOW_DETAIL_IMAGE_PIXEL_BUDGET = 512 * 512
-/** Encoded-byte cap for one deterministic model-request image. */
-export const DEFAULT_REQUEST_IMAGE_MAX_BYTES = 1024 * 1024
 /** Deterministic raw-byte removal step. */
 export const DEFAULT_IMAGE_OFFLOAD_BYTE_QUANTUM = 64 * 1024 * 1024
 /** Deterministic base64-byte removal step after Files API fallback. */
@@ -166,13 +164,33 @@ const LOW_REASONING_EFFORT = ReasoningEffortId('low')
 const HIGH_REASONING_EFFORT = ReasoningEffortId('high')
 const MAX_REASONING_EFFORT = ReasoningEffortId('max')
 const REASONING_EFFORTS = [
-  { id: OFF_REASONING_EFFORT, name: 'Off' },
-  { id: LOW_REASONING_EFFORT, name: 'Low' },
-  { id: HIGH_REASONING_EFFORT, name: 'High' },
-  { id: MAX_REASONING_EFFORT, name: 'Max' },
+  {
+    id: OFF_REASONING_EFFORT,
+    name: 'Off',
+    description: 'Use for simple tasks that do not need reasoning.',
+  },
+  {
+    id: LOW_REASONING_EFFORT,
+    name: 'Low',
+    description: 'Prefer for routine or latency-sensitive tasks.',
+  },
+  {
+    id: HIGH_REASONING_EFFORT,
+    name: 'High',
+    description: 'The default balance for most tasks.',
+  },
+  {
+    id: MAX_REASONING_EFFORT,
+    name: 'Max',
+    description: 'Reserve for the hardest quality-first tasks.',
+  },
 ] as const
 const OFF_ONLY_REASONING_EFFORTS = [
-  { id: OFF_REASONING_EFFORT, name: 'Off' },
+  {
+    id: OFF_REASONING_EFFORT,
+    name: 'Off',
+    description: 'Use for simple tasks that do not need reasoning.',
+  },
 ] as const
 
 /** Marks a failed file-id resolution that may be retried as an inline request. */
@@ -190,25 +208,6 @@ function collectImageRefs(
   for (const block of content) {
     if (block.type === 'image') refs.set(block.attachment.attachmentId, block.attachment)
     else if (block.type === 'tool-result') collectImageRefs(block.content, refs)
-  }
-}
-
-/**
- * Resolve the request-image budgets owned by one DeepSeek model route.
- * @param model - Advertised model route and its optional image overrides.
- * @returns Complete pixel and encoded-byte budgets.
- * @internal
- */
-export function resolveRequestImagePolicy(model: DeepSeekCatalogModel): ImageRequestPolicy {
-  let maxPixels: number
-  if (model.imagePixelBudget !== undefined) maxPixels = model.imagePixelBudget
-  else if (model.imageDetail === 'low') maxPixels = DEFAULT_LOW_DETAIL_IMAGE_PIXEL_BUDGET
-  else maxPixels = DEFAULT_REQUEST_IMAGE_PIXEL_BUDGET
-  return {
-    maxPixels,
-    maxBytes: model.imageMaxBytes === undefined
-      ? DEFAULT_REQUEST_IMAGE_MAX_BYTES
-      : model.imageMaxBytes,
   }
 }
 
@@ -387,6 +386,18 @@ export class DeepSeekAdapter extends LlmAdapter {
 
   override providerRetryPolicy(_provider: string): ResolvedRetryPolicy {
     return this.config.options().retryPolicy
+  }
+
+  override imageRequestPricing(_provider: string, model: string): ReturnType<LlmAdapter['imageRequestPricing']> {
+    // The same access resolution the serializer uses, so priced handle and
+    // placeholder text matches what the request actually sends.
+    const attachments = this.config.resolveAttachments?.()
+    const resolveAccess = attachments === undefined
+      ? undefined
+      : (ref: ImageAttachmentRef): ImageAttachmentAccess | undefined => (
+        this.config.resolveImageAccess?.(attachments, ref)
+      )
+    return deepSeekImageRequestPricing(this.config.options(), model, resolveAccess)
   }
 
   override listModels(provider: string): Promise<readonly LlmModelInfo[]> {
@@ -594,6 +605,10 @@ export class DeepSeekAdapter extends LlmAdapter {
     const fileConnection = { baseURL: connection.baseURL, apiKey }
     const model = connection.models.find(entry => entry.id === options.model)
     const policy = model === undefined ? undefined : resolveRequestImagePolicy(model)
+    const resolveImageAccess = attachments === undefined
+      ? undefined
+      : (ref: ImageAttachmentRef): ImageAttachmentAccess | undefined => this.config.resolveImageAccess?.(attachments, ref)
+    const imageAccessOptions = resolveImageAccess === undefined ? {} : { resolveImageAccess }
     const requestMessages = policy === undefined ? options.messages : offloadRequestImagesWithPolicy(options.messages, {
       representation: 'raw',
       maxBytes: connection.maxRequestFilesBytes,
@@ -601,6 +616,7 @@ export class DeepSeekAdapter extends LlmAdapter {
       byteQuantum: connection.imageOffloadByteQuantum,
       countQuantum: connection.imageOffloadCountQuantum,
       byteLength: ref => Math.min(ref.bytes, policy.maxBytes),
+      placeholder: ref => offloadedImageText(ref, resolveImageAccess?.(ref)),
     })
     const requestOptions = requestMessages === options.messages ? options : { ...options, messages: [...requestMessages] }
     const requestImages = attachments === undefined || model === undefined
@@ -617,6 +633,7 @@ export class DeepSeekAdapter extends LlmAdapter {
         body = await serializeRequestWithImages(requestOptions, {
           representation: { kind: 'base64' },
           requestImages,
+          ...imageAccessOptions,
           maxRequestImageBytes: connection.maxInlineRequestImageBytes,
           maxImagesPerRequest: connection.maxImagesPerRequest,
           byteQuantum: connection.inlineImageOffloadByteQuantum,
@@ -647,6 +664,7 @@ export class DeepSeekAdapter extends LlmAdapter {
               },
             },
             requestImages,
+            ...imageAccessOptions,
             maxRequestImageBytes: connection.maxRequestFilesBytes,
             maxImagesPerRequest: connection.maxImagesPerRequest,
             byteQuantum: connection.imageOffloadByteQuantum,
@@ -658,7 +676,25 @@ export class DeepSeekAdapter extends LlmAdapter {
           continue
         }
       }
-      const payload = JSON.stringify(body)
+      let extensions: PreparedDeepSeekLlmApiExtensions
+      try {
+        extensions = await this.config.prepareExtensions({
+          body: body as unknown as Readonly<Record<string, DeepSeekLlmApiJson>>,
+          signal,
+          ...options.sessionId === undefined ? {} : { sessionId: String(options.sessionId) },
+          ...options.purpose === undefined ? {} : { purpose: options.purpose },
+        })
+      } catch (error) {
+        throw new LlmError('DeepSeek request extension preparation failed', 'REQUEST_EXTENSION', { cause: error })
+      }
+      for (const field of Object.keys(extensions.fields)) {
+        if (Object.hasOwn(body, field)) {
+          throw new LlmError(`DeepSeek request extension field ${JSON.stringify(field)} collides with the base request`, 'REQUEST_EXTENSION')
+        }
+      }
+      // Prepared outside the try so the TRANSPORT label below covers exactly the
+      // transport boundary, never a serialization failure.
+      const payload = JSON.stringify({ ...body, ...extensions.fields })
 
       // TODO(http): adopt the Cordis HTTP service when shared transport configuration
       // outweighs its additional runtime dependencies.
@@ -714,6 +750,11 @@ export class DeepSeekAdapter extends LlmAdapter {
           ...delay === undefined ? {} : { providerRetryAfterMs: delay },
           ...id === undefined ? {} : { requestId: id },
         })
+      }
+      try {
+        await extensions.accept()
+      } catch (error) {
+        throw new LlmError('DeepSeek request extension acceptance failed', 'REQUEST_EXTENSION', { cause: error })
       }
       if (!response.body) {
         throw new LlmError('DeepSeek API returned no response body', 'EMPTY_RESPONSE')

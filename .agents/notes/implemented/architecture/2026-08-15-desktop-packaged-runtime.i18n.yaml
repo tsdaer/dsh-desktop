@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-15-desktop-packaged-runtime.md
 2026-08-15-desktop-packaged-runtime.md: c43ede479accaa478e74e6d2ca23e9f6c55bc71d
-2026-08-15-desktop-packaged-runtime.zh.md: d5056962a1048848039a39f4bcf3614c4f9d1c50
+2026-08-15-desktop-packaged-runtime.zh.md: c484ad8ae19b3ba9f2253501a5782af120140875

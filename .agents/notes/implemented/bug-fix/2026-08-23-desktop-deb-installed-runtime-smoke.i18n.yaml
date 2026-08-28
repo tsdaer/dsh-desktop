@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-23-desktop-deb-installed-runtime-smoke.md
 2026-08-23-desktop-deb-installed-runtime-smoke.md: 38954134a647c16ae39de9ca0711736b3bbcb915
-2026-08-23-desktop-deb-installed-runtime-smoke.zh.md: 4a2ebb624fb4be89c6c2f3bda18ac94f48add0c5
+2026-08-23-desktop-deb-installed-runtime-smoke.zh.md: 5ea2fabfd1e421cd0809b80938f201a9876f189a

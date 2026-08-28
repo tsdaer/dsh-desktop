@@ -22,7 +22,7 @@ Status: implemented
 
 ## 相关记录
 
-安装包 workflow 及其剩余目标原生证据记录在[桌面 Windows 安装包启动冒烟](../testing/2026-08-22-desktop-windows-packaged-smoke.md)和[桌面多平台实现计划](../../proposed/feature/2026-08-22-desktop-multiplatform-support-plan.md)中。
+安装包 workflow 及其剩余目标原生证据记录在[桌面 Windows 安装包启动冒烟](../testing/2026-08-22-desktop-windows-packaged-smoke.zh.md)和[桌面多平台实现计划](../../proposed/feature/2026-08-22-desktop-multiplatform-support-plan.zh.md)中。
 
 ## 考虑过的方案
 

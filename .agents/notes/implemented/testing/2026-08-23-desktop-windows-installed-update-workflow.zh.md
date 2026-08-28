@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [English](2026-08-23-desktop-windows-installed-update-workflow.md)
+[English](2026-08-23-desktop-windows-installed-update-workflow.md) | 中文
 
 ## Problem
 

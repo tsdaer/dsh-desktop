@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [English](2026-08-22-desktop-linux-packaged-smoke.md)
+[English](2026-08-22-desktop-linux-packaged-smoke.md) | 中文
 
 ## 问题
 
@@ -24,7 +24,7 @@ Linux 构件生成和清单校验不能证明 AppImage 或 deb 能找到自身�
 
 ## 相关记录
 
-发布顺序和剩余 Linux 验收要求由[桌面多平台实现计划](../../proposed/feature/2026-08-22-desktop-multiplatform-support-plan.md)定义。目标选择和原生运行时检查由[桌面目标规格](2026-08-22-desktop-target-specification.md)及[按目标验证原生运行时](2026-08-22-desktop-target-native-runtime.md)定义。
+发布顺序和剩余 Linux 验收要求由[桌面多平台实现计划](../../proposed/feature/2026-08-22-desktop-multiplatform-support-plan.zh.md)定义。目标选择和原生运行时检查由[桌面目标规格](2026-08-22-desktop-target-specification.zh.md)及[按目标验证原生运行时](2026-08-22-desktop-target-native-runtime.zh.md)定义。
 
 ## 考虑过的方案
 

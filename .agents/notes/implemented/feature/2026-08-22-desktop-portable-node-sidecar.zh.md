@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [中文](2026-08-22-desktop-portable-node-sidecar.md)
+[English](2026-08-22-desktop-portable-node-sidecar.md) | 中文
 
 ## Problem
 

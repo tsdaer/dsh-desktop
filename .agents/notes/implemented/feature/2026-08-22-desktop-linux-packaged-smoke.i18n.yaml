@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-22-desktop-linux-packaged-smoke.md
 2026-08-22-desktop-linux-packaged-smoke.md: c31c4b6fb68e60336e693c9ada4c853169c737d3
-2026-08-22-desktop-linux-packaged-smoke.zh.md: dde0a3323f526a81f88014cc5711fba5323d8983
+2026-08-22-desktop-linux-packaged-smoke.zh.md: 9e2d36e1919e6ad2bcdae4ddb48ae1158bbb67f1

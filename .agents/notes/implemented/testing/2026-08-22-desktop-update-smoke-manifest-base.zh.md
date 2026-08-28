@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [English](2026-08-22-desktop-update-smoke-manifest-base.md)
+[English](2026-08-22-desktop-update-smoke-manifest-base.md) | 中文
 
 ## Problem
 
@@ -12,7 +12,7 @@ English | [English](2026-08-22-desktop-update-smoke-manifest-base.md)
 
 `updater-manifest.mjs` 保留 GitHub Release URL 作为默认值,并接受受控更新冒烟使用的显式 `downloadBaseUrl`。URL 构建器只接受不带查询和片段的 HTTP(S) base,拒绝带路径分隔符的 tag 与构件名,并将经过编码的 release tag 和构件名作为独立路径组件追加。默认 URL 与受控 URL 使用相同的签名校验和目标构件清单校验。
 
-命令行生成器通过 `--download-base-url` 暴露同一选项。本地 smoke 因此可以在临时 HTTP(S) 目录准备 `latest.json` 和已签名的主构件,而生产清单仍然保留 GitHub Release 端点。[更新 smoke 端点注入记录](2026-08-22-desktop-update-smoke-endpoint-injection.md)负责把该端点提供给按目标构建;目标原生安装、重启、用户确认和用户数据保留仍需要目标 runner 证据。
+命令行生成器通过 `--download-base-url` 暴露同一选项。本地 smoke 因此可以在临时 HTTP(S) 目录准备 `latest.json` 和已签名的主构件,而生产清单仍然保留 GitHub Release 端点。[更新 smoke 端点注入记录](2026-08-22-desktop-update-smoke-endpoint-injection.zh.md)负责把该端点提供给按目标构建;目标原生安装、重启、用户确认和用户数据保留仍需要目标 runner 证据。
 
 ## Alternatives considered
 

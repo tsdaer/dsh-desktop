@@ -6,7 +6,7 @@ Status: proposed
 
 ## Problem
 
-桌面版已发布 `v0.3.0` 到 `v0.3.4`，而[0.3 提案](2026-08-17-desktop-0.3-worktree-and-runtime-chrome.md)仍持有一条未完成的尾巴：P5 冒烟矩阵、它所要求的 GUI 证据，以及普通消息复制审计。之后做什么、以什么顺序做、每项做到什么算完，都没有任何文档说明。
+桌面版已发布 `v0.3.0` 到 `v0.3.4`，而[0.3 提案](2026-08-17-desktop-0.3-worktree-and-runtime-chrome.zh.md)仍持有一条未完成的尾巴：P5 冒烟矩阵、它所要求的 GUI 证据，以及普通消息复制审计。之后做什么、以什么顺序做、每项做到什么算完，都没有任何文档说明。
 
 因此，接手桌面端工作的 agent 每次都要从源码重新推导待办清单，而且推导得并不一致：只读的源代码管理视图、缺失的文件查看器、仅限 Windows 的打包，以及无边框标题栏的几处缺口，都只能靠读代码或 README 散文才能发现。顺序恰恰是源码完全无法回答的部分 —— 有几项在证据工具就绪后很便宜，在那之前很贵。
 
@@ -32,7 +32,7 @@ Status: proposed
 
 ### 阶段 1：收尾 0.3
 
-验收标准归[0.3 提案](2026-08-17-desktop-0.3-worktree-and-runtime-chrome.md)所有，此处不重述。有两个事实属于顺序问题。已发布的 `v0.3.4` 安装包就是冒烟所针对的产物，因此无需本地打包构建。资源管理器右键菜单键由卸载钩子移除，而该钩子的端到端行为尚未验证：安装同一 identifier 的打包版本会顶掉已有安装，因此卸载冒烟需要一台并非正在服务被测会话的机器。
+验收标准归[0.3 提案](2026-08-17-desktop-0.3-worktree-and-runtime-chrome.zh.md)所有，此处不重述。有两个事实属于顺序问题。已发布的 `v0.3.4` 安装包就是冒烟所针对的产物，因此无需本地打包构建。资源管理器右键菜单键由卸载钩子移除，而该钩子的端到端行为尚未验证：安装同一 identifier 的打包版本会顶掉已有安装，因此卸载冒烟需要一台并非正在服务被测会话的机器。
 
 ### 阶段 2：可复现的证据环境
 
@@ -42,11 +42,11 @@ Status: proposed
 
 同一阶段修正 `operating-constraints.md`。它必须告诉 agent 如何判定哪个运行时是活的 —— 检查运行中进程的可执行文件路径及其派生的 Node 命令行 —— 而不是断言服务中的运行时是由工作目录构建的。两种拓扑都会出现，且只有实测能区分。
 
-阶段 2 已完成：证据命令会构建独立桥接包、创建临时 profile、注册所选 Workspace、探测 `/dsh-bridge/config` 并打印服务 URL。真实浏览器运行已挂载 Worktree 面板；已交付决策记录在[已实现的证据服务器记录](../../implemented/feature/2026-08-21-desktop-evidence-server.md)中。
+阶段 2 已完成：证据命令会构建独立桥接包、创建临时 profile、注册所选 Workspace、探测 `/dsh-bridge/config` 并打印服务 URL。真实浏览器运行已挂载 Worktree 面板；已交付决策记录在[已实现的证据服务器记录](../../implemented/feature/2026-08-21-desktop-evidence-server.zh.md)中。
 
 ### 阶段 3：源代码管理写操作
 
-阶段 3 已完成：桥通过同一个有界 Host 适配器提供暂存、取消暂存、丢弃、带消息提交以及查看单文件 diff；该适配器持有固定 Git argv、环境、输出上限、取消与规范根校验。浏览器只发送 Workspace id 与 Workspace 相对路径，绝不发送 argv。已交付决策及聚焦验证记录在[已实现的源代码管理写操作记录](../../implemented/feature/2026-08-21-desktop-source-control-actions.md)中。
+阶段 3 已完成：桥通过同一个有界 Host 适配器提供暂存、取消暂存、丢弃、带消息提交以及查看单文件 diff；该适配器持有固定 Git argv、环境、输出上限、取消与规范根校验。浏览器只发送 Workspace id 与 Workspace 相对路径，绝不发送 argv。已交付决策及聚焦验证记录在[已实现的源代码管理写操作记录](../../implemented/feature/2026-08-21-desktop-source-control-actions.zh.md)中。
 
 只做整文件操作。按 hunk 与按行暂存需要 Host 目前不具备的 diff 模型，属于后续阶段。丢弃与取消暂存具有破坏性，因此各自需要一次点名文件的显式确认，且对状态解析未能归类的条目一律不提供。diff 查看复用既有的 diff 呈现，而不新增第二个渲染器。Git worktree 检出管理不在范围内；0.3 提案已记录它为何需要独立设计。
 
@@ -54,7 +54,7 @@ Status: proposed
 
 Explorer 与搜索能定位文件，却无法展示它。为根内文件新增只读查看器：有界字节并带显式截断状态、对二进制与非 UTF-8 内容做检测并拒绝渲染、通过 client 既有高亮器高亮。打开搜索结果时滚动到命中行。
 
-已完成：桥的 `GET /worktree/file` 路由提供严格 UTF-8 内容并带截断与二进制拒绝，`DesktopWorkspaceFileViewer` 渲染 Explorer 与 Search 打开并滚动到匹配行，已交付行为记录在[已实现的文件查看器记录](../../implemented/feature/2026-08-22-desktop-file-viewer.md)中。
+已完成：桥的 `GET /worktree/file` 路由提供严格 UTF-8 内容并带截断与二进制拒绝，`DesktopWorkspaceFileViewer` 渲染 Explorer 与 Search 打开并滚动到匹配行，已交付行为记录在[已实现的文件查看器记录](../../implemented/feature/2026-08-22-desktop-file-viewer.zh.md)中。
 
 编辑属于独立阶段。它需要保存冲突检测、编码与行尾策略，以及撤销模型，而查看器都不需要。
 
@@ -62,13 +62,13 @@ Explorer 与搜索能定位文件，却无法展示它。为根内文件新增�
 
 三处无边框窗口缺口是已知且用户可见的：没有 Windows 11 贴靠布局浮出、缩放边框沿用 tao 的默认命中测试、最大化图标依赖点击与 resize 事件而非窗口状态同步。作为一次装饰整改一并修掉，状态从窗口读取而非由输入推断。
 
-另有一项：运行时以 loopback 无认证方式服务，任何本地进程都可访问。桌面壳子是唯一知道端口的客户端，因此可以持有一个按启动生成的 token。这会改动上游所有的 `dsh web`：需要独立的 harness 需求、[分歧登记表](../../../../docs/fork-divergence.md)中的一行，以及在未配置 token 时完全保持纯浏览器姿态不变的设计。
+另有一项：运行时以 loopback 无认证方式服务，任何本地进程都可访问。桌面壳子是唯一知道端口的客户端，因此可以持有一个按启动生成的 token。这会改动上游所有的 `dsh web`：需要独立的 harness 需求、[分歧登记表](../../../../docs/fork-divergence.zh.md)中的一行，以及在未配置 token 时完全保持纯浏览器姿态不变的设计。
 
-装饰整改已完成：主窗口重新加回 `WS_THICKFRAME`(不加 `WS_CAPTION`),由操作系统提供缩放边框与 Windows 11 贴靠布局浮出,原生宿主在每次尺寸事件时推送 `dsh://maximize-change`,标题栏图标跟随窗口状态([已实现记录](../../implemented/feature/2026-08-22-desktop-native-window-chrome.md))。loopback token 已完成:壳子生成按启动 token,以 `DSH_WEB_TOKEN` 与导航查询参数传递;webserver 的可选 `token` 配置在已注册路由与 upgrade 上强制校验,静态 dist 保持开放;connection 客户端与桥接客户端都附加该 token([已实现记录](../../implemented/feature/2026-08-22-desktop-loopback-token.md),[分歧登记表](../../../../docs/fork-divergence.md))。
+装饰整改已完成：主窗口重新加回 `WS_THICKFRAME`(不加 `WS_CAPTION`),由操作系统提供缩放边框与 Windows 11 贴靠布局浮出,原生宿主在每次尺寸事件时推送 `dsh://maximize-change`,标题栏图标跟随窗口状态([已实现记录](../../implemented/feature/2026-08-22-desktop-native-window-chrome.zh.md))。loopback token 已完成:壳子生成按启动 token,以 `DSH_WEB_TOKEN` 与导航查询参数传递;webserver 的可选 `token` 配置在已注册路由与 upgrade 上强制校验,静态 dist 保持开放;connection 客户端与桥接客户端都附加该 token([已实现记录](../../implemented/feature/2026-08-22-desktop-loopback-token.zh.md),[分歧登记表](../../../../docs/fork-divergence.zh.md))。
 
 ### 阶段 6：第二个平台
 
-先 Linux 后 macOS，因为 macOS 还要增加签名与公证。[桌面端多平台支持实施计划](2026-08-22-desktop-multiplatform-support-plan.md)拥有目标矩阵、有序工作包、发布自动化、updater 规则、安装版 smoke 与完成标准。把该阶段视为受控启动：组装后的 harness profile 已在 Linux 完成构建、启动和终端 smoke，且不再存在 package 级 Linux 缺口时再开始。
+先 Linux 后 macOS，因为 macOS 还要增加签名与公证。[桌面端多平台支持实施计划](2026-08-22-desktop-multiplatform-support-plan.zh.md)拥有目标矩阵、有序工作包、发布自动化、updater 规则、安装版 smoke 与完成标准。把该阶段视为受控启动：组装后的 harness profile 已在 Linux 完成构建、启动和终端 smoke，且不再存在 package 级 Linux 缺口时再开始。
 
 ### 阶段 7：休眠能力的体积决策
 
@@ -79,15 +79,15 @@ Explorer 与搜索能定位文件，却无法展示它。为根内文件新增�
 ### agent 不必重新发现的环境事实
 
 - 打包安装的桌面版从其安装目录运行自带的烤制运行时。当它是活的 GUI 时，仓库构建产物并未被它占用，`pnpm run build` 是安全的。无论倾向哪一边，先实测。
-- `scripts/ci-workflow.spec.ts` 在此处失败，因为本 fork 不携带任何继承工作流。[分歧登记表](../../../../docs/fork-divergence.md)已将其记录为预期；绝不要通过恢复上游自动化来消除它。
-- 重新进入 pnpm 一律经 `scripts/package-manager.ts`；独立安装的 pnpm 会暴露原生 `npm_execpath`（[note](../../implemented/bug-fix/2026-08-21-nested-pnpm-native-entrypoint.md)）。
+- `scripts/ci-workflow.spec.ts` 在此处失败，因为本 fork 不携带任何继承工作流。[分歧登记表](../../../../docs/fork-divergence.zh.md)已将其记录为预期；绝不要通过恢复上游自动化来消除它。
+- 重新进入 pnpm 一律经 `scripts/package-manager.ts`；独立安装的 pnpm 会暴露原生 `npm_execpath`（[note](../../implemented/bug-fix/2026-08-21-nested-pnpm-native-entrypoint.zh.md)）。
 - `createUpdaterArtifacts` 已启用，因此本地 `tauri build` 在无签名密钥时失败。标签门控工作流持有真实密钥；冒烟请使用它发布的安装包，而不要在本地复刻签名。
 - 录制 GUI 证据遵循 [record-browser-gif](../../../skills/record-browser-gif/SKILL.md)。其编码器同时需要 `ffmpeg` 与 `ffprobe`，且某个 Playwright 版本可能与机器上已有的浏览器修订号不匹配，因此应显式传入 `executablePath`，而不是再装一个浏览器。
 - 版本升级只改 `apps/desktop/package.json` 一处；`pnpm --filter @deepseek-ai/dsh-desktop version-check` 校验传播后的各来源是否一致。
 
 ### 每个阶段都适用的固定约束
 
-桌面 UI 与 Host 集成保持在 `apps/desktop` 下。改动上游所有的路径需要独立的 harness 需求，以及[分歧登记表](../../../../docs/fork-divergence.md)中带原因的一行。每项用户可见改动都携带聚焦单测、Host 集成证据，以及一段从真实应用录制的 GIF；能力 seam 的 Service Definition、Provider、Consumer 与生命周期测试一并交付。
+桌面 UI 与 Host 集成保持在 `apps/desktop` 下。改动上游所有的路径需要独立的 harness 需求，以及[分歧登记表](../../../../docs/fork-divergence.zh.md)中带原因的一行。每项用户可见改动都携带聚焦单测、Host 集成证据，以及一段从真实应用录制的 GIF；能力 seam 的 Service Definition、Provider、Consumer 与生命周期测试一并交付。
 
 ## Alternatives considered
 

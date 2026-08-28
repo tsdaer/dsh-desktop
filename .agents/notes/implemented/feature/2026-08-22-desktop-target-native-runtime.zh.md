@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [English](2026-08-22-desktop-target-native-runtime.md)
+[English](2026-08-22-desktop-target-native-runtime.md) | 中文
 
 ## 问题
 
@@ -24,7 +24,7 @@ English | [English](2026-08-22-desktop-target-native-runtime.md)
 
 ## 相关记录
 
-目标行由[桌面目标规格](2026-08-22-desktop-target-specification.md)定义,sidecar 获取由[可移植 Node sidecar](2026-08-22-desktop-portable-node-sidecar.md)定义,壳子启动接线由[跨平台壳子运行时](2026-08-22-desktop-cross-platform-shell-runtime.md)定义。
+目标行由[桌面目标规格](2026-08-22-desktop-target-specification.zh.md)定义,sidecar 获取由[可移植 Node sidecar](2026-08-22-desktop-portable-node-sidecar.zh.md)定义,壳子启动接线由[跨平台壳子运行时](2026-08-22-desktop-cross-platform-shell-runtime.zh.md)定义。
 
 ## 考虑过的方案
 

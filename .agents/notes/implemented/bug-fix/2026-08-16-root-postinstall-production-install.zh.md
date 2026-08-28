@@ -40,4 +40,4 @@ Status: implemented
 
 回归测试固定在 [`scripts/install-lefthook.spec.ts`](../../../../scripts/install-lefthook.spec.ts) 中：把安装脚本的副本放到检出目录之外（使裸说明符 `lefthook/package.json` 无法解析），脚本以 0 退出且无任何输出；而旧的顶层导入会以 `ERR_MODULE_NOT_FOUND` 崩溃。
 
-[worktree 本地钩子决策](../process/2026-07-27-worktree-local-lefthook.md) 的 worktree 本地钩子安全约定不受影响：本次改动只移动了可用性探测的执行时机。
+[worktree 本地钩子决策](../process/2026-07-27-worktree-local-lefthook.zh.md) 的 worktree 本地钩子安全约定不受影响：本次改动只移动了可用性探测的执行时机。

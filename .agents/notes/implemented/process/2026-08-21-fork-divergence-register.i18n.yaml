@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-21-fork-divergence-register.md
 2026-08-21-fork-divergence-register.md: 329ba964e95cffe40c739bd7f32582f074d453ac
-2026-08-21-fork-divergence-register.zh.md: f9cc92112af64f9d86b3c38e8440bf7d06b1b36a
+2026-08-21-fork-divergence-register.zh.md: c2e12caa0e7a724bdf9966556df951107170a3a3

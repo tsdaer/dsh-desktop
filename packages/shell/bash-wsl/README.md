@@ -1,8 +1,24 @@
+---
+description: "The WSL Bash executor for the shell seam on Windows desktops: command execution through wsl.exe with /mnt working-directory translation."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-bash-wsl
 
 English | [中文](README.zh.md)
 
+## Summary
+
 WSL Bash Service Provider for the [`@deepseek-ai/dsh-shell`](../shell/README.md) seam (P4b of the [Desktop 0.4 plan](../../../.agents/notes/proposed/feature/2026-08-26-desktop-0.4-runtime-and-windows-integration.md)). Each command runs as `wsl.exe --distribution <name> --exec bash -c <command>` in a managed process spawned through `ctx.subprocess`. The executor owns the WSL argv and the Windows-to-`/mnt` working-directory translation; the explicit `/mnt` path restriction matches the active permission preset.
+
+## Table of Contents
+
+- [Behavior](#behavior)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
+
+-----
 
 ## Behavior
 
@@ -23,3 +39,7 @@ No direct invalidation; the named consumer owns any request-prefix changes.
 
 - **Default mounts only** — non-default interop mounts, remote WSL hosts, WSL 1, automatic package installation, and persistent WSL terminals are out of scope for the first release.
 - **Windows-only** — wsl.exe is the Windows binary; this executor is not usable on POSIX hosts.
+
+### Dev Note
+
+This package is part of the desktop fork's WSL integration (P4b). It is Windows-only and depends on the WSL 2 interop mount convention; see the [Desktop 0.4 plan](../../../.agents/notes/proposed/feature/2026-08-26-desktop-0.4-runtime-and-windows-integration.md) for the roadmap.

@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-08-17-desktop-0.3-worktree-and-runtime-chrome.md
 2026-08-17-desktop-0.3-worktree-and-runtime-chrome.md: 140d6b4f0fc04b17640509830a0ca6d1f83e3b69
-2026-08-17-desktop-0.3-worktree-and-runtime-chrome.zh.md: f4333e215d8135179f180f809cd25615d45bdb69
+2026-08-17-desktop-0.3-worktree-and-runtime-chrome.zh.md: 2afd07e0a4c33c4ac7d4bd06ca4a98602cc7026a

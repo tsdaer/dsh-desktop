@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-08-21-desktop-post-0.3-plan.md
 2026-08-21-desktop-post-0.3-plan.md: 7fe97b7b458785f1b2c890f75a8e1a5bab146253
-2026-08-21-desktop-post-0.3-plan.zh.md: 0ab5ab68875b2f0bdb7f4e9ad15b682496c5131f
+2026-08-21-desktop-post-0.3-plan.zh.md: 23e37e758f075f2a37d11c6e0de950190fb52787

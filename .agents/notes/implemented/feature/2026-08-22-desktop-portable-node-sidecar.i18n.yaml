@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-22-desktop-portable-node-sidecar.md
 2026-08-22-desktop-portable-node-sidecar.md: c1c844af7a28e8292e20e6443138f18fd831e7ae
-2026-08-22-desktop-portable-node-sidecar.zh.md: 0bd977d59367504d3815130b4f04efb669354b37
+2026-08-22-desktop-portable-node-sidecar.zh.md: bb2262e7e0b48045ca1521c86b4f324e74a49b2b

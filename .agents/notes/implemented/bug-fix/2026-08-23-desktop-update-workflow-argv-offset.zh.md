@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [English](2026-08-23-desktop-update-workflow-argv-offset.md)
+[English](2026-08-23-desktop-update-workflow-argv-offset.md) | 中文
 
 ## Problem
 

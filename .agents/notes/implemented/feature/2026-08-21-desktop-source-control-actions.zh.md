@@ -6,7 +6,7 @@ Status: implemented
 
 ## Problem
 
-只读的 Worktree 投影([桌面 Worktree Source Control](../../implemented/feature/2026-08-19-desktop-worktree-source-control.md))能显示更改但不能操作。暂存、撤销暂存、丢弃、提交和差异查看各自需要一条安全的 Git 变更路径,而基于过期状态的破坏性操作会把一次失误变成数据丢失。
+只读的 Worktree 投影([桌面 Worktree Source Control](../../implemented/feature/2026-08-19-desktop-worktree-source-control.zh.md))能显示更改但不能操作。暂存、撤销暂存、丢弃、提交和差异查看各自需要一条安全的 Git 变更路径,而基于过期状态的破坏性操作会把一次失误变成数据丢失。
 
 ## Decision
 
