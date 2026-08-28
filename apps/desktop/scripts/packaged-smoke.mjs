@@ -583,6 +583,12 @@ export async function runPackagedWebSmoke(url, options = {}) {
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    const consoleMessages = [];
+    const pageErrors = [];
+    const failedRequests = [];
+    page.on('console', (msg) => consoleMessages.push(`${msg.type()}: ${msg.text()}`));
+    page.on('pageerror', (error) => pageErrors.push(String(error)));
+    page.on('requestfailed', (req) => failedRequests.push(`${req.url()} -> ${req.failure()?.errorText ?? 'failed'}`));
     const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
     if (response === null || !response.ok()) {
       throw new Error(`packaged web UI returned ${response?.status() ?? 'no response'} at ${url}`);
@@ -600,6 +606,9 @@ export async function runPackagedWebSmoke(url, options = {}) {
         body: document.body?.textContent?.slice(0, 300) ?? null,
       })).catch(() => ({}));
       console.error('[packaged-smoke] web UI did not render the composer:', JSON.stringify(state));
+      console.error('[packaged-smoke] console:', JSON.stringify(consoleMessages.slice(0, 20)));
+      console.error('[packaged-smoke] page errors:', JSON.stringify(pageErrors.slice(0, 10)));
+      console.error('[packaged-smoke] failed requests:', JSON.stringify(failedRequests.slice(0, 10)));
       if (options.screenshotPath !== undefined) {
         await page.screenshot({ path: options.screenshotPath, fullPage: true }).catch(() => {});
       }
