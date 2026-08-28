@@ -537,13 +537,19 @@ async function dismissWelcomeNotice(port, sessionId) {
 async function dismissApiKeyOnboarding(port, sessionId) {
   const deadline = Date.now() + 30_000;
   let deferred = false;
+  let absentObservations = 0;
   let lastState;
   while (Date.now() < deadline) {
     lastState = await execute(port, sessionId, `
       return (${advanceApiKeyOnboarding.toString()})(document);
     `);
     if (lastState?.clicked === true) deferred = true;
-    if (deferred && lastState?.present === false) return;
+    if (lastState?.present === false) {
+      absentObservations += 1;
+      if (deferred || absentObservations >= 8) return;
+    } else {
+      absentObservations = 0;
+    }
     await new Promise((resolveWait) => setTimeout(resolveWait, 250));
   }
   throw new Error(`native Tauri UI could not defer API key onboarding: ${JSON.stringify(lastState)}`);
