@@ -2,6 +2,12 @@
 
 All notable changes to dsh-desktop are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The draft-release workflow copies the matching version's section into its GitHub release notes.
 
+## [0.5.0] - 2026-08-27
+
+### Changed
+
+- Version 0.5.0: integrated upstream harness master (1079 commits) into the desktop branch, advancing the hosted web profile from dsh 0.1.1-rc.2 to 0.1.2-alpha.1. The merge carries the upstream conversation split (ui-conversation → ui-chat), the browser-session authentication rework (launch-token plus signed cookie), the packed session-history transport, per-turn token usage, the lexical composer, and the thousands of commits' worth of harness features and fixes behind them; the desktop bridge keeps its loopback-token posture over the new connection architecture.
+
 ## [0.4.2] - 2026-08-26
 
 ### Fixed

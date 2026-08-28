@@ -2,6 +2,12 @@
 
 dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循[语义化版本](https://semver.org/spec/v2.0.0.html)。draft-release workflow 会把对应版本的章节复制到 GitHub release 的 notes 里。
 
+## [0.5.0] - 2026-08-27
+
+### 变更
+
+- 版本 0.5.0:将上游 harness master(1079 个提交)整合进桌面分支,把托管的 web profile 从 dsh 0.1.1-rc.2 推进到 0.1.2-alpha.1。合并携带上游的会话拆分(ui-conversation → ui-chat)、浏览器会话认证重构(启动 token 加签名 cookie)、打包会话历史传输、逐轮 token 用量、lexical composer,以及其背后数千提交所承载的 harness 功能与修复;桌面桥接在新的连接架构上保持其 loopback token 姿态。
+
 ## [0.4.2] - 2026-08-26
 
 ### 修复
