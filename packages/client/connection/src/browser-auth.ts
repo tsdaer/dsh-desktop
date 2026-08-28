@@ -255,7 +255,7 @@ export class BrowserAuth {
         }, this.secret)
         res.writeHead(303, {
           'cache-control': 'no-store',
-          'location': '/',
+          'location': redirectLocation(url),
           'referrer-policy': 'no-referrer',
           'set-cookie': sessionCookie(
             cookieName(authority), value, expiresAt, Math.floor(this.maxAgeMilliseconds / 1000),
@@ -267,7 +267,7 @@ export class BrowserAuth {
       if (req.method === 'GET' && url.pathname === '/' && this.isAuthenticated(req)) {
         res.writeHead(303, {
           'cache-control': 'no-store',
-          'location': '/',
+          'location': redirectLocation(url),
           'referrer-policy': 'no-referrer',
         })
         res.end()
@@ -310,4 +310,10 @@ export class BrowserAuth {
       ? undefined
       : 'dsh web authentication required; reopen the URL printed by dsh web.\n')
   }
+}
+
+/** The single-use launch token is removed while application transport parameters survive the exchange. */
+function redirectLocation(url: URL): string {
+  url.searchParams.delete(TOKEN_QUERY)
+  return `${url.pathname}${url.search}`
 }

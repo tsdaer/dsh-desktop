@@ -107,6 +107,13 @@ describe('BrowserAuth', () => {
     })
     expect(login.state.headers?.['set-cookie']).toMatch(/; Max-Age=2592000; Path=\/; Expires=.*; HttpOnly; SameSite=Strict$/u)
     expect(login.state.headers?.['set-cookie']).not.toContain('Secure')
+    const desktopLogin = response()
+    const launchToken = new URL(login.launchUrl).searchParams.get('token')
+    expect(first.authorizeIndex(request(
+      `/?token=${launchToken}&dsh_token=desktop-secret`,
+      '127.0.0.1:3080',
+    ), desktopLogin.value)).toBe(false)
+    expect(desktopLogin.state.headers?.location).toBe('/?dsh_token=desktop-secret')
     expect(first.isAuthenticated(request('/', '127.0.0.1:3080', { cookie: login.cookie }))).toBe(true)
     expect(first.isAuthenticated({
       headers: new Headers({ host: '127.0.0.1:3080', cookie: login.cookie }),
@@ -124,6 +131,7 @@ describe('BrowserAuth', () => {
       .not.toBe(new URL(login.launchUrl).searchParams.get('token'))
     expect(restarted.isAuthenticated(request('/', '127.0.0.1:3080', { cookie: login.cookie }))).toBe(true)
     const staleUrl = new URL(login.launchUrl)
+    staleUrl.searchParams.set('dsh_token', 'desktop-secret')
     const redirected = response()
     expect(restarted.authorizeIndex(request(
       `${staleUrl.pathname}${staleUrl.search}`,
@@ -134,7 +142,7 @@ describe('BrowserAuth', () => {
       status: 303,
       headers: {
         'cache-control': 'no-store',
-        'location': '/',
+        'location': '/?dsh_token=desktop-secret',
         'referrer-policy': 'no-referrer',
       },
     })

@@ -2,6 +2,12 @@
 
 All notable changes to dsh-desktop are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The draft-release workflow copies the matching version's section into its GitHub release notes.
 
+## [0.5.1] - 2026-08-28
+
+### Fixed
+
+- The browser-session redirect removes only its single-use launch token and preserves the desktop loopback bearer parameter, so packaged HTTP requests and WebSocket upgrades authenticate instead of returning 401 during startup.
+
 ## [0.5.0] - 2026-08-27
 
 ### Changed
