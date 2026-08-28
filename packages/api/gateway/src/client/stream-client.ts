@@ -7,6 +7,7 @@ import {
   type RemoteStreamServerMessage,
 } from '../stream-protocol.ts'
 import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
+import { getLoopbackToken } from '@deepseek-ai/dsh-client-connection/client'
 
 const INTERNAL_BASE = 'http://dsh.internal'
 const RECONNECT_BASE_MS = 500
@@ -344,5 +345,11 @@ function remoteStreamUrl(): string {
   const base = location?.origin !== undefined && location.origin !== 'null' ? location.origin : INTERNAL_BASE
   const url = new URL(REMOTE_STREAM_MUX_PATH, base)
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+  // The desktop shell's webserver requires the loopback bearer token on every
+  // route and upgrade; a WebSocket cannot set headers, so the token rides the
+  // URL query (the server accepts it there). Outside the desktop token
+  // posture this adds nothing.
+  const token = getLoopbackToken()
+  if (token !== undefined) url.searchParams.set('dsh_token', token)
   return url.href
 }
