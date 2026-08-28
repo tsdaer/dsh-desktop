@@ -141,6 +141,7 @@ async function main() {
   }
   resolveSymlinkedPackages(deployDir, sources);
   removeForbiddenPackages(deployDir);
+  cleanBrokenBinLinks(deployDir);
   pruneNodeModules(deployDir);
 
   // The desktop bridge packages are produced by scripts/build-bridge.mjs
@@ -271,14 +272,35 @@ function removeForbiddenPackages(root) {
     rmSync(join(root, 'node_modules', name), { recursive: true, force: true });
   }
 }
+/// Remove dangling .bin symlinks left by removeForbiddenPackages. The Tauri
+/// resource walk fails on a link whose target was deleted (e.g. .bin/tsc
+/// after typescript is stripped), so a broken link must not survive.
+function cleanBrokenBinLinks(root) {
+  const bin = join(root, 'node_modules', '.bin');
+  if (!existsSync(bin)) return;
+  let removed = 0;
+  for (const name of readdirSafe(bin)) {
+    const full = join(bin, name);
+    try {
+      const isLink = lstatSync(full).isSymbolicLink();
+      // A symlink whose target is gone (typescript stripped) breaks the Tauri
+      // resource walk; a non-link file whose name matches a stripped tool is
+      // dead weight too (pnpm writes .CMD/.ps1 shims on Windows).
+      const base = name.replace(/\.(?:CMD|ps1|cmd)$/, '');
+      const binOfForbidden = ['tsc', 'tsserver', 'oxlint', 'eslint', 'tsx'].includes(base);
+      if ((isLink && !existsSync(full)) || FORBIDDEN_PACKAGES.includes(base) || binOfForbidden) {
+        rmSync(full, { force: true });
+        removed += 1;
+      }
+    } catch { continue; }
+  }
+  if (removed > 0) console.log('[bake-runtime] removed ' + removed + ' broken or forbidden .bin entry/entries');
+}
 
 function pruneNodeModules(root) {
   const nm = join(root, 'node_modules');
   if (!existsSync(nm)) return;
-  // @deepseek-ai packages are baked from workspace files entries (exact copies
-  // of what ships); only third-party packages carry the full source tree.
-  const scoped = join(nm, '@deepseek-ai');
-  const thirdParty = readdirSafe(nm).filter((name) => name !== '@deepseek-ai');
+  const thirdParty = readdirSafe(nm);
   let removedFiles = 0;
   let removedDirs = 0;
   const walk = (dir) => {
