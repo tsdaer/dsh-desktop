@@ -4,7 +4,7 @@
 // rendered through the shared DiffBlock presentation. All paths stay
 // Workspace-relative; the Host owns every Git argument.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { DiffBlock, type DiffHunk } from '@deepseek-ai/dsh-client-ui-primitives'
+import { DiffBlock, type DiffBlockLabels, type DiffHunk } from '@deepseek-ai/dsh-client-ui-primitives'
 import { bridgeFetch } from './bridge-fetch.ts'
 import css from './DesktopWorkspaceWorkbench.module.css'
 
@@ -308,6 +308,17 @@ export function SourceControlCommitBar({ stagedCount, actions, t }: {
   )
 }
 
+/** Localized chrome for the shared DiffBlock presentation (desktop UI is Chinese). */
+const DIFF_BLOCK_LABELS: DiffBlockLabels = {
+  copy: '复制',
+  copied: '已复制',
+  collapseAria: '折叠差异',
+  expandAria: hidden => `展开差异（隐藏 ${String(hidden)} 行）`,
+  collapse: '折叠',
+  expand: hidden => `展开剩余 ${String(hidden)} 行`,
+  files: count => count === 1 ? '1 个文件' : `${String(count)} 个文件`,
+}
+
 /** Diff panel rendered through the shared DiffBlock presentation. */
 export function SourceControlDiffPanel({ diff, t, onClose }: {
   diff: SourceControlDiffView
@@ -334,7 +345,7 @@ export function SourceControlDiffPanel({ diff, t, onClose }: {
         <button type="button" className={css.sourceControlAction} onClick={onClose}>{t('worktree.diffClose')}</button>
       </div>
       {diff.status === 'loading' ? <div className={css.explorerState}>{t('worktree.diffLoading')}</div> : null}
-      {diff.status === 'ready' ? <div className={css.sourceControlDiffBody}><DiffBlock diffs={hunks} /></div> : null}
+      {diff.status === 'ready' ? <div className={css.sourceControlDiffBody}><DiffBlock diffs={hunks} labels={DIFF_BLOCK_LABELS} /></div> : null}
       {note === null ? null : <div className={css.sourceControlError} role="alert">{note}</div>}
     </div>
   )
