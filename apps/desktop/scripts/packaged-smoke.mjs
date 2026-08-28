@@ -604,6 +604,8 @@ export async function runPackagedWebSmoke(url, options = {}) {
         spinner: document.querySelector('[data-dsh-boot-spinner]') !== null,
         failure: document.querySelector('[data-dsh-boot]')?.textContent?.slice(0, 300) ?? null,
         body: document.body?.textContent?.slice(0, 300) ?? null,
+        search: location.search.slice(0, 200),
+        hasTokenQuery: location.search.includes('dsh_token='),
       })).catch(() => ({}));
       console.error('[packaged-smoke] web UI did not render the composer:', JSON.stringify(state));
       console.error('[packaged-smoke] console:', JSON.stringify(consoleMessages.slice(0, 20)));
