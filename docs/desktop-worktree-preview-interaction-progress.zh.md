@@ -8,7 +8,7 @@ Status: active
 
 截至 2026-08-29，`desktop-worktree-preview-interaction-plan.md`中的五个代码切片已经完成：路径插入与资源管理器图标、预览投影与渲染、独立 Tauri 预览窗口、安全的外部链接处理，以及支持 Lexical 的上下文菜单。
 
-计划中剩余的事项是从已发布的服务器和模型流程录制真实桌面 GUI 证据。已完成切片的代码检查均已通过；当前证据运行受证据服务器启动前置条件和主机环境回环绑定权限影响而阻塞。
+计划中剩余的事项是从已发布的服务器和模型流程录制真实桌面 GUI 证据。证据服务器启动前置条件已经修复，已完成切片的代码检查均已通过；真实运行仍受主机环境回环绑定权限影响而阻塞。
 
 ## Table of Contents
 
@@ -27,7 +27,7 @@ Status: active
 | 独立 Tauri 预览窗口 | Complete | 提交 `26f6aab8e8`；Rust 测试和应用构建通过 |
 | 安全的外部链接处理 | Complete | 提交 `daaff48fea`；bridge 与 Rust 检查通过 |
 | 支持 Lexical 的上下文菜单 | Complete | 提交 `4d5253718c`；18 个专项测试通过 |
-| 真实桌面 GUI 证据 | Pending | 证据运行需要可用的启动路径和回环服务器权限 |
+| 真实桌面 GUI 证据 | Pending | 证据设置已进入 `dsh web`；主机拒绝回环服务器绑定 |
 
 ## Completed slices
 
@@ -68,21 +68,23 @@ Tauri 命令会在独立预览窗口中打开经过校验的工作区文件，�
 - `pnpm run verify-client-ui-i18n` — 512 个源文件通过。
 - `pnpm run build` — 通过。
 - `pnpm run build:web` — 通过。
+- `pnpm --filter @deepseek-ai/dsh-desktop test:evidence` — 5 个测试通过。
 - 桌面 Tauri crate 的 Rust 测试 — 22 个通过，1 个 runtime-tree 测试忽略。
 - 实现提交的提交前翻译配对、lint、空白字符和 vendor manifest 检查 — 通过。
 - 进度文档的专项翻译配对检查 — 通过。
+
+- `pnpm --filter @deepseek-ai/dsh-desktop evidence -- --port 4175 --workspace J:\Projects\deepseek-harness` — profile 设置完成，`dsh web` 仅因 `127.0.0.1:4175` 的 `listen EACCES` 失败。
 
 当前文档聚合检查有 15 个 gate 中的 14 个通过。剩余失败来自无关的既有链接目标不一致：`apps/desktop/src-tauri/runtime/windows-x64/README.md` 与其中文对应文档之间的链接目标不同。
 
 ## Open blockers
 
-真实 GUI 证据运行目前还不能录制。`apps/desktop/scripts/evidence-server.mjs`要求在 `--dump-default-config` 后存在 profile 依赖 fallback，而 CLI 参考文档说明 dump 操作不会准备该 fallback。直接启动服务器还因主机拒绝绑定回环端口而失败。
+真实 GUI 证据运行目前还不能录制，因为主机拒绝将 Web 服务器绑定到回环端口。证据脚本现在允许 web profile 启动创建缺失的 installation fallback，同时仍拒绝启动前已经存在的非符号链接条目。
 
 在新建的证据工作区中完成已发布的服务器和模型流程之前，不声称已经生成 GUI GIF。
 
 ## Next steps
 
-- 在负责该流程的证据工作流中解决或明确提供 evidence-server 的 profile 依赖 fallback。
 - 在允许回环绑定的主机上重新运行真实桌面流程。
 - 录制计划要求的 GIF，覆盖工作树拖放、资源管理器图标、预览渲染、二进制文件拒绝、Lexical 上下文菜单操作和获准的聊天外部链接。
 - 在无关的 runtime README 翻译配对不一致修复后重新运行文档聚合检查。

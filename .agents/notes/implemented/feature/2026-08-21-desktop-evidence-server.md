@@ -10,7 +10,7 @@ Desktop GUI evidence needs a live web profile with the desktop bridge, a registe
 
 ## Decision
 
-`pnpm --filter @deepseek-ai/dsh-desktop evidence` runs `scripts/build-bridge.mjs`, creates a temporary `DSH_HOME`, and invokes the built CLI once with `--dump-default-config` so profile initialization heals `profiles/node_modules`. It copies the built `dsh-desktop-bridge` and `dsh-desktop-bridge-client` packages into `profiles/node_modules/@deepseek-ai/`, leaves the existing `schemastery` fallback link untouched, and merges the bridge patch into `profiles/web/cordis.patch.yml` idempotently.
+`pnpm --filter @deepseek-ai/dsh-desktop evidence` runs `scripts/build-bridge.mjs`, creates a temporary `DSH_HOME`, and invokes the built CLI once with `--dump-default-config` to initialize the web profile files. It allows the later `dsh web` launch to create the missing `profiles/node_modules` fallback, copies the built `dsh-desktop-bridge` and `dsh-desktop-bridge-client` packages into `profiles/node_modules/@deepseek-ai/`, leaves an existing `schemastery` fallback link untouched, and merges the bridge patch into `profiles/web/cordis.patch.yml` idempotently.
 
 The command then starts `dsh web` on port 4173, creates a Workspace through `workspace.create` for the selected directory, probes `/dsh-bridge/config`, and prints the serving URL and probe URL. `-- --port <port> --workspace <directory>` changes the fixed port or selected Workspace; Ctrl+C stops the child and removes the temporary home unless `--keep-home` is supplied.
 
@@ -26,8 +26,8 @@ The operating-constraints reference distinguishes source and packaged process to
 
 ## Consequences
 
-The evidence server requires built CLI and bridge artifacts; its package script builds the bridges before setup, while the repository and web frontend still need their normal build prerequisites. The server has a fixed default port and runs until interrupted, making browser recordings reproducible but requiring cleanup on exit. `--keep-home` preserves diagnostic state for inspection and is intended for local troubleshooting only.
+The evidence server requires built CLI and bridge artifacts; its package script builds the bridges before setup, while the repository and web frontend still need their normal build prerequisites. An existing installation-owned `schemastery` fallback entry must be a symlink; a missing entry is created by the web profile launch. The server has a fixed default port and runs until interrupted, making browser recordings reproducible but requiring cleanup on exit. `--keep-home` preserves diagnostic state for inspection and is intended for local troubleshooting only.
 
 ## Testing
 
-`scripts/evidence-server.spec.mjs` covers option parsing, default selection, patch merging, and idempotent installation text. A live run additionally checks profile initialization, the untouched `schemastery` symlink, bridge configuration response, and Workspace registration through the built web profile.
+`scripts/evidence-server.spec.mjs` covers option parsing, default selection, patch merging, idempotent installation text, and fallback-entry validation. A live run additionally checks profile initialization, the preserved or newly created `schemastery` fallback entry, bridge configuration response, and Workspace registration through the built web profile.

@@ -125,6 +125,21 @@ export function installPackage(source, targetRoot) {
 }
 
 /**
+ * Check the installation-owned fallback entry before the evidence script may replace it.
+ * @param {string} path - Fallback package path.
+ */
+export function assertReplaceableFallbackEntry(path) {
+  try {
+    if (!lstatSync(path).isSymbolicLink()) {
+      throw new Error(`profile fallback ${path} is not a symlink; evidence setup will not replace it`);
+    }
+  } catch (error) {
+    if (error?.code === 'ENOENT') return;
+    throw error;
+  }
+}
+
+/**
  * Start the real dsh web profile and wait for its readiness line.
  * @param {string} home - Scratch DSH_HOME.
  * @param {number} port - Fixed HTTP port.
@@ -196,9 +211,7 @@ async function main() {
     const profileDir = resolve(home, 'profiles/web');
     const fallbackModules = resolve(home, 'profiles/node_modules/@deepseek-ai');
     const schemastery = join(fallbackModules, 'schemastery');
-    if (!lstatSync(schemastery).isSymbolicLink()) {
-      throw new Error(`profile fallback ${schemastery} is not a symlink; evidence setup will not replace it`);
-    }
+    assertReplaceableFallbackEntry(schemastery);
     for (const source of bridgeSources) installPackage(source, fallbackModules);
     const patchPath = join(profileDir, 'cordis.patch.yml');
     const bridgePatch = readFileSync(join(bridgeSources[0], 'cordis.patch.yml'), 'utf8');

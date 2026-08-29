@@ -1,6 +1,9 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeProfilePatch, parseArguments } from './evidence-server.mjs';
+import { assertReplaceableFallbackEntry, mergeProfilePatch, parseArguments } from './evidence-server.mjs';
 
 test('parseArguments uses the repository and fixed-port defaults', () => {
   const options = parseArguments([]);
@@ -27,4 +30,19 @@ test('mergeProfilePatch replaces the profile empty list and stays idempotent', (
   const merged = mergeProfilePatch('# header\n[]\n', patch);
   assert.equal(merged, '# header\n- insert:\n    - id: desktop-bridge\n');
   assert.equal(mergeProfilePatch(merged, patch), merged);
+});
+
+test('fallback validation allows a missing entry and rejects a regular entry', () => {
+  const root = mkdtempSync(join(tmpdir(), 'dsh-evidence-test-'));
+  try {
+    assert.doesNotThrow(() => assertReplaceableFallbackEntry(join(root, 'missing')));
+    const regular = join(root, 'regular');
+    writeFileSync(regular, 'not a link\n');
+    assert.throws(
+      () => assertReplaceableFallbackEntry(regular),
+      /is not a symlink; evidence setup will not replace it/,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
