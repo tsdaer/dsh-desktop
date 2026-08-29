@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/desktop-worktree-preview-interaction-progress.md
-desktop-worktree-preview-interaction-progress.md: c4dc5792f59b7c324c31b25e5f8279bf275cf54e
-desktop-worktree-preview-interaction-progress.zh.md: a404cfcc6ae67ac5daafbbb2513fbe637a4b5f46
+desktop-worktree-preview-interaction-progress.md: c8c4396551717627c428187f83c4ac736e6959c1
+desktop-worktree-preview-interaction-progress.zh.md: 2739d3a0f5eea6a577a4df829878cc20fdf1911d

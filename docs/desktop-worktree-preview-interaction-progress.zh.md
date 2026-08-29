@@ -75,7 +75,7 @@ Tauri 命令会在独立预览窗口中打开经过校验的工作区文件，�
 
 - `pnpm --filter @deepseek-ai/dsh-desktop evidence -- --port 0 --workspace J:\Projects\deepseek-harness` — profile 设置、启动认证、Workspace 注册、bridge 配置探测和 ready URL 输出均在操作系统分配的回环端口上完成；浏览器 fallback 已加载 Worktree 视图并打开 README 预览。
 
-当前文档聚合检查有 15 个 gate 中的 14 个通过。剩余失败来自无关的既有链接目标不一致：`apps/desktop/src-tauri/runtime/windows-x64/README.md` 与其中文对应文档之间的链接目标不同。
+当前文档聚合检查的 15 个 gate 已全部通过。
 
 ## Open blockers
 

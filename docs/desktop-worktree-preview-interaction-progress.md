@@ -75,7 +75,7 @@ Implementation anchor: `4d5253718c`.
 
 - `pnpm --filter @deepseek-ai/dsh-desktop evidence -- --port 0 --workspace J:\Projects\deepseek-harness` — profile setup, startup authentication, Workspace registration, bridge configuration probing, and ready-URL output completed on an OS-assigned loopback port; the browser fallback loaded the Worktree view and README preview.
 
-The documentation aggregate currently reports 14 of 15 gates passing. The remaining failure is an unrelated pre-existing link-target mismatch between `apps/desktop/src-tauri/runtime/windows-x64/README.md` and its Chinese counterpart.
+The documentation aggregate reports all 15 gates passing.
 
 ## Open blockers
 
