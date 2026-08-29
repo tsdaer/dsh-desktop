@@ -464,24 +464,17 @@ fn open_file_preview(
         window
             .set_title(title)
             .map_err(|error| format!("failed to title the file preview: {error}"))?;
-        window
-            .show()
-            .map_err(|error| format!("failed to show the file preview: {error}"))?;
-        window
-            .set_focus()
-            .map_err(|error| format!("failed to focus the file preview: {error}"))?;
         return Ok(());
     }
 
-    let window = WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(url))
+    WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(url))
         .title(title)
         .inner_size(960.0, 720.0)
         .min_inner_size(480.0, 320.0)
+        .visible(false)
         .build()
         .map_err(|error| format!("failed to create the file preview: {error}"))?;
-    window
-        .set_focus()
-        .map_err(|error| format!("failed to focus the file preview: {error}"))
+    Ok(())
 }
 
 /// Return the per-boot bearer token to a preview page without putting it in its URL.
@@ -847,7 +840,15 @@ fn main() {
     let titlebar_version = env!("CARGO_PKG_VERSION").to_owned();
     tauri::Builder::default()
         .on_page_load(move |webview, payload| {
-            if webview.label() != "main" || payload.event() != PageLoadEvent::Finished {
+            if payload.event() != PageLoadEvent::Finished {
+                return;
+            }
+            if webview.label().starts_with("preview-") {
+                let _ = webview.show();
+                let _ = webview.set_focus();
+                return;
+            }
+            if webview.label() != "main" {
                 return;
             }
             let mut script = titlebar_script(&titlebar_version);

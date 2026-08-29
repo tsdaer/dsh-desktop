@@ -10,6 +10,7 @@ export interface DesktopPreviewCopy {
   copied: string
   close: string
   loading: string
+  timeout: string
   truncated: string
   footnotes: string
 }
@@ -24,6 +25,7 @@ const zh = {
   copied: '复制成功',
   close: '关闭',
   loading: '读取文件中…',
+  timeout: '读取文件超时，请关闭窗口后重试。',
   truncated: '文件过大，仅显示前一部分。',
   footnotes: '脚注',
 } satisfies DesktopPreviewCopy
@@ -38,6 +40,7 @@ const en = {
   copied: 'Copied',
   close: 'Close',
   loading: 'Loading file…',
+  timeout: 'Loading timed out. Close the window and try again.',
   truncated: 'The file is large; only the beginning is shown.',
   footnotes: 'Footnotes',
 } satisfies DesktopPreviewCopy

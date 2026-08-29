@@ -22,6 +22,9 @@ type State =
   | { status: 'ready'; view: FileView }
   | { status: 'error'; message: string }
 
+/** Bound one preview load so a stalled native bridge cannot leave a permanent spinner. */
+const PREVIEW_LOAD_TIMEOUT_MS = 10_000
+
 const LANG_BY_EXTENSION: Readonly<Record<string, string>> = {
   ts: 'ts', tsx: 'tsx', js: 'js', jsx: 'jsx', json: 'json',
   py: 'py', rb: 'rb', go: 'go', rs: 'rs', java: 'java',
@@ -93,16 +96,35 @@ function requestFromLocation(): { workspaceId: string; path: string } | { error:
   return { workspaceId, path }
 }
 
+/** Make a native command settle when the preview is torn down or timed out. */
+function abortable<T>(pending: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) return Promise.reject(new Error('preview request aborted'))
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = (): void => {
+      signal.removeEventListener('abort', onAbort)
+      reject(new Error('preview request aborted'))
+    }
+    signal.addEventListener('abort', onAbort, { once: true })
+    void pending.then(
+      (value) => { signal.removeEventListener('abort', onAbort); resolve(value) },
+      (error) => { signal.removeEventListener('abort', onAbort); reject(error) },
+    )
+  })
+}
+
 async function readPreview(request: { workspaceId: string; path: string }, signal: AbortSignal): Promise<FileView> {
-  const token = await tauri()?.core?.invoke<string>('preview_bridge_token')
   const copy = desktopPreviewCopy(document.documentElement.lang)
+  const token = await abortable(
+    tauri()?.core?.invoke<string>('preview_bridge_token') ?? Promise.resolve(undefined),
+    signal,
+  )
   if (typeof token !== 'string' || token.length === 0) throw new Error(copy.unavailable)
   const query = new URLSearchParams(request)
   const response = await fetch(`/dsh-bridge/worktree/file?${query.toString()}`, {
     signal,
     headers: { authorization: `Bearer ${token}` },
   })
-  const body = await response.json() as unknown
+  const body = await abortable(response.json() as Promise<unknown>, signal)
   if (!response.ok || typeof body !== 'object' || body === null) {
     const record = body as { code?: unknown }
     throw new Error(messageFor(typeof record.code === 'string' ? record.code : undefined, copy))
@@ -149,10 +171,25 @@ function PreviewApp(): ReactElement {
   useEffect(() => {
     if ('error' in request) return undefined
     const controller = new AbortController()
+    let timedOut = false
+    const timer = setTimeout(() => {
+      timedOut = true
+      controller.abort()
+    }, PREVIEW_LOAD_TIMEOUT_MS)
     void readPreview(request, controller.signal)
-      .then((view) => { if (!controller.signal.aborted) setState({ status: 'ready', view }) })
-      .catch((error: unknown) => { if (!controller.signal.aborted) setState({ status: 'error', message: error instanceof Error ? error.message : messageFor(undefined, copy) }) })
-    return () => { controller.abort() }
+      .then((view) => {
+        if (timedOut) setState({ status: 'error', message: copy.timeout })
+        else if (!controller.signal.aborted) setState({ status: 'ready', view })
+      })
+      .catch((error: unknown) => {
+        if (timedOut) setState({ status: 'error', message: copy.timeout })
+        else if (!controller.signal.aborted) setState({ status: 'error', message: error instanceof Error ? error.message : messageFor(undefined, copy) })
+      })
+      .finally(() => { clearTimeout(timer) })
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
   }, [language, request])
 
   const close = (): void => { void tauri()?.core?.invoke('close_file_preview') }

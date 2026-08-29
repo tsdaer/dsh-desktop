@@ -39,7 +39,7 @@ describe('desktop composer path insertion', () => {
     expect(insertPathsIntoComposer(['src/a.ts', 'src/b.ts'])).toBe(true)
     expect(dispatched).toHaveLength(1)
     const payload = (dispatched[0] as unknown as { clipboardData?: { getData(type: string): string } }).clipboardData
-    expect(payload?.getData('text/plain')).toBe('src/a.ts\nsrc/b.ts')
+    expect(payload?.getData('text/plain')).toBe('src/a.ts\nsrc/b.ts\n')
     expect(input.getAttribute('contenteditable')).toBe('true')
   })
 

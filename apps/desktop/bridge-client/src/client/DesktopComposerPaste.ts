@@ -51,7 +51,7 @@ function buildPathPasteEvent(text: string): Event {
  * @returns whether a live, editable composer accepted the insertion.
  */
 export function insertPathsIntoComposer(paths: readonly string[]): boolean {
-  return pasteTextIntoComposer(paths.join('\n'))
+  return pasteTextIntoComposer(paths.length === 0 ? '' : `${paths.join('\n')}\n`)
 }
 
 /** Dispatch plain-text paste through the live Lexical composer pipeline.
