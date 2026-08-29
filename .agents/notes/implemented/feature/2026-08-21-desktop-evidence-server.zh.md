@@ -12,7 +12,7 @@ Status: implemented
 
 `pnpm --filter @deepseek-ai/dsh-desktop evidence` 会运行 `scripts/build-bridge.mjs`，创建临时 `DSH_HOME`，再用 `--dump-default-config` 启动一次构建出的 CLI 以初始化 web profile 文件。它允许后续的 `dsh web` 启动创建缺失的 `profiles/node_modules` 回退，把构建出的 `dsh-desktop-bridge` 和 `dsh-desktop-bridge-client` 包拷贝到 `profiles/node_modules/@deepseek-ai/`，保留已有的 `schemastery` 回退链接，并以幂等方式把桥接 patch 合并到 `profiles/web/cordis.patch.yml`。
 
-随后命令以 4173 端口启动 `dsh web`，通过 `workspace.create` 为选定目录注册 Workspace，探测 `/dsh-bridge/config`，并打印服务 URL 和探针 URL。`-- --port <port> --workspace <directory>` 可更改固定端口或选定的 Workspace；按 Ctrl+C 会停止子进程并删除临时 home，除非传入 `--keep-home`。
+随后命令以 4173 端口启动 `dsh web`，先用启动 URL 换取浏览器会话 Cookie，再通过 `workspace.create` 为选定目录注册 Workspace，探测 `/dsh-bridge/config`，并打印服务 URL 和探针 URL。`-- --port <port> --workspace <directory>` 可更改端口或选定的 Workspace；端口 0 会请求操作系统分配回环端口。按 Ctrl+C 会停止子进程并删除临时 home，除非传入 `--keep-home`。
 
 运行环境约束文档通过测量桌面可执行文件路径和派生 Node 命令行来区分源码与打包进程拓扑，不再假定活跃 GUI 一定从仓库检出运行。
 
@@ -26,8 +26,8 @@ Status: implemented
 
 ## Consequences
 
-证据服务器要求 CLI 与桥接产物已构建；其 package script 会先构建桥接包，但仓库和 web 前端仍需满足常规构建前置条件。已有的 installation-owned `schemastery` 回退条目必须是符号链接；缺失条目会由 web profile 启动创建。服务器默认使用固定端口并持续运行到中断，使浏览器录制可重复，但退出时需要清理。`--keep-home` 会保留诊断状态供检查，仅用于本地排障。
+证据服务器要求 CLI 与桥接产物已构建；其 package script 会先构建桥接包，但仓库和 web 前端仍需满足常规构建前置条件。已有的 installation-owned `schemastery` 回退条目必须是符号链接；缺失条目会由 web profile 启动创建。服务器默认使用固定端口以保证录制可重复，需要空闲回环端口时也接受端口 0；服务器持续运行到中断，退出时需要清理。`--keep-home` 会保留诊断状态供检查，仅用于本地排障。
 
 ## Testing
 
-`scripts/evidence-server.spec.mjs` 覆盖选项解析、默认选择、patch 合并、幂等安装文本和回退条目校验。活跃运行还会检查 profile 初始化、保留或新建的 `schemastery` 回退条目、桥接配置响应，以及通过构建出的 web profile 完成 Workspace 注册。
+`scripts/evidence-server.spec.mjs` 覆盖选项解析、默认选择、操作系统分配端口、patch 合并、幂等安装文本、回退条目校验和启动会话 Cookie 提取。活跃运行还会检查 profile 初始化、保留或新建的 `schemastery` 回退条目、浏览器认证、桥接配置响应，以及通过构建出的 web profile 完成 Workspace 注册。

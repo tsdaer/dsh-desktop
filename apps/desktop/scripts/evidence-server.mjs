@@ -71,8 +71,8 @@ export function parseArguments(args) {
         workspace = resolve(value);
       } else {
         port = Number(value);
-        if (!Number.isInteger(port) || port < 1 || port > 65535) {
-          throw new Error(`--port must be an integer from 1 to 65535; received ${value}`);
+        if (!Number.isInteger(port) || port < 0 || port > 65535) {
+          throw new Error(`--port must be an integer from 0 to 65535; received ${value}`);
         }
       }
       continue;
@@ -137,6 +137,19 @@ export function assertReplaceableFallbackEntry(path) {
     if (error?.code === 'ENOENT') return;
     throw error;
   }
+}
+
+/**
+ * Extract the browser session cookie minted by the startup URL exchange.
+ * @param {Response} response - Manual-redirect response from the web root.
+ * @returns {string | undefined} Cookie header value, when the exchange minted one.
+ */
+export function sessionCookieFromResponse(response) {
+  const setCookies = typeof response.headers.getSetCookie === 'function'
+    ? response.headers.getSetCookie()
+    : [response.headers.get('set-cookie')].filter((value) => value !== null);
+  const cookie = setCookies.find((value) => value.startsWith('dsh-auth-'));
+  return cookie?.split(';', 1)[0];
 }
 
 /**
@@ -219,9 +232,10 @@ async function main() {
 
     server = await startServer(home, options.port);
     const baseUrl = new URL(server.url);
-    const workspace = await createWorkspace(baseUrl, options.workspace);
+    const sessionCookie = await authenticateServer(baseUrl);
+    const workspace = await createWorkspace(baseUrl, options.workspace, sessionCookie);
     const configUrl = new URL('/dsh-bridge/config', baseUrl);
-    const configResponse = await fetch(configUrl, { headers: authHeaders() });
+    const configResponse = await fetch(configUrl, { headers: { ...authHeaders(), cookie: sessionCookie } });
     if (!configResponse.ok) throw new Error(`bridge config returned HTTP ${configResponse.status}`);
     const config = await configResponse.json();
     if (typeof config !== 'object' || config === null) throw new Error('bridge config did not return a JSON object');
@@ -274,16 +288,26 @@ async function runOnce(command, args, extraEnv) {
   });
 }
 
-async function createWorkspace(baseUrl, path) {
+async function authenticateServer(baseUrl) {
+  const response = await fetch(baseUrl, { headers: authHeaders(), redirect: 'manual' });
+  if (response.status !== 303) {
+    throw new Error(`web startup authentication returned HTTP ${response.status}`);
+  }
+  const cookie = sessionCookieFromResponse(response);
+  if (cookie === undefined) throw new Error('web startup authentication did not return a session cookie');
+  return cookie;
+}
+
+async function createWorkspace(baseUrl, path, sessionCookie) {
   const rpcId = randomUUID();
-  const response = await fetch(new URL('/api/workspace.create', baseUrl), {
+  const response = await fetch(new URL('/api/workspace/create', baseUrl), {
     method: 'POST',
-    headers: { 'content-type': 'application/json', ...authHeaders() },
+    headers: { 'content-type': 'application/json', ...authHeaders(), cookie: sessionCookie },
     body: JSON.stringify({
       type: 'client-request',
       rpcId,
-      method: 'workspace.create',
-      payload: { path },
+      method: 'workspace/create',
+      payload: { args: { request: { path } } },
     }),
   });
   if (!response.ok) throw new Error(`workspace registration returned HTTP ${response.status}: ${await response.text()}`);

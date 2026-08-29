@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { assertReplaceableFallbackEntry, mergeProfilePatch, parseArguments } from './evidence-server.mjs';
+import { assertReplaceableFallbackEntry, mergeProfilePatch, parseArguments, sessionCookieFromResponse } from './evidence-server.mjs';
 
 test('parseArguments uses the repository and fixed-port defaults', () => {
   const options = parseArguments([]);
@@ -17,6 +17,10 @@ test('parseArguments accepts an explicit workspace and keep-home flag', () => {
   assert.equal(options.port, 4311);
   assert.equal(options.workspace, process.cwd());
   assert.equal(options.keepHome, true);
+});
+
+test('parseArguments accepts zero for an OS-assigned port', () => {
+  assert.equal(parseArguments(['--port', '0']).port, 0);
 });
 
 test('parseArguments accepts the pnpm-forwarded option separator', () => {
@@ -45,4 +49,11 @@ test('fallback validation allows a missing entry and rejects a regular entry', (
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test('session cookie extraction keeps only the cookie pair from the startup exchange', () => {
+  const response = new Response(null, {
+    headers: { 'set-cookie': 'dsh-auth-example=session-value; Path=/; HttpOnly' },
+  });
+  assert.equal(sessionCookieFromResponse(response), 'dsh-auth-example=session-value');
 });

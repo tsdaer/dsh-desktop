@@ -63,7 +63,7 @@ dev 启动器把 DSH_CLI 设为构建出的 apps/cli/lib/bin.js;DSH_NODE 默认�
 
     pnpm --filter @deepseek-ai/dsh-desktop evidence
 
-该命令构建独立桥接包,创建一次性的 `DSH_HOME`,初始化 web profile 及其模块回退,在不替换回退目录中 `@deepseek-ai/schemastery` 符号链接的前提下安装桥接包,合并桥接 patch,把仓库注册为 Workspace,并服务固定的 4173 端口。它会打印就绪 URL 与 `/dsh-bridge/config` 探针 URL;在浏览器打开就绪 URL 并在侧栏选择“项目文件”(英文界面为 Worktree)。使用 `-- --port <port> --workspace <directory>` 更改端口或 Workspace;按 Ctrl+C 会移除临时 home 并停止服务。
+该命令构建独立桥接包,创建一次性的 `DSH_HOME`,初始化 web profile 及其模块回退,在不替换回退目录中 `@deepseek-ai/schemastery` 符号链接的前提下安装桥接包,合并桥接 patch,把仓库注册为 Workspace,并默认服务固定的 4173 端口。它会打印就绪 URL 与 `/dsh-bridge/config` 探针 URL;在浏览器打开就绪 URL 并在侧栏选择“项目文件”(英文界面为 Worktree)。使用 `-- --port <port> --workspace <directory>` 更改端口或 Workspace;传入端口 `0` 可请求操作系统分配回环端口。按 Ctrl+C 会移除临时 home 并停止服务。
 
 ## 打包(本地安装器)
 

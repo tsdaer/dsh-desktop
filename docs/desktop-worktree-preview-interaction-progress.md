@@ -8,7 +8,7 @@ Status: active
 
 As of 2026-08-29, the implementation has completed the five code slices in `desktop-worktree-preview-interaction-plan.md`: path insertion and explorer icons, preview projection and rendering, dedicated Tauri preview windows, safe external-link handling, and Lexical-aware context menus.
 
-The remaining plan item is real desktop GUI evidence from the shipped server and model flow. The evidence-server bootstrap precondition is fixed and the code checks for the completed slices pass; a live run remains blocked by loopback binding permissions in the host environment.
+The remaining plan item is real desktop GUI evidence from the shipped server and model flow. The evidence-server bootstrap now completes on an OS-assigned loopback port, including startup authentication, Workspace registration, and bridge configuration probing; the in-app browser fallback has loaded the Worktree view and an in-pane README preview. Native Tauri-window and final GIF evidence remain pending.
 
 ## Table of Contents
 
@@ -27,7 +27,7 @@ The remaining plan item is real desktop GUI evidence from the shipped server and
 | Dedicated Tauri preview windows | Complete | Commit `26f6aab8e8`; Rust tests and application builds passed |
 | Safe external-link handling | Complete | Commit `daaff48fea`; bridge and Rust checks passed |
 | Lexical-aware context menus | Complete | Commit `4d5253718c`; 18 focused tests passed |
-| Real desktop GUI evidence | Pending | Evidence setup reaches `dsh web`; the host denies loopback server binding |
+| Real desktop GUI evidence | Pending | Fresh evidence server and browser fallback reach the Worktree view and README preview; native Tauri-window and GIF evidence remain |
 
 ## Completed slices
 
@@ -68,18 +68,18 @@ Implementation anchor: `4d5253718c`.
 - `pnpm run verify-client-ui-i18n` — passed for 512 source files.
 - `pnpm run build` — passed.
 - `pnpm run build:web` — passed.
-- `pnpm --filter @deepseek-ai/dsh-desktop test:evidence` — 5 tests passed.
+- `pnpm --filter @deepseek-ai/dsh-desktop test:evidence` — 7 tests passed.
 - Rust tests for the desktop Tauri crate — 22 passed and 1 ignored runtime-tree test.
 - Pre-commit translation-pairing, lint, whitespace, and vendor-manifest hooks — passed for the implementation commits.
 - Targeted translation-pairing validation for the progress document — passed.
 
-- `pnpm --filter @deepseek-ai/dsh-desktop evidence -- --port 4175 --workspace J:\Projects\deepseek-harness` — profile setup completed and `dsh web` failed only at `listen EACCES` for `127.0.0.1:4175`.
+- `pnpm --filter @deepseek-ai/dsh-desktop evidence -- --port 0 --workspace J:\Projects\deepseek-harness` — profile setup, startup authentication, Workspace registration, bridge configuration probing, and ready-URL output completed on an OS-assigned loopback port; the browser fallback loaded the Worktree view and README preview.
 
 The documentation aggregate currently reports 14 of 15 gates passing. The remaining failure is an unrelated pre-existing link-target mismatch between `apps/desktop/src-tauri/runtime/windows-x64/README.md` and its Chinese counterpart.
 
 ## Open blockers
 
-The real GUI evidence run cannot yet be recorded because the host denies binding the web server to a loopback port. The evidence script now permits the web profile launch to create a missing installation fallback while still rejecting a pre-existing non-symlink entry.
+The native desktop GUI evidence run has not yet been recorded. The evidence script now permits the web profile launch to create a missing installation fallback while still rejecting a pre-existing non-symlink entry, authenticates the startup URL before bridge requests, and accepts an OS-assigned loopback port for constrained hosts.
 
 No GUI GIF is claimed until the shipped server and model flow has been exercised from a fresh evidence workspace.
 
