@@ -10,6 +10,8 @@ import type { ContextMenuItem } from './DesktopContextMenu.ts'
 const MENU_ID = 'dsh-desktop-context-menu'
 /** Gap from the viewport edge before the menu flips or clamps. */
 const EDGE_GAP = 4
+/** Disposer for the one menu currently mounted in the document. */
+let activeClose: (() => void) | null = null
 
 /** A menu opened at one pointer position with its items. */
 export interface OpenMenuOptions {
@@ -33,6 +35,7 @@ function clamp(value: number, min: number, max: number): number {
  */
 export function openContextMenu(options: OpenMenuOptions): () => void {
   closeExistingMenu()
+  const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
   const root = document.createElement('div')
   root.id = MENU_ID
   root.setAttribute('role', 'menu')
@@ -53,15 +56,19 @@ export function openContextMenu(options: OpenMenuOptions): () => void {
     closed = true
     window.removeEventListener('pointerdown', onOutsidePointer, true)
     window.removeEventListener('resize', close)
+    window.removeEventListener('wheel', close, true)
     document.removeEventListener('scroll', close, true)
     window.removeEventListener('blur', onWindowBlur)
     window.removeEventListener('keydown', onKeyDown, true)
+    window.visualViewport?.removeEventListener('resize', close)
     root.remove()
+    if (previousFocus?.isConnected === true) previousFocus.focus({ preventScroll: true })
+    if (activeClose === close) activeClose = null
     options.onClose()
   }
 
   const onOutsidePointer = (event: PointerEvent): void => {
-    if (root.contains(event.target as Node)) return
+    if (event.target instanceof Node && root.contains(event.target)) return
     close()
   }
   const onWindowBlur = (): void => {
@@ -155,18 +162,24 @@ export function openContextMenu(options: OpenMenuOptions): () => void {
   root.style.left = `${left}px`
   root.style.top = `${top}px`
   root.focus()
-  itemElements[0]?.focus()
+  const firstEnabled = itemElements.findIndex(item => !item.disabled)
+  if (firstEnabled >= 0) {
+    focusIndex = firstEnabled
+    itemElements[firstEnabled]!.focus()
+  }
 
+  activeClose = close
   window.addEventListener('pointerdown', onOutsidePointer, true)
   window.addEventListener('resize', close)
+  window.addEventListener('wheel', close, true)
   document.addEventListener('scroll', close, true)
   window.addEventListener('blur', onWindowBlur)
   window.addEventListener('keydown', onKeyDown, true)
+  window.visualViewport?.addEventListener('resize', close)
   return close
 }
 
 /** Close any open desktop context menu (used on session navigation and disposal). */
 export function closeExistingMenu(): void {
-  const existing = document.getElementById(MENU_ID)
-  existing?.remove()
+  activeClose?.()
 }

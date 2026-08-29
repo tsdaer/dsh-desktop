@@ -51,11 +51,19 @@ function buildPathPasteEvent(text: string): Event {
  * @returns whether a live, editable composer accepted the insertion.
  */
 export function insertPathsIntoComposer(paths: readonly string[]): boolean {
+  return pasteTextIntoComposer(paths.join('\n'))
+}
+
+/** Dispatch plain-text paste through the live Lexical composer pipeline.
+ * @param text - plain-text payload to insert at the editor selection.
+ * @returns whether an editable composer accepted the paste event.
+ */
+export function pasteTextIntoComposer(text: string): boolean {
   const input = composerInput()
   // jsdom lacks the isContentEditable accessor, so gate on the attribute
   // React renders for the editable surface (`contenteditable="true"`).
-  if (input === null || input.getAttribute('contenteditable') !== 'true') return false
+  if (input === null || (input.getAttribute('contenteditable') !== 'true' && input.contentEditable !== 'true')) return false
   input.focus({ preventScroll: true })
-  input.dispatchEvent(buildPathPasteEvent(paths.join('\n')))
+  input.dispatchEvent(buildPathPasteEvent(text))
   return true
 }

@@ -12,6 +12,8 @@
 // visual viewport and flips away from the lower and right edges. Debug mode
 // may expose an explicit Inspect item after the product actions.
 
+import { pasteTextIntoComposer } from './DesktopComposerPaste.ts'
+
 /** One menu item. */
 export interface ContextMenuItem {
   id: string
@@ -23,23 +25,55 @@ export interface ContextMenuItem {
 
 /** Why a right-click target gets a menu. */
 export type ContextMenuKind =
-  | { kind: 'composer' }
+  | { kind: 'composer'; editable: boolean; hasSelection: boolean }
   | { kind: 'editable-outside' }
   | { kind: 'readable-selection' }
   | { kind: 'none' }
+
+/** Localized labels supplied by the bridge locale binding. */
+export interface ContextMenuLabels {
+  cut: string
+  copy: string
+  paste: string
+  inspect: string
+}
+
+function composerInput(): HTMLElement | null {
+  return document.querySelector<HTMLElement>('[data-composer-card] [data-composer-input]')
+}
+
+function isEditable(element: HTMLElement): boolean {
+  if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+    return !element.disabled && !element.readOnly
+  }
+  return element.getAttribute('contenteditable') === 'true' || element.contentEditable === 'true'
+}
+
+function selectionIntersects(selection: Selection | null, target: Node): boolean {
+  if (selection === null || selection.isCollapsed || selection.rangeCount === 0) return false
+  try {
+    return selection.getRangeAt(0).intersectsNode(target)
+  } catch {
+    return false
+  }
+}
 
 /** Classify a right-click target into a menu kind. */
 export function classifyTarget(target: EventTarget | null): ContextMenuKind {
   if (!(target instanceof Element)) return { kind: 'none' }
   const composer = target.closest('[data-composer-card]')
-  if (composer !== null) return { kind: 'composer' }
+  const input = target.closest<HTMLElement>('[data-composer-input]')
+  if (composer !== null && input !== null && input.closest('[data-composer-card]') === composer) {
+    return {
+      kind: 'composer',
+      editable: isEditable(input),
+      hasSelection: selectionIntersects(window.getSelection(), input),
+    }
+  }
   const editable = target.closest('input, textarea, [contenteditable="true"], [contenteditable=""]')
   if (editable !== null) return { kind: 'editable-outside' }
   const selection = window.getSelection()
-  if (selection !== null && !selection.isCollapsed && selection.rangeCount > 0) {
-    const range = selection.getRangeAt(0)
-    if (range.intersectsNode(target)) return { kind: 'readable-selection' }
-  }
+  if (selectionIntersects(selection, target)) return { kind: 'readable-selection' }
   return { kind: 'none' }
 }
 
@@ -60,41 +94,35 @@ export function buildMenuItems(
     inspect: () => void
   },
   debugMode: boolean,
+  labels: ContextMenuLabels = { cut: 'Cut', copy: 'Copy', paste: 'Paste', inspect: 'Inspect' },
 ): ContextMenuItem[] {
   const items: ContextMenuItem[] = []
   if (kind.kind === 'composer') {
-    items.push({ id: 'cut', label: 'Cut', enabled: true, run: () => { actions.cut() } })
-    items.push({ id: 'copy', label: 'Copy', enabled: true, run: () => { actions.copy() } })
-    items.push({
-      id: 'paste',
-      label: 'Paste',
-      enabled: true,
-      run: () => { void actions.paste() },
-    })
+    if (kind.editable) {
+      items.push({ id: 'cut', label: labels.cut, enabled: kind.hasSelection, run: () => { actions.cut() } })
+      items.push({ id: 'copy', label: labels.copy, enabled: kind.hasSelection, run: () => { actions.copy() } })
+      items.push({ id: 'paste', label: labels.paste, enabled: true, run: () => { void actions.paste() } })
+    } else if (kind.hasSelection) {
+      items.push({ id: 'copy', label: labels.copy, enabled: true, run: () => { actions.copy() } })
+    }
   } else if (kind.kind === 'editable-outside' || kind.kind === 'readable-selection') {
-    items.push({ id: 'copy', label: 'Copy', enabled: true, run: () => { actions.copy() } })
+    items.push({ id: 'copy', label: labels.copy, enabled: true, run: () => { actions.copy() } })
   }
   if (debugMode) {
-    items.push({ id: 'inspect', label: 'Inspect', enabled: true, run: () => { actions.inspect() } })
+    items.push({ id: 'inspect', label: labels.inspect, enabled: true, run: () => { actions.inspect() } })
   }
   return items
 }
 
-/**
- * Copy selected text to the clipboard. Falls back to the legacy execCommand
- * path where the async clipboard API is unavailable or denied.
- * @returns whether the copy was accepted.
- */
-export async function copySelection(): Promise<boolean> {
-  const selection = window.getSelection()
-  const text = selection === null ? '' : selection.toString()
+/** Copy one selected text string with the browser clipboard fallback. */
+async function copyText(text: string): Promise<boolean> {
   if (text.length === 0) return false
   if (typeof navigator !== 'undefined' && navigator.clipboard !== undefined) {
     try {
       await navigator.clipboard.writeText(text)
       return true
     } catch {
-      // Fall through to the legacy path below.
+      // Fall through to the browser's editing command.
     }
   }
   try {
@@ -112,116 +140,40 @@ export async function copySelection(): Promise<boolean> {
   }
 }
 
-/**
- * Paste text into the active composer, replacing the current selection.
- * Reads text only (never files or HTML) and preserves React control through
- * the native value setter plus a bubbling input event. Uses setRangeText when
- * the textarea supports it so the selection replacement matches user intent.
- * @returns whether the paste was accepted.
- */
+/** Copy the current document selection to the clipboard. */
+export async function copySelection(): Promise<boolean> {
+  return copyText(window.getSelection()?.toString() ?? '')
+}
+
+/** Paste plain text through the Lexical composer's own paste command. */
 export async function pasteIntoComposer(): Promise<boolean> {
-  const textarea = document.querySelector<HTMLTextAreaElement>('[data-composer-card] textarea')
-  if (textarea === null || textarea.disabled || textarea.readOnly) return false
-  let text: string | undefined
-  if (typeof navigator !== 'undefined' && navigator.clipboard !== undefined) {
-    try {
-      const value = await navigator.clipboard.readText()
-      if (value.length > 0) text = value
-    } catch {
-      // No clipboard read permission: report failure below.
-    }
-  }
-  if (text === undefined) return false
-  const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set
-  if (setter === undefined) return false
-  const start = textarea.selectionStart
-  const end = textarea.selectionEnd
-  const next = textarea.value.slice(0, start) + text + textarea.value.slice(end)
-  setter.call(textarea, next)
+  const input = composerInput()
+  if (input === null || !isEditable(input)) return false
+  if (typeof navigator === 'undefined' || navigator.clipboard === undefined) return false
   try {
-    textarea.setSelectionRange(start + text.length, start + text.length)
-  } catch {
-    /* selection restore is best-effort */
-  }
-  textarea.dispatchEvent(new Event('input', { bubbles: true }))
-  return true
-}
-
-/**
- * Cut the active composer selection to the clipboard and remove it.
- * @returns whether the cut was accepted.
- */
-export async function cutFromComposer(): Promise<boolean> {
-  const textarea = document.querySelector<HTMLTextAreaElement>('[data-composer-card] textarea')
-  if (textarea === null || textarea.disabled || textarea.readOnly) return false
-  const start = textarea.selectionStart
-  const end = textarea.selectionEnd
-  if (end <= start) return false
-  const cut = textarea.value.slice(start, end)
-  if (cut.length === 0) return false
-  const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set
-  if (setter === undefined) return false
-  // Write the cut text first; then remove the selection.
-  let wrote = false
-  if (typeof navigator !== 'undefined' && navigator.clipboard !== undefined) {
-    try {
-      await navigator.clipboard.writeText(cut)
-      wrote = true
-    } catch {
-      /* fall through to the legacy path below */
-    }
-  }
-  if (!wrote) {
-    const temp = document.createElement('textarea')
-    temp.value = cut
-    temp.style.position = 'fixed'
-    temp.style.opacity = '0'
-    document.body.appendChild(temp)
-    temp.select()
-    document.execCommand('copy')
-    temp.remove()
-  }
-  const next = textarea.value.slice(0, start) + textarea.value.slice(end)
-  setter.call(textarea, next)
-  try {
-    textarea.setSelectionRange(start, start)
-  } catch {
-    /* selection restore is best-effort */
-  }
-  textarea.dispatchEvent(new Event('input', { bubbles: true }))
-  return true
-}
-
-/**
- * Copy the active composer selection to the clipboard without removing it.
- * @returns whether the copy was accepted.
- */
-export async function copyFromComposer(): Promise<boolean> {
-  const textarea = document.querySelector<HTMLTextAreaElement>('[data-composer-card] textarea')
-  if (textarea === null) return false
-  const start = textarea.selectionStart
-  const end = textarea.selectionEnd
-  if (end <= start) return false
-  const text = textarea.value.slice(start, end)
-  if (typeof navigator !== 'undefined' && navigator.clipboard !== undefined) {
-    try {
-      await navigator.clipboard.writeText(text)
-      return true
-    } catch {
-      /* fall through to the legacy path below */
-    }
-  }
-  try {
-    const temp = document.createElement('textarea')
-    temp.value = text
-    temp.style.position = 'fixed'
-    temp.style.opacity = '0'
-    document.body.appendChild(temp)
-    temp.select()
-    const accepted = document.execCommand('copy')
-    temp.remove()
-    return accepted
+    const text = await navigator.clipboard.readText()
+    return text.length > 0 && pasteTextIntoComposer(text)
   } catch {
     return false
   }
+}
+
+/** Cut the current Lexical selection through the browser editing command. */
+export async function cutFromComposer(): Promise<boolean> {
+  const input = composerInput()
+  if (input === null || !isEditable(input) || !selectionIntersects(window.getSelection(), input)) return false
+  input.focus({ preventScroll: true })
+  try {
+    if (document.execCommand('cut')) return true
+  } catch {
+    // The editing command is unavailable in some test and WebView shells.
+  }
+  return false
+}
+
+/** Copy the current selection inside the active Lexical composer. */
+export async function copyFromComposer(): Promise<boolean> {
+  const input = composerInput()
+  if (input === null || !selectionIntersects(window.getSelection(), input)) return false
+  return copySelection()
 }

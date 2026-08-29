@@ -2,6 +2,7 @@ import { BridgeCloseRow } from './BridgeCloseRow.tsx'
 import { bridgeFetch, readBridgeConfig } from './bridge-fetch.ts'
 import { mountAccountController } from './DesktopAccountSummary.ts'
 import { buildMenuItems, classifyTarget, copyFromComposer, copySelection, cutFromComposer, pasteIntoComposer } from './DesktopContextMenu.ts'
+import type { ContextMenuLabels } from './DesktopContextMenu.ts'
 import { openContextMenu } from './DesktopContextMenuPortal.ts'
 import { installExternalLinkPolicy } from './DesktopExternalLinks.ts'
 import { BridgeDebugRow } from './BridgeDebugRow.tsx'
@@ -143,6 +144,7 @@ const DEVTOOLS_KEYS = new Set(['f12', 'i', 'j', 'c', 'u', 's'])
 
 /** The active desktop context menu's disposer; closed on navigation/disposal. */
 let activeContextMenu: (() => void) | null = null
+let contextMenuLabels: ContextMenuLabels = { cut: 'Cut', copy: 'Copy', paste: 'Paste', inspect: 'Inspect' }
 
 function closeActiveContextMenu(): void {
   activeContextMenu?.()
@@ -156,13 +158,9 @@ function closeActiveContextMenu(): void {
  * exposes an explicit Inspect item after the product actions.
  */
 function onContextMenuCapture(event: MouseEvent): void {
-  if (debugMode) {
-    // Debug mode keeps the browser menu available (the page's own guard off);
-    // the desktop portal is still the product path when the guard is on.
-  }
-  event.preventDefault()
+  const existing = document.getElementById('dsh-desktop-context-menu')
+  if (existing !== null && event.target instanceof Node && existing.contains(event.target)) return
   const kind = classifyTarget(event.target)
-  if (kind.kind === 'none') return
   const items = buildMenuItems(kind, {
     cut: () => { void cutFromComposer() },
     copy: () => {
@@ -177,8 +175,9 @@ function onContextMenuCapture(event: MouseEvent): void {
       const target = event.target instanceof HTMLElement ? event.target : null
       target?.focus()
     },
-  }, debugMode)
+  }, debugMode, contextMenuLabels)
   if (items.length === 0) return
+  event.preventDefault()
   activeContextMenu = openContextMenu({
     x: event.clientX,
     y: event.clientY,
@@ -468,6 +467,15 @@ export function apply(ctx: BridgeClientContext): () => void {
   bound = true
   const offLocale = ctx.locale.register(NS, { zh, en })
   const t = ctx.locale.bind(NS)
+  const updateContextMenuLabels = (): void => {
+    contextMenuLabels = {
+      cut: t('context.cut'),
+      copy: t('context.copy'),
+      paste: t('context.paste'),
+      inspect: t('context.inspect'),
+    }
+  }
+  updateContextMenuLabels()
   const updaterLabels = () => ({
     checking: t('updater.checking'),
     upToDate: t('updater.upToDate'),
@@ -484,6 +492,7 @@ export function apply(ctx: BridgeClientContext): () => void {
   })
   let disposeUpdater = mountDesktopUpdater(updaterLabels())
   const offLocaleChange = ctx.on('locale/change', () => {
+    updateContextMenuLabels()
     disposeUpdater()
     disposeUpdater = mountDesktopUpdater(updaterLabels())
   })
@@ -615,6 +624,7 @@ export function apply(ctx: BridgeClientContext): () => void {
   document.addEventListener('pointerup', onWorktreePointerUp, true)
   document.addEventListener('pointercancel', onWorktreePointerUp, true)
   const disposeExternalLinks = installExternalLinkPolicy()
+  const offSessionNavigation = ctx.sessions.list.subscribe(closeActiveContextMenu)
   // Title-bar account: subscribe to the active session and request the
   // provider-bound account summary through the Host. The Host resolves the
   // authoritative provider; the browser supplies only the session id (the
@@ -648,8 +658,10 @@ export function apply(ctx: BridgeClientContext): () => void {
     document.removeEventListener('pointerup', onWorktreePointerUp, true)
     document.removeEventListener('pointercancel', onWorktreePointerUp, true)
     disposeExternalLinks()
+    offSessionNavigation()
     disposeAccount?.()
     closeActiveContextMenu()
+    contextMenuLabels = { cut: 'Cut', copy: 'Copy', paste: 'Paste', inspect: 'Inspect' }
     activeWorktreePointerDrag = null
     setComposerDropActive(false)
   }

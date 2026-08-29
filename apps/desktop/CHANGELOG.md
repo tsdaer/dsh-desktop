@@ -11,6 +11,7 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 - Worktree file views now render Markdown through the shared sanitized Markdown primitive and project other text files through collision-safe language or plain-text fences.
 - Explorer and Search file activation now opens or focuses a path-scoped Tauri preview window; browser runs retain the in-pane fallback.
 - Desktop link activation now delegates only credential-free external HTTP(S) URLs to the platform opener; bridge, loopback, and other unsafe URLs are blocked, with a new-tab fallback in browser runs.
+- Desktop context menus now classify the Lexical composer, ordinary inputs, and readable selections separately, keep one focus-restoring portal, and close deterministically on actions, navigation, viewport changes, blur, and outside input.
 
 ## [0.5.4] - 2026-08-28
 

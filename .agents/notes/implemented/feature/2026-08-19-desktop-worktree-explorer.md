@@ -28,6 +28,8 @@ In the Tauri shell, Explorer and Search send normalized Workspace-relative file 
 
 The desktop client captures anchor activation and delegates only absolute, credential-free HTTP(S) URLs outside the current bridge origin and bridge paths to the shell opener. Unsafe or internal URLs are prevented. Tauri opens approved URLs through its opener command; browser runs use a new tab. The WSL installation guide uses the same helper.
 
+The desktop context menu is one body-portal state with an idempotent disposer. It classifies the live Lexical composer separately from ordinary inputs and readable selections, exposes mutation actions only for an editable composer, restores focus after close, clamps against the visual viewport, and closes on action, Escape, outside pointer input, wheel, scroll, resize, blur, navigation, or plugin disposal. Composer paste re-enters the Lexical paste pipeline; copy and cut use the browser selection and editing commands without writing editor state directly.
+
 ## Alternatives considered
 
 **Expose the Workspace absolute path to the browser** — rejected: the browser needs only relative display paths, while the Host retains authority over canonical resolution and containment.
@@ -49,3 +51,5 @@ Preview projection tests pin Markdown passthrough, basename titles, recognized l
 Preview-window tests pin early path validation, normalized request arguments, locale forwarding, unavailable-Tauri fallback, native command failure fallback, Rust path rejection, and Workspace-plus-path label scoping. The desktop shell build checks the Tauri window and command registration, and the Web build checks the minimal preview entry alongside the regular Web entry.
 
 External-link tests pin URL allowlisting, credential and bridge URL rejection, native opener invocation, and browser click handling. Rust tests pin rejection of credential-bearing, loopback, and bridge URLs before invoking the platform opener.
+
+Context-menu tests pin Lexical composer classification, read-only action filtering, clipboard dispatch, native cut handling, single-menu replacement, focus restoration, viewport clamping, Escape, wheel, and outside-pointer closure.

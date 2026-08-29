@@ -162,6 +162,8 @@ OS 文件拖放由壳子经 Tauri 的拖放处理器接管(`onDragDropEvent`,默
 
 桌面 client 只打开 bridge origin 和 bridge path 之外、绝对且不带凭据的 HTTP(S) 链接。Tauri 把获准链接交给平台 opener，浏览器运行使用新标签页，不安全或内部链接会被阻止。
 
+桌面右键菜单分别处理当前 Lexical composer、普通输入框和可读取选区。它最多保持一个 portal，只有 composer 可编辑时才提供剪切、复制和粘贴，关闭时恢复焦点，在 visual viewport 内定位，并在导航、滚动、尺寸变化、失焦或外部输入时关闭。
+
 桥接 client 半边在页面上负责壳侧行为:上面的拖放处理、关闭按钮行为镜像、调试守卫,以及资源管理器路径路由。
 
 ## 桌面设置、托盘与关闭行为

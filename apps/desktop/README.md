@@ -162,6 +162,8 @@ Bridge host routes (under /dsh-bridge):
 
 The desktop client opens only absolute, credential-free HTTP(S) links outside the bridge origin and bridge paths. Tauri delegates approved links to the platform opener, browser runs use a new tab, and unsafe or internal links are blocked.
 
+The desktop context menu targets the live Lexical composer, ordinary inputs, and readable selections separately. It keeps at most one portal open, exposes Cut/Copy/Paste only when the composer is editable, restores focus on close, and stays inside the visual viewport while closing on navigation, scrolling, resizing, blur, or outside input.
+
 The bridge client half owns the shell-side behaviors on the page: the drag-drop handling above, the close-button mirror, the debug guard, and Explorer path routing.
 
 ## Desktop settings, tray, and close behavior

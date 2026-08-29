@@ -11,6 +11,7 @@ dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a
 - Worktree 文件查看现在通过共享的安全 Markdown primitive 渲染 Markdown，并用防冲突的语言或纯文本 fence 投影其他文本文件。
 - Explorer 和 Search 激活文件时现在会打开或聚焦按路径作用域区分的 Tauri 预览窗口；浏览器运行保留 pane 内回退。
 - 桌面链接激活现在只把不带凭据的外部 HTTP(S) URL 交给平台 opener；bridge、loopback 和其他不安全 URL 会被阻止，浏览器运行回退到新标签页。
+- 桌面右键菜单现在分别分类 Lexical composer、普通输入框和可读取选区，保持一个可恢复焦点的 portal，并在操作、导航、viewport 变化、失焦和外部输入时确定性关闭。
 
 ## [0.5.4] - 2026-08-28
 

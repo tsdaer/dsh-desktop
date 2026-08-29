@@ -28,6 +28,8 @@ Explorer 行使用共享 `ui-primitives` 的文件夹、文件和警告图标。
 
 桌面 client 会捕获链接激活，只把当前 bridge origin 和 bridge path 之外、绝对且不带凭据的 HTTP(S) URL 交给 shell opener；不安全或内部 URL 会被阻止。Tauri 通过 opener command 打开获准 URL；浏览器运行使用新标签页。WSL 安装指南也使用同一 helper。
 
+桌面右键菜单是一个带幂等 disposer 的 body portal 状态。它把当前 Lexical composer 与普通输入框、可读取选区分开分类，只为可编辑 composer 暴露修改操作，在关闭后恢复焦点，按 visual viewport 限制位置，并在操作、Escape、外部指针按下、滚轮、滚动、尺寸变化、失焦、导航或插件释放时关闭。composer 粘贴重新进入 Lexical 粘贴管道；复制和剪切使用浏览器选区及编辑命令，不直接写入编辑器状态。
+
 ## 曾考虑的替代方案
 
 **向浏览器暴露 Workspace 绝对路径**：否决。浏览器只需要相对显示路径，Host 保留规范化解析和包含关系检查的权限。
@@ -49,3 +51,5 @@ Explorer 保持只读，不暴露文件内容。Git 状态以文件和目录装�
 预览窗口测试固定提前路径校验、规范化 request 参数、locale 传递、Tauri 不可用时的回退、native command 失败时的回退、Rust 路径拒绝，以及 Workspace 加 path 的 label 作用域。desktop shell 构建检查 Tauri 窗口与 command 注册，Web 构建同时检查最小预览 entry 和普通 Web entry。
 
 外链测试固定 URL allowlist、凭据和 bridge URL 拒绝、native opener 调用以及浏览器点击处理。Rust 测试固定在调用平台 opener 前拒绝带凭据、loopback 和 bridge URL。
+
+右键菜单测试固定 Lexical composer 分类、只读操作过滤、剪贴板派发、native cut 处理、单菜单替换、焦点恢复、viewport 限制、Escape、滚轮和外部指针关闭。
