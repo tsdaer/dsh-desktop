@@ -10,6 +10,7 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 - Worktree path drops now insert normalized Workspace-relative paths without a leading `./`; Explorer rows use shared themed folder, file, and warning icons.
 - Worktree file views now render Markdown through the shared sanitized Markdown primitive and project other text files through collision-safe language or plain-text fences.
 - Explorer and Search file activation now opens or focuses a path-scoped Tauri preview window; browser runs retain the in-pane fallback.
+- Desktop link activation now delegates only credential-free external HTTP(S) URLs to the platform opener; bridge, loopback, and other unsafe URLs are blocked, with a new-tab fallback in browser runs.
 
 ## [0.5.4] - 2026-08-28
 

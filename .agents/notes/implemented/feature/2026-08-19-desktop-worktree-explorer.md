@@ -26,6 +26,8 @@ The file viewer projects Markdown-family files as Markdown and other text files 
 
 In the Tauri shell, Explorer and Search send normalized Workspace-relative file requests to a native preview-window command. The shell validates the Workspace id and path again, derives a hashed `preview-*` label from both values, and creates or focuses the matching window with the basename as its native title. The window loads the minimal `dsh_preview=1` Web entry with only `workspaceId` and `path` query fields; the per-boot bearer token is returned through a scoped command and is never placed in the preview URL. Browser runs without Tauri retain the existing in-pane viewer as a fallback.
 
+The desktop client captures anchor activation and delegates only absolute, credential-free HTTP(S) URLs outside the current bridge origin and bridge paths to the shell opener. Unsafe or internal URLs are prevented. Tauri opens approved URLs through its opener command; browser runs use a new tab. The WSL installation guide uses the same helper.
+
 ## Alternatives considered
 
 **Expose the Workspace absolute path to the browser** — rejected: the browser needs only relative display paths, while the Host retains authority over canonical resolution and containment.
@@ -45,3 +47,5 @@ The desktop Explorer tests pin relative-path validation, drive-relative and esca
 Preview projection tests pin Markdown passthrough, basename titles, recognized language hints, collision-safe fences, and plain-text fallback. File-viewer tests pin sanitized Markdown rendering while retaining the existing highlighted code and Search line-scroll behavior.
 
 Preview-window tests pin early path validation, normalized request arguments, locale forwarding, unavailable-Tauri fallback, native command failure fallback, Rust path rejection, and Workspace-plus-path label scoping. The desktop shell build checks the Tauri window and command registration, and the Web build checks the minimal preview entry alongside the regular Web entry.
+
+External-link tests pin URL allowlisting, credential and bridge URL rejection, native opener invocation, and browser click handling. Rust tests pin rejection of credential-bearing, loopback, and bridge URLs before invoking the platform opener.

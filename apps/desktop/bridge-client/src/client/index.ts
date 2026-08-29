@@ -3,6 +3,7 @@ import { bridgeFetch, readBridgeConfig } from './bridge-fetch.ts'
 import { mountAccountController } from './DesktopAccountSummary.ts'
 import { buildMenuItems, classifyTarget, copyFromComposer, copySelection, cutFromComposer, pasteIntoComposer } from './DesktopContextMenu.ts'
 import { openContextMenu } from './DesktopContextMenuPortal.ts'
+import { installExternalLinkPolicy } from './DesktopExternalLinks.ts'
 import { BridgeDebugRow } from './BridgeDebugRow.tsx'
 import { BridgeLogoMotionRow } from './BridgeLogoMotionRow.tsx'
 import { BridgeWslRow } from './BridgeWslRow.tsx'
@@ -613,6 +614,7 @@ export function apply(ctx: BridgeClientContext): () => void {
   document.addEventListener('pointermove', onWorktreePointerMove, true)
   document.addEventListener('pointerup', onWorktreePointerUp, true)
   document.addEventListener('pointercancel', onWorktreePointerUp, true)
+  const disposeExternalLinks = installExternalLinkPolicy()
   // Title-bar account: subscribe to the active session and request the
   // provider-bound account summary through the Host. The Host resolves the
   // authoritative provider; the browser supplies only the session id (the
@@ -645,6 +647,7 @@ export function apply(ctx: BridgeClientContext): () => void {
     document.removeEventListener('pointermove', onWorktreePointerMove, true)
     document.removeEventListener('pointerup', onWorktreePointerUp, true)
     document.removeEventListener('pointercancel', onWorktreePointerUp, true)
+    disposeExternalLinks()
     disposeAccount?.()
     closeActiveContextMenu()
     activeWorktreePointerDrag = null

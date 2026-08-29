@@ -7,6 +7,7 @@
 // the Windows default distribution, or downloads a distribution.
 import { useEffect, useState } from 'react'
 import { bridgeFetch, saveBridgePolicy } from './bridge-fetch.ts'
+import { openExternalUrl } from './DesktopExternalLinks.ts'
 import css from './BridgeRow.module.css'
 
 /** One eligible WSL 2 distribution row from the bridge snapshot. */
@@ -141,7 +142,7 @@ export function BridgeWslRow({ t }: BridgeWslRowProps): React.ReactElement | nul
   }
 
   const openMicrosoftGuide = (): void => {
-    window.open('https://learn.microsoft.com/windows/wsl/install', '_blank', 'noopener')
+    void openExternalUrl('https://learn.microsoft.com/windows/wsl/install')
   }
 
   const state = snapshot?.state ?? 'error'

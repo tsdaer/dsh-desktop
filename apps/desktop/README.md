@@ -160,6 +160,8 @@ Bridge host routes (under /dsh-bridge):
 - `GET /worktree/explorer` — lists one bounded directory level for a registered Workspace; the request accepts only a Workspace id and a Workspace-relative path, and the response marks truncation and paths resolved outside the Workspace.
 - `GET /worktree/file` — reads one bounded file for a registered Workspace; the response is strict UTF-8 with an explicit truncation flag, and binary or non-UTF-8 content is refused with a stable error. The Tauri preview window and browser fallback both use this route; the preview page supplies the loopback bearer token through its scoped shell command.
 
+The desktop client opens only absolute, credential-free HTTP(S) links outside the bridge origin and bridge paths. Tauri delegates approved links to the platform opener, browser runs use a new tab, and unsafe or internal links are blocked.
+
 The bridge client half owns the shell-side behaviors on the page: the drag-drop handling above, the close-button mirror, the debug guard, and Explorer path routing.
 
 ## Desktop settings, tray, and close behavior

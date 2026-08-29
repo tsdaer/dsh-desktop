@@ -37,7 +37,6 @@ use tauri::{
     DragDropEvent, Emitter, Manager, State, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
     WindowEvent,
 };
-#[cfg(windows)]
 use tauri_plugin_opener::OpenerExt;
 
 #[cfg(windows)]
@@ -517,6 +516,33 @@ fn close_file_preview(window: WebviewWindow) -> Result<(), String> {
         .map_err(|error| format!("failed to close the file preview: {error}"))
 }
 
+/// Validate an external URL before handing it to the platform opener.
+fn validate_external_url(value: &str) -> Result<(), String> {
+    let url = Url::parse(value).map_err(|_| "external URL is invalid".to_owned())?;
+    if (url.scheme() != "http" && url.scheme() != "https")
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || url.path() == "/dsh-bridge"
+        || url.path().starts_with("/dsh-bridge/")
+        || matches!(
+            url.host_str(),
+            Some("localhost" | "127.0.0.1" | "[::1]" | "::1")
+        )
+    {
+        return Err("external URL must be a credential-free HTTP(S) URL".to_owned());
+    }
+    Ok(())
+}
+
+/// Open one allowlisted URL through the platform opener without invoking a shell.
+#[tauri::command]
+fn open_external_url(app: tauri::AppHandle, url: String) -> Result<(), String> {
+    validate_external_url(&url)?;
+    app.opener()
+        .open_url(&url, None::<&str>)
+        .map_err(|error| format!("failed to open external URL: {error}"))
+}
+
 /// Return the title-bar workload tier for the desktop process and its managed
 /// runtime descendants. The response intentionally contains no process ids,
 /// names, or raw measurements; unsupported or incomplete samples are neutral.
@@ -867,7 +893,8 @@ fn main() {
             open_file_preview,
             preview_bridge_token,
             preview_locale,
-            close_file_preview
+            close_file_preview,
+            open_external_url
         ])
         .setup(|app| {
             splash_log(&format!(
@@ -1817,6 +1844,15 @@ mod tests {
             preview_label("workspace-1", "README.md"),
             preview_label("workspace-2", "README.md")
         );
+    }
+
+    #[test]
+    fn external_url_policy_rejects_credentials_local_and_bridge_urls() {
+        assert!(validate_external_url("https://example.com/docs").is_ok());
+        assert!(validate_external_url("javascript:alert(1)").is_err());
+        assert!(validate_external_url("https://user:pass@example.com/").is_err());
+        assert!(validate_external_url("http://127.0.0.1:3000/dsh-bridge/config").is_err());
+        assert!(validate_external_url("http://localhost:3000/").is_err());
     }
 
     #[test]

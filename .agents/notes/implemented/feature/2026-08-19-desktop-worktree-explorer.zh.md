@@ -26,6 +26,8 @@ Explorer 行使用共享 `ui-primitives` 的文件夹、文件和警告图标。
 
 在 Tauri shell 中，Explorer 和 Search 会把规范化的 Workspace-relative file request 发送给 native preview-window command。shell 会再次校验 Workspace id 和 path，根据两者生成带 hash 的 `preview-*` label，并以文件名创建或聚焦对应窗口。窗口通过只包含 `workspaceId` 和 `path` query field 的 `dsh_preview=1` Web entry 加载；每次启动的 bearer token 通过受限 command 返回，不放入预览 URL。没有 Tauri 时的浏览器运行继续使用现有的 pane 内查看器作为回退。
 
+桌面 client 会捕获链接激活，只把当前 bridge origin 和 bridge path 之外、绝对且不带凭据的 HTTP(S) URL 交给 shell opener；不安全或内部 URL 会被阻止。Tauri 通过 opener command 打开获准 URL；浏览器运行使用新标签页。WSL 安装指南也使用同一 helper。
+
 ## 曾考虑的替代方案
 
 **向浏览器暴露 Workspace 绝对路径**：否决。浏览器只需要相对显示路径，Host 保留规范化解析和包含关系检查的权限。
@@ -45,3 +47,5 @@ Explorer 保持只读，不暴露文件内容。Git 状态以文件和目录装�
 预览投影测试固定 Markdown 透传、文件名标题、已识别语言提示、防冲突 fence 和纯文本回退；文件查看器测试固定经过清理的 Markdown 渲染，同时保留已有的高亮代码和搜索结果行滚动行为。
 
 预览窗口测试固定提前路径校验、规范化 request 参数、locale 传递、Tauri 不可用时的回退、native command 失败时的回退、Rust 路径拒绝，以及 Workspace 加 path 的 label 作用域。desktop shell 构建检查 Tauri 窗口与 command 注册，Web 构建同时检查最小预览 entry 和普通 Web entry。
+
+外链测试固定 URL allowlist、凭据和 bridge URL 拒绝、native opener 调用以及浏览器点击处理。Rust 测试固定在调用平台 opener 前拒绝带凭据、loopback 和 bridge URL。

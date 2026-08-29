@@ -61,6 +61,23 @@ function isMarkdown(path: string): boolean {
   return /\.(?:md|markdown|mdx)$/iu.test(path)
 }
 
+function safeExternalUrl(value: string): string | null {
+  let url: URL
+  try {
+    url = new URL(value, window.location.href)
+  } catch {
+    return null
+  }
+  if ((url.protocol !== 'http:' && url.protocol !== 'https:')
+    || url.username.length > 0
+    || url.password.length > 0
+    || url.origin === window.location.origin
+    || url.pathname === '/dsh-bridge'
+    || url.pathname.startsWith('/dsh-bridge/')
+    || ['localhost', '127.0.0.1', '[::1]', '::1'].includes(url.hostname.toLowerCase())) return null
+  return url.href
+}
+
 function messageFor(code: string | undefined, copy: ReturnType<typeof desktopPreviewCopy>): string {
   return code === 'binary-file' ? copy.binary : copy.failed
 }
@@ -110,6 +127,24 @@ function PreviewApp(): ReactElement {
       document.documentElement.lang = locale
       setLanguage(locale)
     })
+  }, [])
+  useEffect(() => {
+    const onClick = (event: MouseEvent): void => {
+      const anchor = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>('a[href]') : null
+      if (anchor === null) return
+      const url = safeExternalUrl(anchor.getAttribute('href') ?? '')
+      if (url === null) {
+        event.preventDefault()
+        return
+      }
+      if (event.button !== 0) return
+      event.preventDefault()
+      const pending = tauri()?.core?.invoke('open_external_url', { url })
+      if (pending === undefined) window.open(url, '_blank', 'noopener,noreferrer')
+      else void pending.catch(() => {})
+    }
+    document.addEventListener('click', onClick, true)
+    return () => { document.removeEventListener('click', onClick, true) }
   }, [])
   useEffect(() => {
     if ('error' in request) return undefined

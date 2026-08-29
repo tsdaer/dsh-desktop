@@ -160,6 +160,8 @@ OS 文件拖放由壳子经 Tauri 的拖放处理器接管(`onDragDropEvent`,默
 - `GET /worktree/explorer` —— 为已注册 Workspace 列出一层有界目录；请求只接受 Workspace id 和 Workspace-relative path，响应明确标记截断以及解析后越出 Workspace 的路径。
 - `GET /worktree/file` —— 为已注册 Workspace 读取一个有界文件；响应为严格 UTF-8 并带显式截断标志，二进制或非 UTF-8 内容以稳定错误拒绝。Tauri 预览窗口和浏览器回退都使用此 route；预览页面通过受限 shell command 获取 loopback bearer token。
 
+桌面 client 只打开 bridge origin 和 bridge path 之外、绝对且不带凭据的 HTTP(S) 链接。Tauri 把获准链接交给平台 opener，浏览器运行使用新标签页，不安全或内部链接会被阻止。
+
 桥接 client 半边在页面上负责壳侧行为:上面的拖放处理、关闭按钮行为镜像、调试守卫,以及资源管理器路径路由。
 
 ## 桌面设置、托盘与关闭行为

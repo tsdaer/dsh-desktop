@@ -11,6 +11,7 @@ fn main() {
         "preview_bridge_token",
         "preview_locale",
         "close_file_preview",
+        "open_external_url",
     ];
     let attributes = tauri_build::Attributes::new()
         .app_manifest(tauri_build::AppManifest::new().commands(COMMANDS));
