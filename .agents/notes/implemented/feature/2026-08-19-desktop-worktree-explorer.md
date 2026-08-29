@@ -24,6 +24,8 @@ Explorer rows use the shared `ui-primitives` folder, file, and warning icons. Di
 
 The file viewer projects Markdown-family files as Markdown and other text files as collision-safe fenced code input. It reuses the shared `MarkdownText` renderer for Markdown sanitization and the existing Shiki line renderer for code, so the desktop client does not add a second Markdown dependency or sanitization policy. Unknown extensions use a plain-text fence in the projection and render as unhighlighted code.
 
+In the Tauri shell, Explorer and Search send normalized Workspace-relative file requests to a native preview-window command. The shell validates the Workspace id and path again, derives a hashed `preview-*` label from both values, and creates or focuses the matching window with the basename as its native title. The window loads the minimal `dsh_preview=1` Web entry with only `workspaceId` and `path` query fields; the per-boot bearer token is returned through a scoped command and is never placed in the preview URL. Browser runs without Tauri retain the existing in-pane viewer as a fallback.
+
 ## Alternatives considered
 
 **Expose the Workspace absolute path to the browser** — rejected: the browser needs only relative display paths, while the Host retains authority over canonical resolution and containment.
@@ -41,3 +43,5 @@ Explorer is read-only and does not expose file contents. Git status is rendered 
 The desktop Explorer tests pin relative-path validation, drive-relative and escape rejection before outside metadata access, directory-first ordering, entry truncation, and outside-root projection. Rendered client tests cover the first Workspace appearing after an empty snapshot, simultaneous sibling-directory loads, and shared folder, file, and warning icon states. The virtual-list tests pin empty collections, overscan, and end-of-content clamping. The standalone desktop bridge build compiles both Host and Client packages and bundles the Explorer route and UI. Focused client tests validate normalized pointer-drag paths, absolute and drive-relative path rejection, backslash rejection, and decoration aggregation.
 
 Preview projection tests pin Markdown passthrough, basename titles, recognized language hints, collision-safe fences, and plain-text fallback. File-viewer tests pin sanitized Markdown rendering while retaining the existing highlighted code and Search line-scroll behavior.
+
+Preview-window tests pin early path validation, normalized request arguments, locale forwarding, unavailable-Tauri fallback, native command failure fallback, Rust path rejection, and Workspace-plus-path label scoping. The desktop shell build checks the Tauri window and command registration, and the Web build checks the minimal preview entry alongside the regular Web entry.

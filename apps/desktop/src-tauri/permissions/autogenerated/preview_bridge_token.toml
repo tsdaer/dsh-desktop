@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-preview-bridge-token"
+description = "Enables the preview_bridge_token command without any pre-configured scope."
+commands.allow = ["preview_bridge_token"]
+
+[[permission]]
+identifier = "deny-preview-bridge-token"
+description = "Denies the preview_bridge_token command without any pre-configured scope."
+commands.deny = ["preview_bridge_token"]

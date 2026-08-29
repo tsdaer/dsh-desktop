@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-preview-locale"
+description = "Enables the preview_locale command without any pre-configured scope."
+commands.allow = ["preview_locale"]
+
+[[permission]]
+identifier = "deny-preview-locale"
+description = "Denies the preview_locale command without any pre-configured scope."
+commands.deny = ["preview_locale"]

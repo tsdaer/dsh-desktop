@@ -3,6 +3,7 @@ import { bridgeFetch } from './bridge-fetch.ts'
 import css from './DesktopWorkspaceWorkbench.module.css'
 import { DesktopWorkspaceExplorer } from './DesktopWorkspaceExplorer.tsx'
 import { DesktopWorkspaceFileViewer } from './DesktopWorkspaceFileViewer.tsx'
+import { openWorkspaceFilePreview } from './DesktopWorkspacePreviewWindow.ts'
 
 interface WorkspaceView {
   workspaceId: string
@@ -175,7 +176,11 @@ export function DesktopWorkspaceSearch({ workspaces: workspaceSource, sessions: 
               type="button"
               className={css.searchResult}
               title={match.path}
-              onClick={() => { setViewer({ path: match.path, line: match.line }) }}
+              onClick={() => {
+                void openWorkspaceFilePreview(workspace.workspaceId, match.path).then((opened) => {
+                  if (!opened) setViewer({ path: match.path, line: match.line })
+                })
+              }}
             >
               <span className={css.searchResultLocation}>{match.path}{match.line > 0 ? `:${String(match.line)}` : ''}</span>
               {match.line > 0 ? <span className={css.searchResultText}>{match.text}</span> : null}

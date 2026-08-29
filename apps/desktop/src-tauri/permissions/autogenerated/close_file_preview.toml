@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-close-file-preview"
+description = "Enables the close_file_preview command without any pre-configured scope."
+commands.allow = ["close_file_preview"]
+
+[[permission]]
+identifier = "deny-close-file-preview"
+description = "Denies the close_file_preview command without any pre-configured scope."
+commands.deny = ["close_file_preview"]

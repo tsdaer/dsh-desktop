@@ -18,6 +18,9 @@
 
 mod runtime_supervisor;
 
+use std::collections::hash_map::DefaultHasher;
+use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -30,7 +33,10 @@ use sysinfo::{Pid, System};
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::webview::PageLoadEvent;
-use tauri::{DragDropEvent, Emitter, Manager, Url, WebviewWindow, WindowEvent};
+use tauri::{
+    DragDropEvent, Emitter, Manager, State, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
+    WindowEvent,
+};
 #[cfg(windows)]
 use tauri_plugin_opener::OpenerExt;
 
@@ -80,6 +86,27 @@ impl DshRuntime {
             .terminate_and_join(reason, RUNTIME_TERMINATE_BUDGET)
     }
 }
+
+/// Per-boot loopback credentials and the runtime origin used by preview windows.
+struct PreviewBridgeState(Mutex<Option<PreviewBridgeConfig>>);
+
+struct PreviewBridgeConfig {
+    base_url: String,
+    token: String,
+}
+
+impl PreviewBridgeState {
+    fn set(&self, base_url: String, token: String) {
+        *self.0.lock().unwrap() = Some(PreviewBridgeConfig { base_url, token });
+    }
+
+    fn clear(&self) {
+        *self.0.lock().unwrap() = None;
+    }
+}
+
+/// Locale selected by the main page for each live preview window.
+struct PreviewLocales(Mutex<HashMap<String, String>>);
 
 /// Ordered splash status board the splashscreen page polls via `splash_status`.
 /// The low-level `window.__TAURI_INTERNALS__` bridge is always injected, but the
@@ -362,6 +389,134 @@ fn set_close_to_tray(app: tauri::AppHandle, enabled: bool) {
     }
 }
 
+/// Reject a preview request unless it is already a normalized relative path.
+fn validate_preview_path(path: &str) -> Result<(), String> {
+    if path.is_empty()
+        || path.contains('\\')
+        || path.contains('\0')
+        || path.starts_with('/')
+        || path.as_bytes().get(1).is_some_and(|byte| *byte == b':')
+        || path
+            .split('/')
+            .any(|part| part.is_empty() || part == "." || part == "..")
+    {
+        return Err("preview path must be a normalized Workspace-relative path".to_owned());
+    }
+    Ok(())
+}
+
+/// Keep the opaque Workspace id inside a bounded query field.
+fn validate_preview_workspace(workspace_id: &str) -> Result<(), String> {
+    if workspace_id.is_empty()
+        || workspace_id.len() > 256
+        || workspace_id.chars().any(char::is_control)
+    {
+        return Err("preview Workspace id is invalid".to_owned());
+    }
+    Ok(())
+}
+
+/// Stable label for one Workspace-relative file preview.
+fn preview_label(workspace_id: &str, path: &str) -> String {
+    let mut hasher = DefaultHasher::new();
+    workspace_id.hash(&mut hasher);
+    path.hash(&mut hasher);
+    format!("preview-{:#016x}", hasher.finish())
+}
+
+/// Create or refocus a preview window keyed by Workspace and normalized path.
+#[tauri::command]
+fn open_file_preview(
+    app: tauri::AppHandle,
+    workspace_id: String,
+    path: String,
+    locale: Option<String>,
+) -> Result<(), String> {
+    validate_preview_workspace(&workspace_id)?;
+    validate_preview_path(&path)?;
+    let base_url = app
+        .state::<PreviewBridgeState>()
+        .0
+        .lock()
+        .unwrap()
+        .as_ref()
+        .map(|config| config.base_url.clone())
+        .ok_or_else(|| "desktop runtime is not ready".to_owned())?;
+    let mut url =
+        Url::parse(&base_url).map_err(|error| format!("preview base URL is invalid: {error}"))?;
+    url.set_path("/index.html");
+    url.query_pairs_mut()
+        .append_pair("dsh_preview", "1")
+        .append_pair("workspaceId", &workspace_id)
+        .append_pair("path", &path);
+
+    let label = preview_label(&workspace_id, &path);
+    let title = path.rsplit('/').next().unwrap_or(&path);
+    app.state::<PreviewLocales>().0.lock().unwrap().insert(
+        label.clone(),
+        locale
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| "en".to_owned()),
+    );
+    if let Some(window) = app.get_webview_window(&label) {
+        window
+            .navigate(url)
+            .map_err(|error| format!("failed to navigate the file preview: {error}"))?;
+        window
+            .set_title(title)
+            .map_err(|error| format!("failed to title the file preview: {error}"))?;
+        window
+            .show()
+            .map_err(|error| format!("failed to show the file preview: {error}"))?;
+        window
+            .set_focus()
+            .map_err(|error| format!("failed to focus the file preview: {error}"))?;
+        return Ok(());
+    }
+
+    let window = WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(url))
+        .title(title)
+        .inner_size(960.0, 720.0)
+        .min_inner_size(480.0, 320.0)
+        .build()
+        .map_err(|error| format!("failed to create the file preview: {error}"))?;
+    window
+        .set_focus()
+        .map_err(|error| format!("failed to focus the file preview: {error}"))
+}
+
+/// Return the per-boot bearer token to a preview page without putting it in its URL.
+#[tauri::command]
+fn preview_bridge_token(state: State<'_, PreviewBridgeState>) -> Result<String, String> {
+    state
+        .0
+        .lock()
+        .unwrap()
+        .as_ref()
+        .map(|config| config.token.clone())
+        .ok_or_else(|| "desktop runtime is not ready".to_owned())
+}
+
+/// Return the locale selected when the current preview window was opened.
+#[tauri::command]
+fn preview_locale(window: WebviewWindow, state: State<'_, PreviewLocales>) -> String {
+    state
+        .0
+        .lock()
+        .unwrap()
+        .get(window.label())
+        .cloned()
+        .unwrap_or_else(|| "en".to_owned())
+}
+
+/// Close only the preview window that issued the command.
+#[tauri::command]
+fn close_file_preview(window: WebviewWindow) -> Result<(), String> {
+    window
+        .close()
+        .map_err(|error| format!("failed to close the file preview: {error}"))
+}
+
 /// Return the title-bar workload tier for the desktop process and its managed
 /// runtime descendants. The response intentionally contains no process ids,
 /// names, or raw measurements; unsupported or incomplete samples are neutral.
@@ -537,6 +692,9 @@ fn quit_app(app: &tauri::AppHandle) {
 /// supervisor is a no-op; a second call while termination is in flight
 /// returns the in-flight outcome.
 fn terminate_runtime(app: &tauri::AppHandle, reason: &'static str) {
+    if let Some(state) = app.try_state::<PreviewBridgeState>() {
+        state.clear();
+    }
     if let Some(state) = app.try_state::<DshRuntime>() {
         let report = state.terminate_and_join(reason);
         if report.timed_out {
@@ -695,6 +853,8 @@ fn main() {
         })))
         .manage(DroppedPaths(Mutex::new(Vec::new())))
         .manage(PendingOpenPaths(Mutex::new(Vec::new())))
+        .manage(PreviewBridgeState(Mutex::new(None)))
+        .manage(PreviewLocales(Mutex::new(HashMap::new())))
         .invoke_handler(tauri::generate_handler![
             set_debug_mode,
             set_close_to_tray,
@@ -703,7 +863,11 @@ fn main() {
             take_open_paths,
             splash_start,
             splash_status,
-            splash_open_webview2_download
+            splash_open_webview2_download,
+            open_file_preview,
+            preview_bridge_token,
+            preview_locale,
+            close_file_preview
         ])
         .setup(|app| {
             splash_log(&format!(
@@ -1509,6 +1673,13 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
                     if let Some(candidate) = rest.split_whitespace().next() {
                         match Url::parse(candidate) {
                             Ok(mut url) => {
+                                let mut preview_base = url.clone();
+                                preview_base.set_path("/");
+                                preview_base.set_query(None);
+                                preview_base.set_fragment(None);
+                                handle
+                                    .state::<PreviewBridgeState>()
+                                    .set(preview_base.to_string(), loopback_token.clone());
                                 url.query_pairs_mut()
                                     .append_pair("dsh_token", &loopback_token);
                                 println!("[dsh-desktop] ready at {url}");
@@ -1620,6 +1791,33 @@ fn js_string(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn preview_requests_accept_only_normalized_relative_paths() {
+        assert!(validate_preview_path("apps/desktop/README.md").is_ok());
+        assert!(validate_preview_path("apps/./desktop/README.md").is_err());
+        assert!(validate_preview_path("../outside.txt").is_err());
+        assert!(validate_preview_path("C:outside.txt").is_err());
+        assert!(validate_preview_path("C:/outside.txt").is_err());
+        assert!(validate_preview_path("apps\\desktop\\README.md").is_err());
+        assert!(validate_preview_path("apps//README.md").is_err());
+    }
+
+    #[test]
+    fn preview_labels_are_stable_and_path_scoped() {
+        assert_eq!(
+            preview_label("workspace-1", "README.md"),
+            preview_label("workspace-1", "README.md")
+        );
+        assert_ne!(
+            preview_label("workspace-1", "README.md"),
+            preview_label("workspace-1", "src/main.ts")
+        );
+        assert_ne!(
+            preview_label("workspace-1", "README.md"),
+            preview_label("workspace-2", "README.md")
+        );
+    }
 
     #[test]
     fn workload_tiers_have_stable_thresholds() {

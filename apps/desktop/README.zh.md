@@ -21,7 +21,7 @@
 - [x] 工作树模式的资源管理器、搜索、只读 Git 状态装饰和路径拖入聊天框
 - [x] 不带 `./` 前缀的 Workspace-relative Worktree 路径插入，以及带主题的 Explorer 条目图标
 - [x] 整文件 Source Control 写入:暂存、撤销暂存、丢弃(带点名文件的确认)、限定所选工作区的提交(带提交信息)以及复用共享差异呈现的 diff 查看
-- [x] Explorer 行与搜索结果的只读应用内文件查看器,支持经过清理的 Markdown、高亮代码、截断与二进制拒绝状态以及匹配行滚动
+- [x] Explorer 行与搜索结果的只读文件预览,通过专用 Tauri 窗口支持经过清理的 Markdown 和高亮代码,并在浏览器中提供 pane 内回退
 - [x] 在每条普通用户消息和助手消息旁提供视觉一致的复制操作
 - [x] 在余额旁显示 API 连接状态,并支持点击刷新余额
 - [x] 自动检查本仓库的 GitHub Releases,并安装可用更新
@@ -158,7 +158,7 @@ OS 文件拖放由壳子经 Tauri 的拖放处理器接管(`onDragDropEvent`,默
 - `POST /policy` —— 通过运行时的设置接缝($DSH_HOME/settings.yaml)持久化桌面设置。dsh 配置边界拒绝浏览器写入未列出的命名空间,因此设置行经此路由保存,而不是走 client 的 settingsScope。
 - `GET /balance` —— 标题栏余额药丸:经凭据服务解析 DeepSeek key 并代理官方 /user/balance 接口(见“自定义标题栏”)。
 - `GET /worktree/explorer` —— 为已注册 Workspace 列出一层有界目录；请求只接受 Workspace id 和 Workspace-relative path，响应明确标记截断以及解析后越出 Workspace 的路径。
-- `GET /worktree/file` —— 为已注册 Workspace 读取一个有界文件；响应为严格 UTF-8 并带显式截断标志，二进制或非 UTF-8 内容以稳定错误拒绝。Explorer 行与搜索结果在应用内查看器中打开，查看器通过客户端 shiki 高亮器着色，并把搜索结果滚动到匹配行。
+- `GET /worktree/file` —— 为已注册 Workspace 读取一个有界文件；响应为严格 UTF-8 并带显式截断标志，二进制或非 UTF-8 内容以稳定错误拒绝。Tauri 预览窗口和浏览器回退都使用此 route；预览页面通过受限 shell command 获取 loopback bearer token。
 
 桥接 client 半边在页面上负责壳侧行为:上面的拖放处理、关闭按钮行为镜像、调试守卫,以及资源管理器路径路由。
 

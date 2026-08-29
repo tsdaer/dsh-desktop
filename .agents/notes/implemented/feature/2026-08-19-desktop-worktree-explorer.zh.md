@@ -24,6 +24,8 @@ Explorer 行使用共享 `ui-primitives` 的文件夹、文件和警告图标。
 
 文件查看器把 Markdown 系列文件投影为 Markdown，把其他文本文件投影为可防止分隔符冲突的 fenced code 输入。Markdown 复用共享的 `MarkdownText` 渲染器及其清理策略，代码复用现有的 Shiki 行渲染器，因此桌面 client 不增加第二套 Markdown 依赖或清理策略。未知扩展名在投影中使用纯文本 fence，并以不高亮的代码显示。
 
+在 Tauri shell 中，Explorer 和 Search 会把规范化的 Workspace-relative file request 发送给 native preview-window command。shell 会再次校验 Workspace id 和 path，根据两者生成带 hash 的 `preview-*` label，并以文件名创建或聚焦对应窗口。窗口通过只包含 `workspaceId` 和 `path` query field 的 `dsh_preview=1` Web entry 加载；每次启动的 bearer token 通过受限 command 返回，不放入预览 URL。没有 Tauri 时的浏览器运行继续使用现有的 pane 内查看器作为回退。
+
 ## 曾考虑的替代方案
 
 **向浏览器暴露 Workspace 绝对路径**：否决。浏览器只需要相对显示路径，Host 保留规范化解析和包含关系检查的权限。
@@ -41,3 +43,5 @@ Explorer 保持只读，不暴露文件内容。Git 状态以文件和目录装�
 桌面 Explorer 测试固定相对路径校验、盘符相对路径及越界路径在读取外部元数据前被拒绝、目录优先排序、条目截断和根目录外投影。渲染 client 测试覆盖空快照后出现首个 Workspace、同级目录同时加载，以及共享文件夹、文件和警告图标状态。虚拟列表测试固定空集合、预渲染范围和末尾滚动位置截断。standalone desktop bridge 构建会编译 Host 与 Client 包，并打包 Explorer 路由与 UI。focused client tests 会验证规范化的指针拖放路径、绝对路径、盘符相对路径和反斜杠拒绝，以及装饰汇总。
 
 预览投影测试固定 Markdown 透传、文件名标题、已识别语言提示、防冲突 fence 和纯文本回退；文件查看器测试固定经过清理的 Markdown 渲染，同时保留已有的高亮代码和搜索结果行滚动行为。
+
+预览窗口测试固定提前路径校验、规范化 request 参数、locale 传递、Tauri 不可用时的回退、native command 失败时的回退、Rust 路径拒绝，以及 Workspace 加 path 的 label 作用域。desktop shell 构建检查 Tauri 窗口与 command 注册，Web 构建同时检查最小预览 entry 和普通 Web entry。

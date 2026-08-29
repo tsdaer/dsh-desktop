@@ -13,6 +13,7 @@ import { bridgeFetch } from './bridge-fetch.ts'
 import { DesktopVirtualList } from './DesktopVirtualList.tsx'
 import { dispatchWorktreePathPointerDown } from './DesktopWorkspacePathDrop.ts'
 import { DesktopWorkspaceFileViewer } from './DesktopWorkspaceFileViewer.tsx'
+import { openWorkspaceFilePreview } from './DesktopWorkspacePreviewWindow.ts'
 
 type WorkspaceId = string
 
@@ -108,7 +109,12 @@ export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions
   const [sourceControlRefresh, setSourceControlRefresh] = useState(0)
   const [viewer, setViewer] = useState<{ path: string; line?: number } | null>(null)
   const requests = useRef(new Map<string, AbortController>())
-  const openInViewer = useCallback((path: string, line?: number): void => { setViewer(line === undefined ? { path } : { path, line }) }, [])
+  const openInViewer = useCallback((path: string, line?: number): void => {
+    if (workspaceId === undefined) return
+    void openWorkspaceFilePreview(workspaceId, path).then((opened) => {
+      if (!opened) setViewer(line === undefined ? { path } : { path, line })
+    })
+  }, [workspaceId])
 
   useEffect(() => {
     try { localStorage.setItem('dsh.desktop.explorer.expanded', JSON.stringify(expandedByWorkspace)) } catch { /* browser storage is optional */ }

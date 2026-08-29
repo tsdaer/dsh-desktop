@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "dsh-remote-window",
   "description": "Window controls for the dsh web runtime page (custom title bar)",
-  "windows": ["main"],
+  "windows": ["main", "preview-*"],
   "local": false,
   "remote": { "urls": ["http://127.0.0.1:*"] },
   "permissions": [
@@ -22,6 +22,10 @@
     "allow-set-close-to-tray",
     "allow-set-debug-mode",
     "allow-take-open-paths",
+    "allow-open-file-preview",
+    "allow-preview-bridge-token",
+    "allow-preview-locale",
+    "allow-close-file-preview",
     "updater:default"
   ]
 }

@@ -7,6 +7,10 @@ fn main() {
         "splash_open_webview2_download",
         "splash_start",
         "splash_status",
+        "open_file_preview",
+        "preview_bridge_token",
+        "preview_locale",
+        "close_file_preview",
     ];
     let attributes = tauri_build::Attributes::new()
         .app_manifest(tauri_build::AppManifest::new().commands(COMMANDS));
