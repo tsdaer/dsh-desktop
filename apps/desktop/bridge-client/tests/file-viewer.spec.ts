@@ -54,6 +54,18 @@ describe('desktop file viewer', () => {
     expect(view.getByText('line2')).toBeTruthy()
   })
 
+  it('renders Markdown files through the sanitized Markdown primitive', async () => {
+    stubFetch({ workspaceId: 'workspace-1', path: 'README.md', text: '# Hello\n\n<script>bad()</script>', truncated: false })
+    const view = render(createElement(DesktopWorkspaceFileViewer, {
+      workspaceId: 'workspace-1',
+      path: 'README.md',
+      onClose: () => {},
+      t,
+    }))
+    await waitFor(() => { expect(view.container.querySelector('[data-file-markdown] h1')).toBeTruthy() })
+    expect(view.container.querySelector('script')).toBeNull()
+  })
+
   it('renders the truncation notice for an oversized file and the binary refusal for binary content', async () => {
     stubFetch({ workspaceId: 'workspace-1', path: 'big.txt', text: 'prefix', truncated: true })
     const view = render(createElement(DesktopWorkspaceFileViewer, {

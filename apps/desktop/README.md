@@ -21,7 +21,7 @@ Planned for 0.3.0:
 - [x] Explorer, Search, read-only Git decorations, and Worktree path drops into the composer
 - [x] Workspace-relative Worktree path insertion without a `./` prefix and themed Explorer entry icons
 - [x] Whole-file Source Control writes: stage, unstage, discard (with a file-naming confirmation), commit with a message confined to the selected Workspace, and diff viewing through the shared diff presentation
-- [x] An in-app read-only file viewer for Explorer rows and Search results, with truncation and binary refusal states and matched-line scrolling
+- [x] An in-app read-only file viewer for Explorer rows and Search results, with sanitized Markdown, highlighted code, truncation and binary refusal states, and matched-line scrolling
 - [x] A visually consistent copy action beside every ordinary user and assistant message
 - [x] API connection status beside the balance, with click-to-refresh balance updates
 - [x] Automatic update checks against this repository's GitHub Releases, with installation of available updates

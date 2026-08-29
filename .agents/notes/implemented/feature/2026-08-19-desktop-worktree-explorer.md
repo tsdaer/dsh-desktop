@@ -22,6 +22,8 @@ Files and in-root directories use an internal pointer-drag protocol. The browser
 
 Explorer rows use the shared `ui-primitives` folder, file, and warning icons. Directory icons switch between closed and open states while keeping one fixed icon box; blocked and unsupported entries use the warning icon and expose their state through localized row labels.
 
+The file viewer projects Markdown-family files as Markdown and other text files as collision-safe fenced code input. It reuses the shared `MarkdownText` renderer for Markdown sanitization and the existing Shiki line renderer for code, so the desktop client does not add a second Markdown dependency or sanitization policy. Unknown extensions use a plain-text fence in the projection and render as unhighlighted code.
+
 ## Alternatives considered
 
 **Expose the Workspace absolute path to the browser** — rejected: the browser needs only relative display paths, while the Host retains authority over canonical resolution and containment.
@@ -37,3 +39,5 @@ Explorer is read-only and does not expose file contents. Git status is rendered 
 ## Testing
 
 The desktop Explorer tests pin relative-path validation, drive-relative and escape rejection before outside metadata access, directory-first ordering, entry truncation, and outside-root projection. Rendered client tests cover the first Workspace appearing after an empty snapshot, simultaneous sibling-directory loads, and shared folder, file, and warning icon states. The virtual-list tests pin empty collections, overscan, and end-of-content clamping. The standalone desktop bridge build compiles both Host and Client packages and bundles the Explorer route and UI. Focused client tests validate normalized pointer-drag paths, absolute and drive-relative path rejection, backslash rejection, and decoration aggregation.
+
+Preview projection tests pin Markdown passthrough, basename titles, recognized language hints, collision-safe fences, and plain-text fallback. File-viewer tests pin sanitized Markdown rendering while retaining the existing highlighted code and Search line-scroll behavior.

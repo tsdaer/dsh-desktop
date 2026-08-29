@@ -8,6 +8,7 @@ dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a
 
 - 外部文件拖入和工作树路径拖入现在能把路径插入 Lexical 输入框:桥接此前写入的是已被编辑器迁移移除的 textarea,导致路径插入静默失败。路径改为经由输入框自身的粘贴管道(在 `[data-composer-input]` 上派发合成粘贴)重新进入,保留光标与撤销语义。
 - Worktree 路径拖放现在插入不带前导 `./` 的规范化 Workspace-relative path；Explorer 行改用共享的主题文件夹、文件和警告图标。
+- Worktree 文件查看现在通过共享的安全 Markdown primitive 渲染 Markdown，并用防冲突的语言或纯文本 fence 投影其他文本文件。
 
 ## [0.5.4] - 2026-08-28
 

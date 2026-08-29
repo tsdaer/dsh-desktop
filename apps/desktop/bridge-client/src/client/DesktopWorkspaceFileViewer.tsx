@@ -1,15 +1,19 @@
 // Read-only file viewer for the Worktree Explorer and Search: fetches the
-// bounded Host projection (/dsh-bridge/worktree/file) and renders it as a
-// line-numbered, syntax-highlighted surface through the client's existing
-// highlighter. Binary and non-UTF-8 content is refused by the Host and
-// rendered as a stable error; oversized files carry an explicit truncation
-// state. Opening a Search result scrolls the viewer to the matched line.
+// bounded Host projection (/dsh-bridge/worktree/file), renders Markdown through
+// the shared sanitized primitive, and renders other text as a line-numbered,
+// syntax-highlighted surface. Binary and non-UTF-8 content is refused by the
+// Host and rendered as a stable error; oversized files carry an explicit
+// truncation state. Opening a Search result scrolls the viewer to the matched line.
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { grammarLoadCount, highlightLines, subscribeGrammarLoaded } from '@deepseek-ai/dsh-client-ui-primitives'
+import { MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import { writeClipboard } from '@deepseek-ai/dsh-client-ui-primitives'
 import { bridgeFetch } from './bridge-fetch.ts'
+import { projectFilePreview } from './DesktopWorkspacePreview.ts'
 import css from './DesktopWorkspaceWorkbench.module.css'
+
+export { langFromPath } from './DesktopWorkspacePreview.ts'
 
 /** One validated Host projection of the file view route. */
 export interface FileView {
@@ -24,35 +28,6 @@ export type FileViewState =
   | { status: 'loading' }
   | { status: 'ready'; view: FileView }
   | { status: 'error'; code?: string; message: string }
-
-/** Lowercased file-extension to syntax-highlighting language hint; unknown
- *  extensions render plain monospace. Mirrors the read tool's mapping so a
- *  file highlights the same way in the Worktree viewer and a read card. */
-const LANG_BY_EXTENSION: Readonly<Record<string, string>> = {
-  ts: 'ts', tsx: 'tsx', mts: 'ts', cts: 'ts',
-  js: 'js', jsx: 'jsx', mjs: 'js', cjs: 'js',
-  json: 'json', jsonc: 'json',
-  py: 'py', rb: 'rb', go: 'go', rs: 'rs', java: 'java',
-  c: 'c', h: 'c', cc: 'cpp', cpp: 'cpp', hpp: 'cpp', cxx: 'cpp',
-  cs: 'cs', kt: 'kotlin', swift: 'swift', php: 'php',
-  sh: 'sh', bash: 'sh', zsh: 'sh',
-  yaml: 'yaml', yml: 'yaml', toml: 'toml', ini: 'ini',
-  md: 'md', markdown: 'md', mdx: 'mdx',
-  html: 'html', htm: 'html', css: 'css', scss: 'scss', less: 'less',
-  sql: 'sql', xml: 'xml', lua: 'lua',
-}
-
-/** Derive a syntax-highlighting language hint from a path's extension.
- * @param path - Workspace-relative file path.
- * @returns the shiki language id, or undefined for an unknown extension.
- */
-export function langFromPath(path: string): string | undefined {
-  const base = path.slice(Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\')) + 1)
-  const dot = base.lastIndexOf('.')
-  if (dot <= 0) return undefined
-  const ext = base.slice(dot + 1).toLowerCase()
-  return Object.hasOwn(LANG_BY_EXTENSION, ext) ? LANG_BY_EXTENSION[ext] : undefined
-}
 
 /** Fetch and validate the bounded file projection.
  * @param workspaceId - Selected Workspace id.
@@ -139,10 +114,11 @@ export function DesktopWorkspaceFileViewer({ workspaceId, path, onClose, scrollT
 }): React.ReactElement {
   const state = useFileView(workspaceId, path)
   const view = state.status === 'ready' ? state.view : null
-  const lang = useMemo(() => view === null ? undefined : langFromPath(view.path), [view])
+  const projection = useMemo(() => view === null ? null : projectFilePreview(view.path, view.text), [view])
+  const lang = projection?.language
   const loaded = useSyncExternalStore(subscribeGrammarLoaded, grammarLoadCount, grammarLoadCount)
   const raw = useMemo(() => view?.text ?? '', [view])
-  const highlighted = useMemo(() => highlightLines(raw, lang), [raw, lang, loaded])
+  const highlighted = useMemo(() => projection?.mode === 'code' ? highlightLines(raw, lang) : undefined, [raw, lang, loaded, projection])
   const rows = useMemo<ViewerLine[]>(() => {
     if (view === null) return []
     return linesOf(view.text).map((text, index) => {
@@ -159,6 +135,11 @@ export function DesktopWorkspaceFileViewer({ workspaceId, path, onClose, scrollT
     target?.scrollIntoView({ block: 'center' })
   }, [scrollToLine, view])
 
+  const markdownLabels = useMemo(() => ({
+    code: { copyLabel: t('worktree.copy'), copiedLabel: t('worktree.copied') },
+    footnotes: t('worktree.footnotes'),
+  }), [t])
+
   const onCopy = useCallback(() => {
     if (view === null) return
     void writeClipboard(view.text).then((ok) => {
@@ -168,7 +149,7 @@ export function DesktopWorkspaceFileViewer({ workspaceId, path, onClose, scrollT
     })
   }, [view])
 
-  const title = view?.path ?? ''
+  const title = projection?.title ?? ''
   const note = state.status === 'error'
     ? state.code === 'binary-file'
       ? t('worktree.fileBinary')
@@ -180,7 +161,7 @@ export function DesktopWorkspaceFileViewer({ workspaceId, path, onClose, scrollT
   return (
     <div className={css.filePanel} data-file-viewer="">
       <div className={css.fileHeader}>
-        <span className={css.fileTitle} title={title}>{title}</span>
+        <span className={css.fileTitle} title={view?.path ?? ''}>{title}</span>
         {view !== null && (
           <button type="button" className={css.sourceControlAction} onClick={onCopy}>
             {copied ? t('worktree.copied') : t('worktree.copy')}
@@ -192,18 +173,20 @@ export function DesktopWorkspaceFileViewer({ workspaceId, path, onClose, scrollT
       {state.status === 'error' ? <div className={css.searchError} role="alert">{note ?? t('worktree.fileFailed')}</div> : null}
       {view !== null && (
         <>
-          <div ref={bodyRef} className={css.fileBody} data-file-body="">
-            {rows.map(row => (
-              <div key={row.number} className={css.fileLine} data-file-line={row.number}>
-                <span className={css.fileGutter} aria-hidden>{row.number}</span>
-                <span className={css.fileContent}>
-                  {row.spans === undefined
-                    ? row.text
-                    : row.spans.map((span, index) => <span key={index} style={span.style}>{span.text}</span>)}
-                </span>
-              </div>
-            ))}
-          </div>
+          {projection?.mode === 'markdown'
+            ? <div className={css.fileMarkdown} data-file-markdown=""><MarkdownText text={projection.content} labels={markdownLabels} /></div>
+            : <div ref={bodyRef} className={css.fileBody} data-file-body="">
+              {rows.map(row => (
+                <div key={row.number} className={css.fileLine} data-file-line={row.number}>
+                  <span className={css.fileGutter} aria-hidden>{row.number}</span>
+                  <span className={css.fileContent}>
+                    {row.spans === undefined
+                      ? row.text
+                      : row.spans.map((span, index) => <span key={index} style={span.style}>{span.text}</span>)}
+                  </span>
+                </div>
+              ))}
+            </div>}
           {note === null ? null : <div className={css.explorerState} role="status">{note}</div>}
         </>
       )}

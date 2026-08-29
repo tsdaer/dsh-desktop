@@ -597,6 +597,13 @@
   line-height: 1.5;
 }
 
+.fileMarkdown {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 12px;
+}
+
 .fileLine {
   display: flex;
   gap: 8px;
