@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { IconBrowseOutline16, IconFolderClose16, IconFolderOpen16, IconWarningOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import css from './DesktopWorkspaceWorkbench.module.css'
 import {
   SourceControlActionButtons,
@@ -218,9 +219,14 @@ export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions
     const decoration = gitDecorations.get(entry.path)
     const draggable = entry.outsideRoot !== true && (entry.type === 'directory' || entry.type === 'file')
     const className = `${css.explorerRow}${entry.outsideRoot === true ? ` ${css.explorerOutside}` : ''}${directory ? ` ${css.explorerRowButton}` : ''}`
+    const icon = entry.outsideRoot === true || entry.type === 'other'
+      ? <IconWarningOutline16 size={16} />
+      : directory
+        ? row.expanded ? <IconFolderOpen16 size={16} /> : <IconFolderClose16 size={16} />
+        : <IconBrowseOutline16 size={16} />
     const content = (
       <>
-        <span className={css.explorerDisclosure} aria-hidden="true">{directory ? (row.expanded ? '▾' : '▸') : entry.type === 'file' ? '·' : '!'}</span>
+        <span className={css.explorerIcon} aria-hidden="true">{icon}</span>
         <span className={css.explorerName} title={entry.name}>{entry.name}</span>
         {entry.outsideRoot === true ? <span className={css.explorerMeta}>{t('worktree.outside')}</span> : null}
         {decoration === undefined ? null : <GitDecorationView decoration={decoration} t={t} />}
@@ -228,10 +234,15 @@ export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions
       </>
     )
     const openableFile = entry.type === 'file' && entry.outsideRoot !== true
+    const rowLabel = entry.outsideRoot === true
+      ? `${t('worktree.outside')}: ${entry.name}`
+      : entry.type === 'other'
+        ? `${t('worktree.unsupported')}: ${entry.name}`
+        : undefined
     const openFile = (): void => { if (openableFile) openInViewer(entry.path) }
     return directory
       ? <button key={row.key} type="button" className={`${className}${draggable ? ` ${css.explorerDraggable}` : ''}`} style={{ paddingLeft: `${8 + row.depth * 14}px` }} aria-expanded={row.expanded} aria-label={`${row.expanded ? t('worktree.collapse') : t('worktree.expand')}: ${entry.name}`} onPointerDown={(event) => { if (draggable && event.button === 0) dispatchWorktreePathPointerDown(event.currentTarget, event, entry.path) }} onClick={() => { toggle(entry.path) }}>{content}</button>
-      : <div key={row.key} className={`${className}${draggable ? ` ${css.explorerDraggable}` : ''}`} style={{ paddingLeft: `${8 + row.depth * 14}px` }} role={openableFile ? 'button' : undefined} tabIndex={openableFile ? 0 : undefined} aria-label={openableFile ? `${t('worktree.openFile')}: ${entry.name}` : undefined} onKeyDown={openableFile ? (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openFile() } } : undefined} onPointerDown={(event) => { if (draggable && event.button === 0) dispatchWorktreePathPointerDown(event.currentTarget, event, entry.path) }} onClick={openableFile ? openFile : undefined}>{content}</div>
+      : <div key={row.key} className={`${className}${draggable ? ` ${css.explorerDraggable}` : ''}`} style={{ paddingLeft: `${8 + row.depth * 14}px` }} role={openableFile ? 'button' : undefined} tabIndex={openableFile ? 0 : undefined} aria-label={openableFile ? `${t('worktree.openFile')}: ${entry.name}` : rowLabel} onKeyDown={openableFile ? (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openFile() } } : undefined} onPointerDown={(event) => { if (draggable && event.button === 0) dispatchWorktreePathPointerDown(event.currentTarget, event, entry.path) }} onClick={openableFile ? openFile : undefined}>{content}</div>
   }
 
   return (

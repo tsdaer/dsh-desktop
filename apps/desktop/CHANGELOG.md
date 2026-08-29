@@ -7,6 +7,7 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 ### Fixed
 
 - External file drops and worktree path drops now insert paths into the Lexical composer: the bridge previously wrote to the removed textarea, so path insertion silently failed after the editor migration. Paths re-enter through the composer's own paste pipeline (synthetic paste on `[data-composer-input]`), preserving caret and undo semantics.
+- Worktree path drops now insert normalized Workspace-relative paths without a leading `./`; Explorer rows use shared themed folder, file, and warning icons.
 
 ## [0.5.4] - 2026-08-28
 

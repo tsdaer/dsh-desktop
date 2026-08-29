@@ -16,9 +16,11 @@ Host 在读取 Workspace 外部元数据前拒绝绝对路径、盘符相对路�
 
 桌面 client 通过 desktop footer slot 贡献 Workbench，并把它 portal 到现有的 `sidebar.workspaces` 区域；只有选中 Worktree 标签时才隐藏共享 Workspace 浏览器，Workspace 标签下保持其不变。client 从当前 Session 推导要查看的 Workspace；没有选中 Session 时使用最近的 Workspace，最后回退到第一个 Workspace。进入 Worktree 时加载根目录，只有展开目录时才加载子目录。每个目录都有独立的加载、错误、重试、空目录和截断状态；展开的相对路径按 Workspace id 保存到浏览器存储。client 在渲染前校验响应，不调用 shell 命令或不受限制的文件系统 API。
 
-收起侧栏中的模式切换使用风格统一的内联矢量图标。目录行的整个宽度都是可访问按钮；箭头只表示当前状态，不再是独立的交互目标。Explorer 将展开后的目录压平成可见行，并使用可复用的固定行高 `DesktopVirtualList`，在保留完整滚动范围的同时限制大型树实际创建的 DOM 行数。
+收起侧栏中的模式切换使用风格统一的内联矢量图标。目录行的整个宽度都是可访问按钮；目录图标通过行的 `aria-expanded` 值表示状态，不是独立的交互目标。Explorer 将展开后的目录压平成可见行，并使用可复用的固定行高 `DesktopVirtualList`，在保留完整滚动范围的同时限制大型树实际创建的 DOM 行数。
 
-工作区内的文件和目录使用内部指针拖拽协议。浏览器只派发已验证的 Workspace 相对路径；拖到聊天框后插入 `./<相对路径>`，指针经过聊天框时显示可见焦点框。越出 Workspace 的阻止条目和其他条目类型不会启动指针拖拽。现有由 shell 所有的系统文件拖放路径保持不变。
+工作区内的文件和目录使用内部指针拖拽协议。浏览器只派发经过规范化的 Workspace-relative path；反斜杠、绝对路径、盘符相对路径、NUL 字节、规范化为空的路径以及越出 Workspace 的路径都会被拒绝。条目拖到 composer 后插入不带前导 `./` 的规范化路径，指针经过 composer 时显示可见焦点框。越出 Workspace 的阻止条目和其他条目类型不会启动指针拖拽。现有由 shell 所有的 external filesystem path 拖放保持不变。
+
+Explorer 行使用共享 `ui-primitives` 的文件夹、文件和警告图标。目录图标在收起和展开状态之间切换，同时保持一个固定的图标框；阻止和不支持的条目使用警告图标，并通过本地化行标签暴露状态。
 
 ## 曾考虑的替代方案
 
@@ -34,4 +36,4 @@ Explorer 保持只读，不暴露文件内容。Git 状态以文件和目录装�
 
 ## 测试
 
-桌面 Explorer 测试固定相对路径校验、盘符相对路径及越界路径在读取外部元数据前被拒绝、目录优先排序、条目截断和根目录外投影。渲染 client 测试覆盖空快照后出现首个 Workspace，以及同级目录同时加载。虚拟列表测试固定空集合、预渲染范围和末尾滚动位置截断。standalone desktop bridge 构建会编译 Host 与 Client 包，并打包 Explorer 路由与 UI。focused client tests 会验证相对路径拖放载荷、绝对路径拒绝和装饰汇总。
+桌面 Explorer 测试固定相对路径校验、盘符相对路径及越界路径在读取外部元数据前被拒绝、目录优先排序、条目截断和根目录外投影。渲染 client 测试覆盖空快照后出现首个 Workspace、同级目录同时加载，以及共享文件夹、文件和警告图标状态。虚拟列表测试固定空集合、预渲染范围和末尾滚动位置截断。standalone desktop bridge 构建会编译 Host 与 Client 包，并打包 Explorer 路由与 UI。focused client tests 会验证规范化的指针拖放路径、绝对路径、盘符相对路径和反斜杠拒绝，以及装饰汇总。

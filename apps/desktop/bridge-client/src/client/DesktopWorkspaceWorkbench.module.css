@@ -351,11 +351,14 @@
   background: var(--dsw-alias-interactive-bg-hover);
 }
 
-.explorerDisclosure {
+.explorerIcon {
   flex: none;
   width: 18px;
+  height: 16px;
   color: var(--dsw-alias-label-secondary);
-  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .explorerRowButton:hover {

@@ -26,9 +26,13 @@ describe('desktop Explorer Git decorations', () => {
   })
 
   it('carries only Workspace-relative paths through the internal pointer drag', () => {
-    expect(normalizeWorktreePath('apps\\desktop\\README.md')).toBe('apps/desktop/README.md')
-    expect(formatWorktreePath('apps/desktop/README.md')).toBe('./apps/desktop/README.md')
+    expect(normalizeWorktreePath('apps/./desktop/README.md')).toBe('apps/desktop/README.md')
+    expect(formatWorktreePath('apps/desktop/README.md')).toBe('apps/desktop/README.md')
+    expect(normalizeWorktreePath('apps\\desktop\\README.md')).toBeNull()
     expect(normalizeWorktreePath('C:/outside.txt')).toBeNull()
+    expect(normalizeWorktreePath('C:outside.txt')).toBeNull()
+    expect(normalizeWorktreePath('.')).toBeNull()
+    expect(normalizeWorktreePath('apps//desktop/README.md')).toBeNull()
     expect(normalizeWorktreePath('../outside.txt')).toBeNull()
   })
 })
