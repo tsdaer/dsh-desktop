@@ -2,6 +2,12 @@
 
 All notable changes to dsh-desktop are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The draft-release workflow copies the matching version's section into its GitHub release notes.
 
+## [0.5.5] - 2026-08-29
+
+### Fixed
+
+- External file drops and worktree path drops now insert paths into the Lexical composer: the bridge previously wrote to the removed textarea, so path insertion silently failed after the editor migration. Paths re-enter through the composer's own paste pipeline (synthetic paste on `[data-composer-input]`), preserving caret and undo semantics.
+
 ## [0.5.4] - 2026-08-28
 
 ### Fixed

@@ -2,6 +2,12 @@
 
 dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循[语义化版本](https://semver.org/spec/v2.0.0.html)。draft-release workflow 会把对应版本的章节复制到 GitHub release 的 notes 里。
 
+## [0.5.5] - 2026-08-29
+
+### 修复
+
+- 外部文件拖入和工作树路径拖入现在能把路径插入 Lexical 输入框:桥接此前写入的是已被编辑器迁移移除的 textarea,导致路径插入静默失败。路径改为经由输入框自身的粘贴管道(在 `[data-composer-input]` 上派发合成粘贴)重新进入,保留光标与撤销语义。
+
 ## [0.5.4] - 2026-08-28
 
 ### 修复

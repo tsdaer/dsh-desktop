@@ -10,6 +10,7 @@ import css from './BridgeRow.module.css'
 import { BridgeSection } from './BridgeSection.tsx'
 import { createDesktopWorkspaceWorkbench } from './DesktopWorkspaceWorkbench.tsx'
 import { mountDesktopUpdater } from './DesktopUpdater.ts'
+import { insertPathsIntoComposer } from './DesktopComposerPaste.ts'
 import { formatWorktreePath, normalizeWorktreePath, WORKTREE_PATH_POINTER_EVENT } from './DesktopWorkspacePathDrop.ts'
 import { en, zh } from './locales.ts'
 
@@ -253,25 +254,6 @@ function showDropOverlay(): void {
 function hideDropOverlay(): void {
   overlayEl?.remove()
   overlayEl = null
-}
-
-/**
- * Insert paths into the composer input box as text (one per line). The box
- * is React-controlled, so the write goes through the native value setter and
- * an `input` event — the composer's own onChange path feeds the draft into
- * the input machine like any typed edit.
- * @param paths - filesystem paths to insert.
- * @returns whether a live composer accepted the insertion.
- */
-function insertPathsIntoComposer(paths: readonly string[]): boolean {
-  const textarea = document.querySelector<HTMLTextAreaElement>('[data-composer-card] textarea')
-  if (textarea === null || textarea.disabled) return false
-  const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set
-  if (setter === undefined) return false
-  const text = paths.join('\n')
-  setter.call(textarea, textarea.value.length > 0 ? textarea.value + '\n' + text : text)
-  textarea.dispatchEvent(new Event('input', { bubbles: true }))
-  return true
 }
 
 function composerCardFromTarget(target: EventTarget | null): HTMLElement | null {
