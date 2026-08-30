@@ -2,11 +2,10 @@
 
 All notable changes to dsh-desktop are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The draft-release workflow copies the matching version's section into its GitHub release notes.
 
-## [0.5.5] - 2026-08-29
+## [0.5.6] - 2026-08-30
 
 ### Fixed
 
-- External file drops and worktree path drops now insert paths into the Lexical composer: the bridge previously wrote to the removed textarea, so path insertion silently failed after the editor migration. Paths re-enter through the composer's own paste pipeline (synthetic paste on `[data-composer-input]`), preserving caret and undo semantics.
 - Worktree path insertion now appends a trailing newline so an inserted path is ready for the next composer input.
 - File preview windows leave the invoking WebView IPC through Tauri's asynchronous runtime before entering the main UI loop, preventing native window creation from stalling at `about:blank`. Each new WebView exchanges the process launch token at the authenticated root before loading the preview entry, and stalled file reads resolve to a visible timeout error.
 - Standalone file previews load the shared design tokens and Shiki palette with their lazy entry, so source files retain syntax highlighting outside the main application window.
@@ -16,6 +15,12 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 - Explorer and Search file activation now opens or focuses a path-scoped Tauri preview window; browser runs retain the in-pane fallback.
 - Desktop link activation now delegates only credential-free external HTTP(S) URLs to the platform opener; bridge, loopback, and other unsafe URLs are blocked, with a new-tab fallback in browser runs.
 - Desktop context menus now classify the Lexical composer, ordinary inputs, and readable selections separately, keep one focus-restoring portal, and close deterministically on actions, navigation, viewport changes, blur, and outside input.
+
+## [0.5.5] - 2026-08-29
+
+### Fixed
+
+- External file drops and worktree path drops now insert paths into the Lexical composer: the bridge previously wrote to the removed textarea, so path insertion silently failed after the editor migration. Paths re-enter through the composer's own paste pipeline (synthetic paste on `[data-composer-input]`), preserving caret and undo semantics.
 
 ## [0.5.4] - 2026-08-28
 

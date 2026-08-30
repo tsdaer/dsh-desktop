@@ -2,11 +2,10 @@
 
 dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循[语义化版本](https://semver.org/spec/v2.0.0.html)。draft-release workflow 会把对应版本的章节复制到 GitHub release 的 notes 里。
 
-## [0.5.5] - 2026-08-29
+## [0.5.6] - 2026-08-30
 
 ### 修复
 
-- 外部文件拖入和工作树路径拖入现在能把路径插入 Lexical 输入框:桥接此前写入的是已被编辑器迁移移除的 textarea,导致路径插入静默失败。路径改为经由输入框自身的粘贴管道(在 `[data-composer-input]` 上派发合成粘贴)重新进入,保留光标与撤销语义。
 - Worktree 路径插入现在会自动追加末尾换行，使插入路径后可以直接继续输入。
 - 文件预览窗口会先通过 Tauri 异步运行时离开发起调用的 WebView IPC，再进入主 UI 循环，避免原生窗口创建卡在 `about:blank`。每个新 WebView 会先在认证根路径交换进程启动 token，再加载预览入口；预览文件读取卡住时会显示可见的超时错误。
 - 独立文件预览会随其懒加载入口载入共享设计 token 和 Shiki 调色板，因此源文件在主应用窗口之外仍保留语法高亮。
@@ -16,6 +15,12 @@ dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a
 - Explorer 和 Search 激活文件时现在会打开或聚焦按路径作用域区分的 Tauri 预览窗口；浏览器运行保留 pane 内回退。
 - 桌面链接激活现在只把不带凭据的外部 HTTP(S) URL 交给平台 opener；bridge、loopback 和其他不安全 URL 会被阻止，浏览器运行回退到新标签页。
 - 桌面右键菜单现在分别分类 Lexical composer、普通输入框和可读取选区，保持一个可恢复焦点的 portal，并在操作、导航、viewport 变化、失焦和外部输入时确定性关闭。
+
+## [0.5.5] - 2026-08-29
+
+### 修复
+
+- 外部文件拖入和工作树路径拖入现在能把路径插入 Lexical 输入框:桥接此前写入的是已被编辑器迁移移除的 textarea,导致路径插入静默失败。路径改为经由输入框自身的粘贴管道(在 `[data-composer-input]` 上派发合成粘贴)重新进入,保留光标与撤销语义。
 
 ## [0.5.4] - 2026-08-28
 
