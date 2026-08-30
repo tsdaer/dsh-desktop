@@ -24,7 +24,7 @@ Explorer 行使用共享 `ui-primitives` 的文件夹、文件和警告图标。
 
 文件查看器把 Markdown 系列文件投影为 Markdown，把其他文本文件投影为可防止分隔符冲突的 fenced code 输入。Markdown 复用共享的 `MarkdownText` 渲染器及其清理策略，代码复用现有的 Shiki 行渲染器，因此桌面 client 不增加第二套 Markdown 依赖或清理策略。未知扩展名在投影中使用纯文本 fence，并以不高亮的代码显示。
 
-在 Tauri shell 中，Explorer 和 Search 会把规范化的 Workspace-relative file request 发送给 native preview-window command。shell 会再次校验 Workspace id 和 path，根据两者生成带 hash 的 `preview-*` label，并以文件名创建或聚焦对应窗口。窗口通过只包含 `workspaceId` 和 `path` query field 的 `dsh_preview=1` Web entry 加载；每次启动的 bearer token 通过受限 command 返回，不放入预览 URL。新窗口会等到首次页面加载完成后再显示并获取焦点；预览读取可取消且有明确超时，超时会转为窗口内错误。没有 Tauri 时的浏览器运行继续使用现有的 pane 内查看器作为回退。
+在 Tauri shell 中，Explorer 和 Search 会把规范化的 Workspace-relative file request 发送给 native preview-window command。shell 会再次校验 Workspace id 和 path，根据两者生成带 hash 的 `preview-*` label，并先把对应窗口的创建或聚焦交给 Tauri 异步运行时，再由该任务进入主 UI 循环。发起调用的 WebView IPC 会在动态 WebView 创建前返回，因此原生窗口设置不会阻塞自身导航。每个新 WebView 会携带进程启动 token、`dsh_preview=1`、`workspaceId` 和 `path` 加载认证根路径；Host 用该 token 换取窗口的签名 cookie，再跳转到不带启动 token 的同一预览 query。另一套每次启动的 bridge bearer token 通过受限 command 返回，始终不进入预览 URL。新窗口在原生创建成功后立即显示并获取焦点，并在首次页面加载完成后再次获取焦点。预览读取可取消且有明确超时，超时会转为窗口内错误。没有 Tauri 时的浏览器运行继续使用现有的 pane 内查看器作为回退。
 
 桌面 client 会捕获链接激活，只把当前 bridge origin 和 bridge path 之外、绝对且不带凭据的 HTTP(S) URL 交给 shell opener；不安全或内部 URL 会被阻止。Tauri 通过 opener command 打开获准 URL；浏览器运行使用新标签页。WSL 安装指南也使用同一 helper。
 

@@ -8,7 +8,7 @@ dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a
 
 - 外部文件拖入和工作树路径拖入现在能把路径插入 Lexical 输入框:桥接此前写入的是已被编辑器迁移移除的 textarea,导致路径插入静默失败。路径改为经由输入框自身的粘贴管道(在 `[data-composer-input]` 上派发合成粘贴)重新进入,保留光标与撤销语义。
 - Worktree 路径插入现在会自动追加末尾换行，使插入路径后可以直接继续输入。
-- 文件预览窗口现在会等待首次页面加载完成后再显示并获取焦点；预览读取卡住时会显示可见的超时错误，不再永久停留在加载状态。
+- 文件预览窗口会先通过 Tauri 异步运行时离开发起调用的 WebView IPC，再进入主 UI 循环，避免原生窗口创建卡在 `about:blank`。每个新 WebView 会先在认证根路径交换进程启动 token，再加载预览入口；预览文件读取卡住时会显示可见的超时错误。
 - Worktree 路径拖放现在插入不带前导 `./` 的规范化 Workspace-relative path；Explorer 行改用共享的主题文件夹、文件和警告图标。
 - Worktree 文件查看现在通过共享的安全 Markdown primitive 渲染 Markdown，并用防冲突的语言或纯文本 fence 投影其他文本文件。
 - Explorer 和 Search 激活文件时现在会打开或聚焦按路径作用域区分的 Tauri 预览窗口；浏览器运行保留 pane 内回退。

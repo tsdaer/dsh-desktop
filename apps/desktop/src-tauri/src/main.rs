@@ -423,7 +423,55 @@ fn preview_label(workspace_id: &str, path: &str) -> String {
     format!("preview-{:#016x}", hasher.finish())
 }
 
-/// Create or refocus a preview window keyed by Workspace and normalized path.
+/// Build the authenticated root request that the preview WebView exchanges for its own cookie.
+fn file_preview_url(base_url: &str, workspace_id: &str, path: &str) -> Result<Url, String> {
+    let mut url =
+        Url::parse(base_url).map_err(|error| format!("preview base URL is invalid: {error}"))?;
+    url.set_path("/");
+    url.query_pairs_mut()
+        .append_pair("dsh_preview", "1")
+        .append_pair("workspaceId", workspace_id)
+        .append_pair("path", path);
+    Ok(url)
+}
+
+fn show_file_preview(
+    app: &tauri::AppHandle,
+    label: &str,
+    title: &str,
+    url: Url,
+) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window(label) {
+        window
+            .navigate(url)
+            .map_err(|error| format!("failed to navigate the file preview: {error}"))?;
+        window
+            .set_title(title)
+            .map_err(|error| format!("failed to title the file preview: {error}"))?;
+        window
+            .show()
+            .map_err(|error| format!("failed to show the file preview: {error}"))?;
+        window
+            .set_focus()
+            .map_err(|error| format!("failed to focus the file preview: {error}"))?;
+        return Ok(());
+    }
+
+    let window = WebviewWindowBuilder::new(app, label, WebviewUrl::External(url))
+        .title(title)
+        .inner_size(960.0, 720.0)
+        .min_inner_size(480.0, 320.0)
+        .build()
+        .map_err(|error| format!("failed to create the file preview: {error}"))?;
+    window
+        .show()
+        .map_err(|error| format!("failed to show the file preview: {error}"))?;
+    window
+        .set_focus()
+        .map_err(|error| format!("failed to focus the file preview: {error}"))
+}
+
+/// Queue creation or refocus of a Workspace-scoped preview after the invoking WebView IPC returns.
 #[tauri::command]
 fn open_file_preview(
     app: tauri::AppHandle,
@@ -441,39 +489,25 @@ fn open_file_preview(
         .as_ref()
         .map(|config| config.base_url.clone())
         .ok_or_else(|| "desktop runtime is not ready".to_owned())?;
-    let mut url =
-        Url::parse(&base_url).map_err(|error| format!("preview base URL is invalid: {error}"))?;
-    url.set_path("/index.html");
-    url.query_pairs_mut()
-        .append_pair("dsh_preview", "1")
-        .append_pair("workspaceId", &workspace_id)
-        .append_pair("path", &path);
-
+    let url = file_preview_url(&base_url, &workspace_id, &path)?;
     let label = preview_label(&workspace_id, &path);
-    let title = path.rsplit('/').next().unwrap_or(&path);
+    let title = path.rsplit('/').next().unwrap_or(&path).to_owned();
     app.state::<PreviewLocales>().0.lock().unwrap().insert(
         label.clone(),
         locale
             .filter(|value| !value.is_empty())
             .unwrap_or_else(|| "en".to_owned()),
     );
-    if let Some(window) = app.get_webview_window(&label) {
-        window
-            .navigate(url)
-            .map_err(|error| format!("failed to navigate the file preview: {error}"))?;
-        window
-            .set_title(title)
-            .map_err(|error| format!("failed to title the file preview: {error}"))?;
-        return Ok(());
-    }
-
-    WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(url))
-        .title(title)
-        .inner_size(960.0, 720.0)
-        .min_inner_size(480.0, 320.0)
-        .visible(false)
-        .build()
-        .map_err(|error| format!("failed to create the file preview: {error}"))?;
+    tauri::async_runtime::spawn(async move {
+        let window_app = app.clone();
+        if let Err(error) = app.run_on_main_thread(move || {
+            if let Err(error) = show_file_preview(&window_app, &label, &title, url) {
+                eprintln!("[dsh-desktop] file preview failed: {error}");
+            }
+        }) {
+            eprintln!("[dsh-desktop] failed to schedule the file preview: {error}");
+        }
+    });
     Ok(())
 }
 
@@ -1703,7 +1737,6 @@ fn boot(window: WebviewWindow, handle: tauri::AppHandle, paths: RuntimePaths) {
                             Ok(mut url) => {
                                 let mut preview_base = url.clone();
                                 preview_base.set_path("/");
-                                preview_base.set_query(None);
                                 preview_base.set_fragment(None);
                                 handle
                                     .state::<PreviewBridgeState>()
@@ -2192,6 +2225,26 @@ mod tests {
         assert_eq!(
             state.update(20.0, start + Duration::from_secs(9)),
             WorkloadTier::Calm
+        );
+    }
+
+    #[test]
+    fn preview_urls_exchange_the_launch_token_at_the_root() {
+        let url = file_preview_url(
+            "http://127.0.0.1:3080/?token=launch-token",
+            "workspace-1",
+            "docs/README.md",
+        )
+        .unwrap();
+        assert_eq!(url.path(), "/");
+        assert_eq!(
+            url.query_pairs().collect::<Vec<_>>(),
+            vec![
+                ("token".into(), "launch-token".into()),
+                ("dsh_preview".into(), "1".into()),
+                ("workspaceId".into(), "workspace-1".into()),
+                ("path".into(), "docs/README.md".into()),
+            ]
         );
     }
 }
