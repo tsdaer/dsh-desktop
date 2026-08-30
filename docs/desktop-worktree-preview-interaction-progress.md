@@ -6,7 +6,7 @@ Status: active
 
 ## Summary
 
-As of 2026-08-29, the implementation has completed the five code slices in `desktop-worktree-preview-interaction-plan.md`: path insertion and explorer icons, preview projection and rendering, dedicated Tauri preview windows, safe external-link handling, and Lexical-aware context menus.
+As of 2026-08-30, the implementation has completed the five code slices in `desktop-worktree-preview-interaction-plan.md`: path insertion and explorer icons, preview projection and rendering, dedicated Tauri preview windows, safe external-link handling, and Lexical-aware context menus. The stabilization commit `070e56896e` appends a trailing newline to inserted paths and makes preview windows wait for their first page load before showing and focusing, with a bounded read timeout that surfaces as an in-window error instead of an endless loading state.
 
 The remaining plan item is real desktop GUI evidence from the shipped server and model flow. The evidence-server bootstrap now completes on an OS-assigned loopback port, including startup authentication, Workspace registration, and bridge configuration probing; the in-app browser fallback has loaded the Worktree view and an in-pane README preview. Native Tauri-window and final GIF evidence remain pending.
 
@@ -24,7 +24,7 @@ The remaining plan item is real desktop GUI evidence from the shipped server and
 | --- | --- | --- |
 | Workspace-relative path insertion and explorer icons | Complete | Commit `3608b68625`; focused tests and pre-commit checks passed |
 | Preview projection and rendering | Complete | Commit `cac1e606ee`; build and focused checks passed |
-| Dedicated Tauri preview windows | Complete | Commit `26f6aab8e8`; Rust tests and application builds passed |
+| Dedicated Tauri preview windows | Complete | Commit `26f6aab8e8`, stabilized by `070e56896e`; Rust tests and application builds passed |
 | Safe external-link handling | Complete | Commit `daaff48fea`; bridge and Rust checks passed |
 | Lexical-aware context menus | Complete | Commit `4d5253718c`; 18 focused tests passed |
 | Real desktop GUI evidence | Pending | Fresh evidence server and browser fallback reach the Worktree view and README preview; native Tauri-window and GIF evidence remain |
@@ -45,7 +45,7 @@ Implementation anchor: `cac1e606ee`.
 
 ### Dedicated preview windows
 
-The Tauri command opens a validated workspace file in a dedicated preview window with a per-boot bearer token, locale-aware titles, stable collision-safe labels, and a minimum window size.
+The Tauri command opens a validated workspace file in a dedicated preview window with a per-boot bearer token, locale-aware titles, stable collision-safe labels, and a minimum window size. New windows stay hidden until the first page load finishes, then receive focus; stalled preview reads surface a bounded timeout error instead of an endless loading state.
 
 Implementation anchor: `26f6aab8e8`.
 
@@ -77,6 +77,8 @@ Implementation anchor: `4d5253718c`.
 
 The documentation aggregate reports all 15 gates passing.
 
+- Stabilization commit `070e56896e` keeps path insertion, preview-window timing, and the read timeout in sync with the desktop changelog and the owning Agent Note.
+
 ## Open blockers
 
 The native desktop GUI evidence run has not yet been recorded. The evidence script now permits the web profile launch to create a missing installation fallback while still rejecting a pre-existing non-symlink entry, authenticates the startup URL before bridge requests, and accepts an OS-assigned loopback port for constrained hosts.
@@ -87,7 +89,6 @@ No GUI GIF is claimed until the shipped server and model flow has been exercised
 
 - Re-run the real desktop flow on a host that permits loopback binding.
 - Record the plan-required GIF covering worktree drag-and-drop, explorer icons, preview rendering, binary-file refusal, Lexical context-menu actions, and approved chat external links.
-- Re-run the documentation aggregate after the unrelated runtime README pairing mismatch is corrected.
 
 ## Ownership
 
