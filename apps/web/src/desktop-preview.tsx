@@ -2,6 +2,10 @@ import { createRoot } from 'react-dom/client'
 import { CodeBlock, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactElement } from 'react'
+import '@deepseek-ai/dsh-client-web/src/base.css'
+import '@deepseek-ai/dsh-client-ui-theme/src/styles/base.css'
+import '@deepseek-ai/dsh-client-ui-theme/src/styles/design-platform.css'
+import '@deepseek-ai/dsh-client-ui-theme/src/styles/shiki.css'
 import { desktopPreviewCopy } from './locales/desktop-preview.ts'
 
 interface TauriLike {

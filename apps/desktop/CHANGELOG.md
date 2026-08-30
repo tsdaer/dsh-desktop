@@ -9,6 +9,7 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 - External file drops and worktree path drops now insert paths into the Lexical composer: the bridge previously wrote to the removed textarea, so path insertion silently failed after the editor migration. Paths re-enter through the composer's own paste pipeline (synthetic paste on `[data-composer-input]`), preserving caret and undo semantics.
 - Worktree path insertion now appends a trailing newline so an inserted path is ready for the next composer input.
 - File preview windows leave the invoking WebView IPC through Tauri's asynchronous runtime before entering the main UI loop, preventing native window creation from stalling at `about:blank`. Each new WebView exchanges the process launch token at the authenticated root before loading the preview entry, and stalled file reads resolve to a visible timeout error.
+- Standalone file previews load the shared design tokens and Shiki palette with their lazy entry, so source files retain syntax highlighting outside the main application window.
 - Worktree path drops now insert normalized Workspace-relative paths without a leading `./`; Explorer rows use shared themed folder, file, and warning icons.
 - Worktree file views now render Markdown through the shared sanitized Markdown primitive and project other text files through collision-safe language or plain-text fences.
 - Explorer and Search file activation now opens or focuses a path-scoped Tauri preview window; browser runs retain the in-pane fallback.

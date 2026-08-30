@@ -554,6 +554,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-slots':
         specifier: workspace:^
         version: link:../../packages/client/ui-slots
+      '@deepseek-ai/dsh-client-ui-theme':
+        specifier: workspace:^
+        version: link:../../packages/client/ui-theme
       '@deepseek-ai/dsh-client-web':
         specifier: workspace:^
         version: link:../../packages/client/web
