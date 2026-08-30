@@ -1,16 +1,29 @@
 import { createRoot } from 'react-dom/client'
-import { CodeBlock, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
+import {
+  CodeBlock,
+  IconCloseOutline16,
+  IconCodeOutline16,
+  IconLoadingOutline16,
+  IconWarningOutline16,
+  MarkdownText,
+} from '@deepseek-ai/dsh-client-ui-primitives'
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactElement } from 'react'
 import '@deepseek-ai/dsh-client-web/src/base.css'
 import '@deepseek-ai/dsh-client-ui-theme/src/styles/base.css'
 import '@deepseek-ai/dsh-client-ui-theme/src/styles/design-platform.css'
+import '@deepseek-ai/dsh-client-ui-theme/src/styles/gradient-shadow-text.css'
+import '@deepseek-ai/dsh-client-ui-theme/src/styles/scrollbar.css'
 import '@deepseek-ai/dsh-client-ui-theme/src/styles/shiki.css'
+import './desktop-preview.css'
 import { desktopPreviewCopy } from './locales/desktop-preview.ts'
 
 interface TauriLike {
   core?: {
     invoke<T = unknown>(command: string, args?: Record<string, unknown>): Promise<T>
+  }
+  event?: {
+    listen(event: string, handler: (event: { payload: unknown }) => void): Promise<() => void>
   }
 }
 
@@ -25,6 +38,16 @@ type State =
   | { status: 'loading' }
   | { status: 'ready'; view: FileView }
   | { status: 'error'; message: string }
+
+/** Theme snapshot broadcast by the shell from the main window's theme service. */
+interface PreviewThemeSnapshot {
+  colorScheme: 'light' | 'dark'
+  fontSize: number
+  tokens: Record<string, string>
+}
+
+/** The shell's theme-change event name (see set_preview_theme in main.rs). */
+const THEME_EVENT = 'dsh://theme-change'
 
 /** Bound one preview load so a stalled native bridge cannot leave a permanent spinner. */
 const PREVIEW_LOAD_TIMEOUT_MS = 10_000
@@ -68,6 +91,12 @@ function isMarkdown(path: string): boolean {
   return /\.(?:md|markdown|mdx)$/iu.test(path)
 }
 
+function pathKind(path: string): string | undefined {
+  if (isMarkdown(path)) return 'Markdown'
+  const language = pathLanguage(path)
+  return language?.toUpperCase()
+}
+
 function safeExternalUrl(value: string): string | null {
   let url: URL
   try {
@@ -87,6 +116,22 @@ function safeExternalUrl(value: string): string | null {
 
 function messageFor(code: string | undefined, copy: ReturnType<typeof desktopPreviewCopy>): string {
   return code === 'binary-file' ? copy.binary : copy.failed
+}
+
+/**
+ * Apply a resolved theme snapshot to the preview document: root color-scheme,
+ * the body palette attribute, the content font-size axis, and the active
+ * theme's alias-token overrides (the same projection the main window's
+ * ui-layout presenter performs, kept local because the preview page must not
+ * import the presenter).
+ */
+function applyPreviewTheme(snapshot: PreviewThemeSnapshot): void {
+  document.documentElement.style.colorScheme = snapshot.colorScheme
+  const body = document.body
+  if (snapshot.colorScheme === 'dark') body.setAttribute('data-ds-dark-theme', '')
+  else body.removeAttribute('data-ds-dark-theme')
+  body.style.setProperty('--dsh-content-font-size', `${snapshot.fontSize}px`)
+  for (const [name, value] of Object.entries(snapshot.tokens)) body.style.setProperty(name, value)
 }
 
 function requestFromLocation(): { workspaceId: string; path: string } | { error: string } {
@@ -140,11 +185,47 @@ async function readPreview(request: { workspaceId: string; path: string }, signa
   return { workspaceId: record.workspaceId, path: record.path, text: record.text, truncated: record.truncated }
 }
 
+/**
+ * Narrow an unknown theme-change payload to the fields the preview renders;
+ * malformed broadcasts are refused.
+ */
+function parseThemeSnapshot(value: unknown): PreviewThemeSnapshot | null {
+  if (typeof value !== 'object' || value === null) return null
+  const record = value as Record<string, unknown>
+  const colorScheme = record.colorScheme
+  const fontSize = record.fontSize
+  const tokens = record.tokens
+  if (colorScheme !== 'light' && colorScheme !== 'dark') return null
+  if (typeof fontSize !== 'number' || !Number.isInteger(fontSize)) return null
+  if (typeof tokens !== 'object' || tokens === null || Array.isArray(tokens)) return null
+  return { colorScheme, fontSize, tokens: tokens as Record<string, string> }
+}
+
 function PreviewApp(): ReactElement {
   const request = useMemo(requestFromLocation, [])
   const [language, setLanguage] = useState(() => document.documentElement.lang || 'en')
   const copy = desktopPreviewCopy(language)
   const [state, setState] = useState<State>(() => 'error' in request ? { status: 'error', message: request.error } : { status: 'loading' })
+  useEffect(() => {
+    // The shell broadcasts the main window's resolved theme to every preview;
+    // without the shell (plain browser dev) the system color scheme stands in.
+    const events = tauri()?.event
+    if (events === undefined) {
+      const media = window.matchMedia('(prefers-color-scheme: dark)')
+      const apply = (): void => { document.body.toggleAttribute('data-ds-dark-theme', media.matches) }
+      apply()
+      media.addEventListener('change', apply)
+      return () => { media.removeEventListener('change', apply) }
+    }
+    let disposed = false
+    void events.listen(THEME_EVENT, (event) => {
+      const snapshot = parseThemeSnapshot(event.payload)
+      if (snapshot !== null && !disposed) applyPreviewTheme(snapshot)
+    }).then((off) => {
+      if (disposed) off()
+    }).catch(() => { /* listener unavailable: keep the system scheme */ })
+    return () => { disposed = true }
+  }, [])
   useEffect(() => {
     const pending = tauri()?.core?.invoke<string>('preview_locale')
     if (pending === undefined) return
@@ -199,28 +280,51 @@ function PreviewApp(): ReactElement {
   const close = (): void => { void tauri()?.core?.invoke('close_file_preview') }
   const labels = { copyLabel: copy.copy, copiedLabel: copy.copied }
   const title = 'error' in request ? '' : request.path.split('/').pop() ?? request.path
+  const kind = 'error' in request ? undefined : pathKind(request.path)
   return (
     <main data-desktop-file-preview="">
-      <header>
-        <strong title={'error' in request ? '' : request.path}>{title}</strong>
-        <button type="button" onClick={close}>{copy.close}</button>
+      <header data-preview-header="">
+        <div data-preview-heading="">
+          <span data-preview-file-icon="" aria-hidden="true"><IconCodeOutline16 size={18} /></span>
+          <span data-preview-title-group="">
+            <strong title={'error' in request ? '' : request.path}>{title}</strong>
+            {'error' in request ? null : <span data-preview-path="" title={request.path}>{request.path}</span>}
+          </span>
+        </div>
+        <div data-preview-actions="">
+          {kind === undefined ? null : <span data-preview-kind="">{kind}</span>}
+          <button data-preview-close="" type="button" onClick={close} aria-label={copy.close} title={copy.close}>
+            <IconCloseOutline16 />
+          </button>
+        </div>
       </header>
-      {state.status === 'loading' ? <p>{copy.loading}</p> : null}
-      {state.status === 'error' ? <p role="alert">{state.message}</p> : null}
-      {state.status === 'ready' ? (
-        <>
-          <p data-preview-path="">{state.view.path}</p>
-          {isMarkdown(state.view.path)
-            ? <MarkdownText text={state.view.text} labels={{ code: labels, footnotes: copy.footnotes }} />
-            : <CodeBlock
-              code={state.view.text}
-              lang={pathLanguage(state.view.path)}
-              copyLabel={labels.copyLabel}
-              copiedLabel={labels.copiedLabel}
-            />}
-          {state.view.truncated ? <p role="status">{copy.truncated}</p> : null}
-        </>
-      ) : null}
+      <section data-preview-viewport="">
+        {state.status === 'loading' ? (
+          <div data-preview-state="loading" role="status">
+            <span data-preview-state-icon=""><IconLoadingOutline16 size={20} /></span>
+            <p>{copy.loading}</p>
+          </div>
+        ) : null}
+        {state.status === 'error' ? (
+          <div data-preview-state="error" role="alert">
+            <span data-preview-state-icon=""><IconWarningOutline16 size={20} /></span>
+            <p>{state.message}</p>
+          </div>
+        ) : null}
+        {state.status === 'ready' ? (
+          <article data-preview-document={isMarkdown(state.view.path) ? 'markdown' : 'code'}>
+            {state.view.truncated ? <p data-preview-truncated="" role="status">{copy.truncated}</p> : null}
+            {isMarkdown(state.view.path)
+              ? <MarkdownText text={state.view.text} labels={{ code: labels, footnotes: copy.footnotes }} />
+              : <CodeBlock
+                code={state.view.text}
+                lang={pathLanguage(state.view.path)}
+                copyLabel={labels.copyLabel}
+                copiedLabel={labels.copiedLabel}
+              />}
+          </article>
+        ) : null}
+      </section>
     </main>
   )
 }

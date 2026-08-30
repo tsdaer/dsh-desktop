@@ -26,6 +26,7 @@
     "allow-preview-bridge-token",
     "allow-preview-locale",
     "allow-close-file-preview",
+    "allow-set-preview-theme",
     "allow-open-external-url",
     "updater:default"
   ]

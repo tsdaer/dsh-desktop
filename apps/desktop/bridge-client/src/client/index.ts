@@ -12,6 +12,7 @@ import css from './BridgeRow.module.css'
 import { BridgeSection } from './BridgeSection.tsx'
 import { createDesktopWorkspaceWorkbench } from './DesktopWorkspaceWorkbench.tsx'
 import { mountDesktopUpdater } from './DesktopUpdater.ts'
+import { mountPreviewThemeRelay } from './DesktopPreviewTheme.ts'
 import { insertPathsIntoComposer } from './DesktopComposerPaste.ts'
 import { formatWorktreePath, normalizeWorktreePath, WORKTREE_PATH_POINTER_EVENT } from './DesktopWorkspacePathDrop.ts'
 import { en, zh } from './locales.ts'
@@ -36,7 +37,7 @@ import { en, zh } from './locales.ts'
 export const name = 'desktop-bridge-client'
 
 /** Services required before the listener and settings rows can run. */
-export const inject = ['sessions', 'workspaces', 'slots', 'locale']
+export const inject = ['sessions', 'workspaces', 'slots', 'locale', 'theme']
 
 /** Minimal view of the client-runtime sessions service this plugin consumes. */
 interface SessionsLike {
@@ -79,7 +80,10 @@ interface BridgeClientContext {
   workspaces: WorkspacesLike
   slots: SlotsLike
   locale: LocaleLike
-  on(event: 'locale/change', listener: (snapshot: unknown) => void): () => void
+  theme: {
+    getTheme(): { active: { colorScheme: string; tokens: Record<string, string> }; fontSize: number }
+  }
+  on(event: string, listener: (snapshot: unknown) => void): () => void
 }
 
 /** Minimal view of the injected Tauri APIs (withGlobalTauri). */
@@ -467,6 +471,9 @@ export function apply(ctx: BridgeClientContext): () => void {
   bound = true
   const offLocale = ctx.locale.register(NS, { zh, en })
   const t = ctx.locale.bind(NS)
+  // File-preview theme relay: every resolved theme snapshot travels through
+  // the shell to the preview WebViews (separate documents, no shared DOM).
+  const offPreviewTheme = mountPreviewThemeRelay(ctx.theme, ctx, getTauri()?.core?.invoke)
   const updateContextMenuLabels = (): void => {
     contextMenuLabels = {
       cut: t('context.cut'),
@@ -649,6 +656,7 @@ export function apply(ctx: BridgeClientContext): () => void {
     offOpenPath?.()
     offLocaleChange()
     offLocale()
+    offPreviewTheme()
     disposeUpdater()
     hideDropOverlay()
     document.removeEventListener('contextmenu', onContextMenuCapture, true)

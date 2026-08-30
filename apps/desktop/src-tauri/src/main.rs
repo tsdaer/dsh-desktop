@@ -543,6 +543,27 @@ fn close_file_preview(window: WebviewWindow) -> Result<(), String> {
         .map_err(|error| format!("failed to close the file preview: {error}"))
 }
 
+/// Last resolved theme snapshot, replayed to a preview window when it opens
+/// (theme/change broadcasts do not replay, so a fresh WebView needs the
+/// current state pushed to it directly).
+struct PreviewThemeState(Mutex<Option<serde_json::Value>>);
+
+/// Broadcast the main window's resolved theme to every live file preview.
+/// The preview WebViews are separate documents, so they cannot read the
+/// main window's `body[data-ds-dark-theme]` and token variables; the bridge
+/// client forwards every `theme/change` snapshot through this command and
+/// each preview page applies the payload to its own DOM.
+#[tauri::command]
+fn set_preview_theme(
+    app: tauri::AppHandle,
+    state: State<'_, PreviewThemeState>,
+    snapshot: serde_json::Value,
+) -> Result<(), String> {
+    *state.0.lock().unwrap() = Some(snapshot.clone());
+    app.emit("dsh://theme-change", snapshot)
+        .map_err(|error| format!("failed to broadcast the preview theme: {error}"))
+}
+
 /// Validate an external URL before handing it to the platform opener.
 fn validate_external_url(value: &str) -> Result<(), String> {
     let url = Url::parse(value).map_err(|_| "external URL is invalid".to_owned())?;
@@ -880,6 +901,16 @@ fn main() {
             if webview.label().starts_with("preview-") {
                 let _ = webview.show();
                 let _ = webview.set_focus();
+                // Replay the current theme to the freshly loaded preview
+                // (broadcasts do not replay; the page needs the resolved
+                // palette before the next theme/change).
+                if let Some(snapshot) = webview
+                    .app_handle()
+                    .try_state::<PreviewThemeState>()
+                    .and_then(|state| state.0.lock().unwrap().clone())
+                {
+                    let _ = webview.emit("dsh://theme-change", snapshot);
+                }
                 return;
             }
             if webview.label() != "main" {
@@ -916,6 +947,7 @@ fn main() {
         .manage(PendingOpenPaths(Mutex::new(Vec::new())))
         .manage(PreviewBridgeState(Mutex::new(None)))
         .manage(PreviewLocales(Mutex::new(HashMap::new())))
+        .manage(PreviewThemeState(Mutex::new(None)))
         .invoke_handler(tauri::generate_handler![
             set_debug_mode,
             set_close_to_tray,
@@ -929,6 +961,7 @@ fn main() {
             preview_bridge_token,
             preview_locale,
             close_file_preview,
+            set_preview_theme,
             open_external_url
         ])
         .setup(|app| {

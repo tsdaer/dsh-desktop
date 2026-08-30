@@ -24,7 +24,7 @@ Explorer 行使用共享 `ui-primitives` 的文件夹、文件和警告图标。
 
 文件查看器把 Markdown 系列文件投影为 Markdown，把其他文本文件投影为可防止分隔符冲突的 fenced code 输入。Markdown 复用共享的 `MarkdownText` 渲染器及其清理策略，代码复用现有的 Shiki 行渲染器，因此桌面 client 不增加第二套 Markdown 依赖或清理策略。未知扩展名在投影中使用纯文本 fence，并以不高亮的代码显示。
 
-在 Tauri shell 中，Explorer 和 Search 会把规范化的 Workspace-relative file request 发送给 native preview-window command。shell 会再次校验 Workspace id 和 path，根据两者生成带 hash 的 `preview-*` label，并先把对应窗口的创建或聚焦交给 Tauri 异步运行时，再由该任务进入主 UI 循环。发起调用的 WebView IPC 会在动态 WebView 创建前返回，因此原生窗口设置不会阻塞自身导航。每个新 WebView 会携带进程启动 token、`dsh_preview=1`、`workspaceId` 和 `path` 加载认证根路径；Host 用该 token 换取窗口的签名 cookie，再跳转到不带启动 token 的同一预览 query。另一套每次启动的 bridge bearer token 通过受限 command 返回，始终不进入预览 URL。新窗口在原生创建成功后立即显示并获取焦点，并在首次页面加载完成后再次获取焦点。预览读取可取消且有明确超时，超时会转为窗口内错误。其懒加载 Web 入口会载入共享 shell 默认样式、设计 token 和 Shiki 调色板，使源代码 token 颜色无需启动完整 client plugin roster 也能正确解析。没有 Tauri 时的浏览器运行继续使用现有的 pane 内查看器作为回退。
+在 Tauri shell 中，Explorer 和 Search 会把规范化的 Workspace-relative file request 发送给 native preview-window command。shell 会再次校验 Workspace id 和 path，根据两者生成带 hash 的 `preview-*` label，并先把对应窗口的创建或聚焦交给 Tauri 异步运行时，再由该任务进入主 UI 循环。发起调用的 WebView IPC 会在动态 WebView 创建前返回，因此原生窗口设置不会阻塞自身导航。每个新 WebView 会携带进程启动 token、`dsh_preview=1`、`workspaceId` 和 `path` 加载认证根路径；Host 用该 token 换取窗口的签名 cookie，再跳转到不带启动 token 的同一预览 query。另一套每次启动的 bridge bearer token 通过受限 command 返回，始终不进入预览 URL。新窗口在原生创建成功后立即显示并获取焦点，并在首次页面加载完成后再次获取焦点。预览读取可取消且有明确超时，超时会转为窗口内错误。其懒加载 Web 入口会载入共享 shell 默认样式、设计 token、排版、滚动条和 Shiki 调色板，使源代码 token 颜色无需启动完整 client plugin roster 也能正确解析。响应式文档界面会在居中的 Markdown 画布或全宽代码卡片上方显示文件名、相对路径、类型和关闭操作；加载、拒绝和截断各有独立视觉状态。预览跟随主窗口的已解析主题：bridge client 把每次 `theme/change` 快照通过 shell command 转发并广播给每个存活的预览 WebView，预览页面加载完成时还会重放当前快照；纯浏览器会话回退到操作系统颜色偏好。没有 Tauri 时的浏览器运行继续使用现有的 pane 内查看器作为回退。
 
 桌面 client 会捕获链接激活，只把当前 bridge origin 和 bridge path 之外、绝对且不带凭据的 HTTP(S) URL 交给 shell opener；不安全或内部 URL 会被阻止。Tauri 通过 opener command 打开获准 URL；浏览器运行使用新标签页。WSL 安装指南也使用同一 helper。
 
@@ -48,7 +48,7 @@ Explorer 保持只读，不暴露文件内容。Git 状态以文件和目录装�
 
 预览投影测试固定 Markdown 透传、文件名标题、已识别语言提示、防冲突 fence 和纯文本回退；文件查看器测试固定经过清理的 Markdown 渲染，同时保留已有的高亮代码和搜索结果行滚动行为。
 
-预览窗口测试固定提前路径校验、规范化 request 参数、locale 传递、Tauri 不可用时的回退、native command 失败时的回退、Rust 路径拒绝，以及 Workspace 加 path 的 label 作用域。desktop shell 构建检查 Tauri 窗口与 command 注册。Web 构建同时检查最小预览 entry 和普通 Web entry，并在懒加载样式表中产出预览主题和 Shiki 变量。
+预览窗口测试固定提前路径校验、规范化 request 参数、locale 传递、Tauri 不可用时的回退、native command 失败时的回退、Rust 路径拒绝，以及 Workspace 加 path 的 label 作用域。desktop shell 构建检查 Tauri 窗口与 command 注册。Web 构建同时检查最小预览 entry 和普通 Web entry，并在懒加载样式表中产出响应式文档样式、共享主题变量和 Shiki 调色板。GUI evidence 会在桌面尺寸下检查真实构建的预览入口及其高亮源代码内容。
 
 外链测试固定 URL allowlist、凭据和 bridge URL 拒绝、native opener 调用以及浏览器点击处理。Rust 测试固定在调用平台 opener 前拒绝带凭据、loopback 和 bridge URL。
 

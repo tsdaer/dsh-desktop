@@ -11,6 +11,7 @@ fn main() {
         "preview_bridge_token",
         "preview_locale",
         "close_file_preview",
+        "set_preview_theme",
         "open_external_url",
     ];
     let attributes = tauri_build::Attributes::new()
