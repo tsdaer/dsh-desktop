@@ -19,6 +19,7 @@
 | --- | --- | --- |
 | 更新器网络适应 | 前端约 1.5 秒后执行一次 10 秒超时检查；失败依赖字符串分类，自动阶段没有重试、退避或代理设置 | 将检查和下载编排下沉为 Tauri/Rust 的类型化控制器，增加单航班、分类重试、代理模式、阶段化诊断、缓存条件请求和安全不降级原则 |
 | 桌面特性控制 | Bridge 设置目前是固定四项；Worktree、原生预览等能力无独立开关 | 建立可扩展、类型化、持久化的 Desktop Feature Policy；首批控制 Worktree、原生文件预览、源代码管理和更新自动检查，并为以后真正立项的桌面功能保留统一注册方式 |
+| 调试模式语义 | 保存值和 WebView2 DevTools 状态与开关同向，但右键 guard 在无产品菜单项时未阻止默认菜单，导致调试关闭时反而出现原生浏览器菜单；自定义 Inspect 回调也只聚焦元素 | 修正右键事件所有分支的默认菜单策略，让关闭态始终抑制原生调试入口；让开启态的 Inspect 真正打开 DevTools，并用完整行为测试锁定语义 |
 | 启动失败诊断 | 启动页只显示 `dsh runtime exited before printing its readiness line`；完整 stderr 仅写入临时日志，用户无法判断失败阶段或插件，也不能直接复制 | 建立有界、脱敏的启动诊断模型；启动页显示失败阶段、错误摘要和失败插件，提供一键复制完整诊断，并保留日志路径作为深度排障入口 |
 | Chat 渲染与会话存储 | 上游已有相关开发路径 | 从 0.6.0 桌面计划移除；不新增虚拟化、分页、SQLite 迁移、存储设置或相关性能指标 |
 
@@ -30,6 +31,7 @@
 4. 更新失败不会绕过 TLS、更新签名或清单校验；网络适应性只改变连接、超时、重试、代理和诊断。
 5. 代理凭据不写进普通 YAML 设置；首批功能开关必须同时约束 UI 和 Host 行为。
 6. 启动页复制内容必须脱敏并限制大小；插件识别失败时显示真实启动阶段和通用摘要，不猜测插件名。
+7. `debugMode` 在所有层统一使用正向语义：`true` 开启 Inspect、调试快捷键和平台支持的 DevTools，`false` 禁用这些能力；UI 不得通过反向 label 或反向 checked 值修补 Host 语义。
 
 ## 3. 当前实现审计
 
@@ -49,6 +51,8 @@
 ### 3.2 桌面设置和特性入口
 
 Host 的 Bridge Config 位于 `apps/desktop/bridge/src/index.ts`，设置路由通过 `/dsh-bridge/config` 与 `/dsh-bridge/policy` 暴露。客户端设置卡片位于 `apps/desktop/bridge-client/src/client/BridgeSection.tsx`，当前以固定槽位列出关闭到托盘、调试模式、Logo 动效和 WSL。
+
+`debugMode` 的值传递保持正向：实际调试确认设置文件、Bridge GET、Rust command 参数和 WebView2 `AreDevToolsEnabled` 在开启时均为 true。反向表现发生在 `onContextMenuCapture`：调试关闭且 `buildMenuItems` 返回空数组时，函数在调用 `preventDefault()` 前返回，原生 WebView2 右键菜单因此被放行；调试开启时自定义 Inspect 项使代码阻止原生菜单。自定义 Inspect 回调当前只聚焦目标元素，也没有执行打开 DevTools 的动作。M3 必须同时修正这两个行为，不能翻转 `debugMode` 本身。
 
 Worktree 入口在 `apps/desktop/bridge-client/src/client/index.ts` 中无条件注册；Workspace/Worktree 切换在 `DesktopWorkspaceWorkbench.tsx` 中无条件出现。文件激活会先调用 `DesktopWorkspacePreviewWindow.ts` 打开原生预览窗口，失败后才回退到工作台内嵌预览。0.6.0 可以利用这条现成降级路径，让“禁用原生文件预览窗口”直接选择内嵌预览，而不是让文件无法查看。
 
@@ -71,6 +75,7 @@ Chat 渲染与会话存储的调查结论保留在 2026-08-30 的进度日志中
 3. Feature Policy 具有统一的类型、默认值、持久化、版本冲突处理、本地化描述和 Host 门控方式，以后新增桌面能力不需要再复制一套设置通道。
 4. 0.5.7 既有设置升级后保持原行为；用户未操作的新开关使用明确默认值。
 5. 启动失败时显示失败阶段、可读摘要和诊断标识；插件加载失败时明确显示插件 id 与包名，并提供一键复制脱敏诊断。
+6. “开启调试模式”开关开启后允许调试能力、关闭后禁止调试能力，保存、即时应用和重启恢复均保持同向。
 
 ### 4.2 明确非目标
 
@@ -105,7 +110,7 @@ Feature Policy 由 Host 持有权威值，客户端只显示并提交变更；�
 | M0 | 计划、现状审计与范围调整 | 无 | 文档提交 | 5% |
 | M1 | 更新网络夹具、基线和诊断字段 | M0 | `test(desktop): baseline updater networks` | 10% |
 | M2 | 类型化 Desktop Feature Policy | M0 | `feat(desktop): add feature policy` | 20% |
-| M3 | Worktree、原生预览、SCM 与自动检查门控 | M2 | `feat(desktop): add feature controls` | 20% |
+| M3 | Worktree、原生预览、SCM、自动检查门控与调试语义修复 | M2 | `feat(desktop): add feature controls` | 20% |
 | M4 | 更新器网络控制器与代理设置 | M1、M2 | `fix(desktop): harden updater networking` | 25% |
 | M5 | 启动失败诊断、插件归因与复制 | M0 | `feat(desktop): expose startup diagnostics` | 10% |
 | M6 | 集成、真实桌面证据与发布 | M3、M4、M5 | `release: desktop 0.6.0` | 10% |
@@ -214,16 +219,23 @@ Worktree 开关同时控制入口、当前模式和 Host 请求。关闭时隐�
 
 `autoCheck = false` 只禁止应用启动、网络恢复和前台恢复触发的自动检查；用户手动检查入口始终保留。切换为开启后不立即并发发起第二个检查，而是交给 updater 单航班控制器决定复用或调度。
 
-### 9.5 后续功能注册方式
+### 9.5 调试模式正向语义
+
+`debugMode = true` 必须同时表示设置控件已开启、Bridge 持久值为 true、页面不拦截 F12/DevTools 快捷键、右键菜单包含 Inspect，以及 Windows WebView2 接收 `SetAreDevToolsEnabled(true)`。`debugMode = false` 对上述行为取反；非 Windows 平台仍返回明确的平台限制，但页面 guard 必须遵守同一布尔值。
+
+修复不能翻转复选框、持久值或 WebView2 参数。关闭态的 contextmenu capture 即使没有产品菜单项也必须阻止原生默认菜单；开启态的自定义 Inspect 必须调用明确的宿主 DevTools 命令，而不是只聚焦元素。测试应从 GET 初始值开始，执行用户点击、POST body、保存成功后的即时应用、保存失败回滚和重启读取，并分别断言 true/false 两条路径。真实桌面证据至少展示开启后 Inspect 能打开 DevTools，以及关闭后原生菜单、Inspect 和调试快捷键均不可用。
+
+### 9.6 后续功能注册方式
 
 M2 应提供一个类型化 feature descriptor 或等价注册方式，使以后立项的桌面功能声明稳定 id、本地化 label/description、默认值、是否需重启、Host gate 和客户端呈现。0.6.0 不添加没有实际消费方的占位开关；新增功能仍需要独立行为测试和发布证据。
 
-### 9.6 M3 验收
+### 9.7 M3 验收
 
 - 四个开关跨重启保持，旧设置文件缺字段时保持 0.5.7 行为。
 - 每个功能在 UI 隐藏之外都具有 Host 或控制器门控。
 - 运行时关闭会取消或安全结束在途请求，不留下错误 tab 或悬空 loading。
 - 保存失败和 revision 冲突恢复服务器确认值。
+- 调试模式的显示、持久值、页面 guard、Inspect、快捷键和平台 DevTools 使用同一正向布尔语义。
 - 设置页及受影响 GUI 按仓库要求完成本地化、浏览器测试和真实桌面 GIF。
 
 ## 10. M4：更新器网络适应与代理
@@ -362,6 +374,7 @@ Rust 启动控制器维护一个固定容量的 stdout/stderr 尾部缓冲，并
 | 启动诊断把凭据复制到剪贴板 | P1 | 页面安全但复制文本含 token/userinfo | 单一脱敏模型、敏感夹具和页面/剪贴板一致性断言 |
 | 文本解析误认失败插件 | P1 | 普通日志中的括号内容被显示为插件 | 优先机器可读事件；文本只匹配已知 loader 错误链并严格校验 |
 | 重试产生并行运行时 | P1 | 日志出现旧进程 Running 时再次 spawn | 重试按钮绑定 supervisor join，增加连续点击生命周期测试 |
+| 调试模式只修复 UI、右键默认菜单仍泄漏 | P1 | 关闭态在无产品菜单项区域仍出现 WebView2 原生菜单，或开启态 Inspect 只聚焦元素 | 所有 contextmenu 分支断言默认阻止策略，并以真实宿主命令验证 Inspect 打开 DevTools |
 
 ## 14. 智能体执行规范
 
@@ -382,7 +395,7 @@ Rust 启动控制器维护一个固定容量的 stdout/stderr 尾部缓冲，并
 
 1. `DSH-060-001` 至 `003`：扩展 updater fault/concurrency fixture，记录 0.5.7 网络与设置保存基线。
 2. `DSH-060-010` 至 `015`：实现 Desktop Feature Policy、统一设置贡献方式、revision/回滚模型和 Update Policy。
-3. 并行启动 `DSH-060-020` 至 `023` 的首批功能门控，以及 `DSH-060-030` 至 `035` 的 updater Rust 控制器与代理策略。
+3. 并行启动 `DSH-060-020` 至 `025` 的首批功能门控和调试模式语义修复，以及 `DSH-060-030` 至 `035` 的 updater Rust 控制器与代理策略。
 4. 并行完成 `DSH-060-050` 至 `054`：启动诊断模型、机器可读事件、插件归因、脱敏复制和重试生命周期。
 5. `DSH-060-040` 至 `044`：完成升级、代理、设置竞态、启动失败恢复、真实 GIF 和 RC 决策。
 
