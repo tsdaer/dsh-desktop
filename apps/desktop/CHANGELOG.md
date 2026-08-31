@@ -2,6 +2,12 @@
 
 All notable changes to dsh-desktop are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The draft-release workflow copies the matching version's section into its GitHub release notes.
 
+## [0.5.7] - 2026-08-31
+
+### Changed
+
+- Integrated upstream harness master through dsh 0.1.2-alpha.2. The desktop now carries upstream connection recovery controls, linear stream queues, session-projection improvements, and separate turn usage and timing panels while retaining its fork-owned workflows, authenticated loopback bridge, file previews, Worktree controls, and desktop motion setting.
+
 ## [0.5.6] - 2026-08-30
 
 ### Fixed
