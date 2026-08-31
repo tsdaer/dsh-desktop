@@ -27,6 +27,8 @@ The [root standing orders](../AGENTS.md) carry the obligation, and [the README](
 | Path | Divergence |
 |---|---|
 | [`scripts/install-lefthook.mjs`](../scripts/install-lefthook.mjs) | Imports lefthook's manifest lazily, so a production install that prunes the devDependency does not fail `postinstall` ([note](../.agents/notes/implemented/bug-fix/2026-08-16-root-postinstall-production-install.md)) |
+| [`scripts/gen-config-catalog.ts`](../scripts/gen-config-catalog.ts) | Normalizes pasted declarations to LF so Windows CRLF checkouts generate the same bilingual catalog as other hosts ([note](../.agents/notes/implemented/process/2026-08-08-native-windows-pull-request-ci.md)) |
+| [`scripts/gen-cordis-catalog.ts`](../scripts/gen-cordis-catalog.ts) | Normalizes generated Cordis regions to LF for the same cross-host bilingual pairing guarantee ([note](../.agents/notes/implemented/process/2026-08-08-native-windows-pull-request-ci.md)) |
 | [`scripts/desktop-release-workflow.spec.ts`](../scripts/desktop-release-workflow.spec.ts) | Added to pin the release workflow this fork owns |
 
 ## Build and CI configuration

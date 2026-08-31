@@ -189,7 +189,7 @@ function collectTypeNames(node: ts.Node, out: Set<string>): void {
 function pasteText(ctx: FileCtx, decl: TypeDecl): string {
   const raw = rawJsDoc(ctx.text, decl)
   const start = raw ? ctx.text.indexOf(raw, decl.getFullStart()) : decl.getStart(ctx.sf)
-  return ctx.text.slice(start, decl.end)
+  return ctx.text.slice(start, decl.end).replaceAll('\r\n', '\n')
 }
 
 /** Enforce non-empty JSDoc prose on every property of a pasted declaration,

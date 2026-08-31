@@ -27,6 +27,8 @@
 | 路径 | 分歧 |
 |---|---|
 | [`scripts/install-lefthook.mjs`](../scripts/install-lefthook.mjs) | 惰性导入 lefthook 的清单，使裁掉该 devDependency 的生产安装不会让 `postinstall` 失败（[note](../.agents/notes/implemented/bug-fix/2026-08-16-root-postinstall-production-install.zh.md)） |
+| [`scripts/gen-config-catalog.ts`](../scripts/gen-config-catalog.ts) | 将粘贴的声明规范为 LF，使 Windows CRLF checkout 生成与其他主机相同的双语目录（[note](../.agents/notes/implemented/process/2026-08-08-native-windows-pull-request-ci.zh.md)） |
+| [`scripts/gen-cordis-catalog.ts`](../scripts/gen-cordis-catalog.ts) | 将生成的 Cordis 区域规范为 LF，为双语配对提供相同的跨主机保证（[note](../.agents/notes/implemented/process/2026-08-08-native-windows-pull-request-ci.zh.md)） |
 | [`scripts/desktop-release-workflow.spec.ts`](../scripts/desktop-release-workflow.spec.ts) | 新增，用于固定本 fork 自有的发布工作流 |
 
 ## 构建与 CI 配置

@@ -339,7 +339,7 @@ describe('DeepSeekAdapter against a mock server', () => {
     const ctx = await harness(server.url)
 
     const result = await assemble(ctx, {
-      model: 'deepseek-v4-flash',
+      model: 'deepseek-v4-pro',
       messages: [createUserMessage({
         content: [{ type: 'text', text: 'hi' }],
         source: { kind: 'plugin', plugin: 'test' },
@@ -351,7 +351,7 @@ describe('DeepSeekAdapter against a mock server', () => {
 
     // The wire request carried the auth header contents we configured.
     expect(server.requests[0]).toMatchObject({
-      model: 'deepseek-v4-flash',
+      model: 'deepseek-v4-pro',
       max_tokens: 256_000,
       reasoning_effort: 'high',
       stream: true,

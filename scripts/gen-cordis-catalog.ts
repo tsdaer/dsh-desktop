@@ -494,7 +494,9 @@ export const LINK_MAP: Readonly<Record<string, string>> = {
   SubagentStartRequest: 'subagent.md',
   AssembleContext: 'system-prompt.md',
   PromptContext: 'system-prompt.md',
+  PromptContextOrderName: 'system-prompt.md',
   PromptSection: 'system-prompt.md',
+  PromptSectionOrderName: 'system-prompt.md',
   SystemPrompt: 'system-prompt.md',
   ToolProviderResult: 'system-prompt.md',
   JobDoneListener: 'jobs.md',
@@ -534,7 +536,9 @@ export const LINK_MAP: Readonly<Record<string, string>> = {
   ToolRestriction: 'tools.md',
   ToolSchema: 'tools.md',
   SettingsNamespace: 'settings.md',
+  SettingsNamespaceInput: 'settings.md',
   SettingsRegisterOptions: 'settings.md',
+  SettingsSectionHooks: 'settings.md',
   SettingsScope: 'settings.md',
   SettingsDescriptor: 'settings.md',
   SettingsDescribeValue: 'settings.md',
@@ -657,6 +661,7 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   AgentPreset: 'discovered preset record is owned by packages/preset/agent-presets/README.md',
   AgentPresetRoster: 'path-free preset roster is owned by packages/preset/agent-presets/README.md',
   AgentPresetDocument: 'preset composition view is owned by packages/preset/agent-presets/README.md',
+  AgentPresetComposition: 'flattened composition rows are owned by packages/preset/agent-presets/README.md',
   PresetMetadata: 'preset display text is owned by packages/preset/agent-presets/README.md',
   BashEnvContributor: 'service-local extension type is owned by packages/shell/tool-bash/src/index.ts',
   BashEnvVariableInfo: 'service-local metadata type is owned by packages/shell/tool-bash/src/index.ts',
@@ -818,7 +823,7 @@ export function spliceRegion(content: string, region: string): string {
   const begin = begins[0] ?? -1
   const end = ends[0] ?? -1
   if (end < begin) throw new Error('cordis-surface END marker precedes its BEGIN')
-  return [...lines.slice(0, begin), ...region.split('\n'), ...lines.slice(end + 1)].join('\n')
+  return [...lines.slice(0, begin), ...region.replaceAll('\r\n', '\n').split('\n'), ...lines.slice(end + 1)].join('\n')
 }
 
 /** The declared-vs-rendered inputs {@link walkPartitionProblems} judges. */

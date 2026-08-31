@@ -22,7 +22,6 @@ import type {} from '@deepseek-ai/dsh-system-prompt'
 import type {} from '@deepseek-ai/dsh-jobs'
 import type {} from '@deepseek-ai/dsh-shell-env'
 import { DSH_ENV_PREFIX, parseExitStatus } from '@deepseek-ai/dsh-shell'
-import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import type { CollectedOutput, ShellProcess, ShellProcessRead, ShellRunResult } from '@deepseek-ai/dsh-shell'
 
 export const name = 'tool-bash-wsl'
@@ -214,7 +213,7 @@ function canonicalBashResult(result: ShellRunResult) {
  * @param config - the resolved tool configuration.
  */
 /** The settings namespace this tool reads its enablement from. */
-export const WSL_SETTINGS_NAMESPACE = settingsNamespace('bash-wsl')
+export const WSL_SETTINGS_NAMESPACE = 'bash-wsl'
 
 export function apply(ctx: Context, config: Config = {} as Config): void {
   // The tool mounts from the preset composition; its enablement is the desktop

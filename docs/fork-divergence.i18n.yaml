@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/fork-divergence.md
-fork-divergence.md: bd42a2b17bd5bb9b42e5267ceed06f18f2fd1951
-fork-divergence.zh.md: ae696598e034ebfd1bee59d852ae2c345b28fc6e
+fork-divergence.md: 99b9c988caafa80d2c09ecaf0fc1af060b9ae05f
+fork-divergence.zh.md: 318a0a6cfad8f7d832f9901cc52f2a92a9f8da6c

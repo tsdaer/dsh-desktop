@@ -7,6 +7,7 @@ import type {
   ConversationLocationDataStore, ConversationTurnDataMap, TurnLocation,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { assistantText } from '../src/client/chat/turn-assistant.ts'
+import type { TurnTokenUsage } from '../src/client/contract/chat-nodes.ts'
 import { deriveTurnMetrics } from '../src/client/contract/turn-metrics.ts'
 import {
   sameTurnNavigationItem, turnNavigationItem,
@@ -180,6 +181,8 @@ export function chatSnapshotFixture(input: {
   readonly runningCalls?: readonly RunningToolCall[]
   readonly turnTimings?: LegacyConversationSlice['turnTimings']
   readonly turnEnds?: LegacyConversationSlice['turnEnds']
+  /** Per-turn usage buckets; production derives these from session events. */
+  readonly turnUsages?: ReadonlyMap<number, TurnTokenUsage> | undefined
 } = {}, previous?: ChatSnapshot): ChatSnapshot {
   const legacy: LegacyConversationSlice = {
     nodes: input.nodes ?? EMPTY,
@@ -361,6 +364,7 @@ export function chatSnapshotFixture(input: {
         && location.turn.turn === turnNumber
     })
     const metrics = deriveTurnMetrics(legacy.nodes).get(turnNumber)
+    const tokenUsage = input.turnUsages?.get(turnNumber)
     const tailData = {
       turn: turnNumber,
       seq: endSeq,
@@ -377,6 +381,7 @@ export function chatSnapshotFixture(input: {
         || (preceding.data as ReturnType<typeof assistantData>).finalNode.seq !== closing.finalNode.seq,
       ...metrics?.ttftMs === undefined ? {} : { ttftMs: metrics.ttftMs },
       ...metrics?.tokensPerSecond === undefined ? {} : { tokensPerSecond: metrics.tokensPerSecond },
+      ...tokenUsage === undefined ? {} : { tokenUsage },
     }
     dataStore.set('turn-tail', tailData)
     nodes.push({
