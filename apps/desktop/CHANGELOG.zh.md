@@ -2,6 +2,12 @@
 
 dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循[语义化版本](https://semver.org/spec/v2.0.0.html)。draft-release workflow 会把对应版本的章节复制到 GitHub release 的 notes 里。
 
+## [0.5.8] - 2026-09-03
+
+### 变更
+
+- 合并上游 harness master 至 dsh 0.1.2-alpha.5，包含相邻 agent steer、投影缓存兼容性、流式 tool call identity 修复，以及最新的会话与客户端更新。桌面端继续保留 fork 自有 release workflow、已认证的 loopback bridge、文件预览、Worktree 控制、WSL Bash 集成和桌面设置。
+
 ## [0.5.7] - 2026-08-31
 
 ### 变更

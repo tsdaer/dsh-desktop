@@ -1,6 +1,6 @@
 [package]
 name = "dsh-desktop"
-version = "0.5.7"
+version = "0.5.8"
 description = "Tauri 2 desktop shell for the dsh web profile"
 edition = "2021"
 license = "MIT"

@@ -2,6 +2,12 @@
 
 All notable changes to dsh-desktop are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The draft-release workflow copies the matching version's section into its GitHub release notes.
 
+## [0.5.8] - 2026-09-03
+
+### Changed
+
+- Integrated upstream harness master through dsh 0.1.2-alpha.5, including adjacent-agent steering, projection-cache compatibility, streamed tool-call identity fixes, and the latest session and client updates. The desktop retains its fork-owned release workflow, authenticated loopback bridge, file previews, Worktree controls, WSL Bash integration, and desktop settings.
+
 ## [0.5.7] - 2026-08-31
 
 ### Changed
