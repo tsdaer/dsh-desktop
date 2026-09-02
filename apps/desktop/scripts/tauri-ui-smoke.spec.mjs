@@ -55,7 +55,7 @@ test('materializes the committed session fixture without path tokens', () => {
   try {
     const fixture = join(root, 'seed.jsonl');
     const home = join(root, 'home');
-    const sourceFixture = fileURLToPath(new URL('../../web/tests/snapshots/navigation-panes/seed.jsonl', import.meta.url));
+    const sourceFixture = fileURLToPath(new URL('../../../snapshots/web/navigation-panes/session.jsonl', import.meta.url));
     const source = readFileSync(sourceFixture, 'utf8');
     writeFileSync(fixture, source, { encoding: 'utf8' });
     const materialized = materializeFixture(home, fixture);
@@ -86,6 +86,11 @@ test('materializes the committed session fixture without path tokens', () => {
       nextSeq += packed ? record.data.texts?.length ?? record.data.args?.length ?? 1 : 1;
     }
     assert.ok(nextSeq > storedEvents.length, 'packed rows must expand past their line count');
+    const records = storedEvents.map(line => JSON.parse(line));
+    const assistant = records.find(record => record.type === 'assistant/message');
+    const toolResult = records.find(record => record.type === 'tool/result');
+    assert.equal(assistant?.data.message.role, 'assistant');
+    assert.equal(toolResult?.data.message.content[0].type, 'tool-result');
     assert.equal(materialized.patchPath, join(home, 'cordis.patch.yml'));
     assert.match(readFileSync(materialized.patchPath, 'utf8'), /compression: none/);
     assert.match(materialized.sessionPath, new RegExp(`${projectKey(join(home, 'workspace', 'workspace'))}`));

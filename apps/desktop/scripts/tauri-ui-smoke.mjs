@@ -13,7 +13,7 @@ import { runCommand as run } from './run-command.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(here, '../../..');
-const defaultFixture = resolve(repositoryRoot, 'apps/web/tests/snapshots/navigation-panes/seed.jsonl');
+const defaultFixture = resolve(repositoryRoot, 'snapshots/web/navigation-panes/session.jsonl');
 const sensitiveEnvironmentName = /(KEY|SECRET|TOKEN|PASSWORD)/i;
 const driverOutputLimit = 64 * 1024;
 

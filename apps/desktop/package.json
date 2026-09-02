@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-desktop",
-  "version": "0.5.8",
+  "version": "0.5.9",
   "private": true,
   "description": "Tauri 2 desktop shell that hosts the dsh web profile in a native window",
   "type": "module",

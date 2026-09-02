@@ -2,6 +2,12 @@
 
 All notable changes to dsh-desktop are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The draft-release workflow copies the matching version's section into its GitHub release notes.
 
+## [0.5.9] - 2026-09-03
+
+### Fixed
+
+- The installed Linux WebView smoke uses the current recorded session format, allowing the release workflow to verify the terminal card after upstream session-event changes.
+
 ## [0.5.8] - 2026-09-03
 
 ### Changed

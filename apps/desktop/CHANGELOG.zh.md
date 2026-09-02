@@ -2,6 +2,12 @@
 
 dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循[语义化版本](https://semver.org/spec/v2.0.0.html)。draft-release workflow 会把对应版本的章节复制到 GitHub release 的 notes 里。
 
+## [0.5.9] - 2026-09-03
+
+### 修复
+
+- Linux 已安装 WebView 冒烟测试改用当前会话记录格式，使 release workflow 能在上游会话事件变更后继续验证终端卡片。
+
 ## [0.5.8] - 2026-09-03
 
 ### 变更
