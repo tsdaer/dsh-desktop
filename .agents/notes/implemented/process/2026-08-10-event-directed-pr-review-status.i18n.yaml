@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-10-event-directed-pr-review-status.md
-2026-08-10-event-directed-pr-review-status.md: 131ccb0dfaa97f7f70247cbfc9d0915a4ba43cfc
-2026-08-10-event-directed-pr-review-status.zh.md: 6afb0d83d74fbc1cab59c4362a33dc67632010ca
+2026-08-10-event-directed-pr-review-status.md: bd8af6c127a5406e88fe37160ddd8d3b47eba75e
+2026-08-10-event-directed-pr-review-status.zh.md: 33467faa8eb0c92971c489997a5fcb5633f57896

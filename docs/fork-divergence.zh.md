@@ -18,6 +18,8 @@
 |---|---|
 | [`apps/cli/src/profile-boot.ts`](../apps/cli/src/profile-boot.ts) | 把 `DSH_BARE_MODULE_BASE` 透传给 `boot()`，使打包运行时解析内置包的同时，profile 自有 bundle 仍可解析（[note](../.agents/notes/implemented/bug-fix/2026-08-20-desktop-profile-bundle-resolution.zh.md)） |
 | [`packages/client/tsdown.client.ts`](../packages/client/tsdown.client.ts) | 同时从 `apps/*/*/package.json` 解析工作区清单，因为桌面桥接 client 是 `packages/` 之外的工作区包 |
+| [`tsconfig.host.json`](../tsconfig.host.json) | 省略上游的 `apps/desktop` 项目引用及测试/脚本 include：Tauri 外壳通过自己的 `apps/desktop/tsconfig.json` 构建，不进入 Host 聚合 |
+| [`tsdown.config.ts`](../tsdown.config.ts) | Host 工作区构建排除 `apps/desktop`（它没有 `lib/types` 入口）；上游的 Electron 外壳有 |
 | [`packages/client/ui-conversation/src/client/skeleton/HeroShell.module.css`](../packages/client/ui-conversation/src/client/skeleton/HeroShell.module.css) | 新增由桌面端可选开关驱动的 `html[data-dsh-logo-motion]` 悬停规则，浏览器用户仍遵循系统减少动效偏好（[note](../.agents/notes/implemented/feature/2026-08-20-desktop-logo-motion-opt-in.zh.md)） |
 | [`packages/host/webserver/src/index.ts`](../packages/host/webserver/src/index.ts) | 可选 `token` 配置：已注册路由与 upgrade 需要 `Authorization: Bearer`（WebSocket 用 `dsh_token` 查询参数），静态 dist fallback 保持开放；缺省时纯 loopback 姿态不变（[note](../.agents/notes/implemented/feature/2026-08-22-desktop-loopback-token.zh.md)） |
 | [`packages/client/connection/src/client/rpc.ts`](../packages/client/connection/src/client/rpc.ts) | 从页面 URL 读取一次 `?dsh_token`，附加到每个通用 RPC fetch 作为 `Authorization: Bearer` header；无该查询参数的普通浏览器保持不变（[note](../.agents/notes/implemented/feature/2026-08-22-desktop-loopback-token.zh.md)）。上游在 browser-auth 重构中删除了旧的 `web-api-client.ts` bearer 路径；桌面的 bridge 路由保留在 `apps/desktop/bridge-client/src/client/bridge-fetch.ts` 中的自有 bearer 拾取 |
@@ -40,6 +42,8 @@
 | [`.gitignore`](../.gitignore) | 忽略桌面构建产物 `src-tauri/target/`、`src-tauri/gen/`、`src-tauri/binaries/`、`.bridge-pack/`、`.runtime/`，以及 `temp/` |
 
 ## 移除的上游自动化
+
+上游新增了它自己的基于 Electron 的 apps/desktop（PR #3413）；本 fork 在合并时拒绝该目录树，并保留[桌面 README](../apps/desktop/README.zh.md) 所述的 Tauri 2 外壳。
 
 本 fork 不保留任何继承来的工作流。`build-exe-for-python-sdk.yml`、`build-preview-cloudflare.yml`、`ci.yml`、`ci-master.yml`、`docs-pages.yml`、`e2b-e2e.yml`、`e2e.yml`、`expected-filenames.yml`、`issue-lifecycle.yml`、`issue-policy.yml`、`landlock-run.yml`、`landlock-run-release.yml`、`pi-ai-provider-e2e.yml`、`python-release.yml`、`release.yml`、`release-publish.yml`、`release-vendor.yml`、`release-vendor-publish.yml` 与 `sandbox.yml` 全部缺失，且都不恢复。
 

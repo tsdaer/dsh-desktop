@@ -18,6 +18,8 @@ The [root standing orders](../AGENTS.md) carry the obligation, and [the README](
 |---|---|
 | [`apps/cli/src/profile-boot.ts`](../apps/cli/src/profile-boot.ts) | Forwards `DSH_BARE_MODULE_BASE` into `boot()` so a packaged runtime resolves built-in packages while profile-owned bundles stay resolvable ([note](../.agents/notes/implemented/bug-fix/2026-08-20-desktop-profile-bundle-resolution.md)) |
 | [`packages/client/tsdown.client.ts`](../packages/client/tsdown.client.ts) | Resolves workspace manifests from `apps/*/*/package.json` as well, because the desktop bridge client is a workspace package outside `packages/` |
+| [`tsconfig.host.json`](../tsconfig.host.json) | Omits upstream's `apps/desktop` project reference and test/script includes: the Tauri shell builds through its own `apps/desktop/tsconfig.json`, not the Host aggregate |
+| [`tsdown.config.ts`](../tsdown.config.ts) | Host workspace build excludes `apps/desktop`, which has no `lib/types` entry points; upstream's Electron shell did |
 | [`packages/client/ui-conversation/src/client/skeleton/HeroShell.module.css`](../packages/client/ui-conversation/src/client/skeleton/HeroShell.module.css) | Adds the `html[data-dsh-logo-motion]` hover rule the desktop opt-in drives, leaving browser users on the system reduced-motion preference ([note](../.agents/notes/implemented/feature/2026-08-20-desktop-logo-motion-opt-in.md)) |
 | [`packages/host/webserver/src/index.ts`](../packages/host/webserver/src/index.ts) | Optional `token` config: registered routes and upgrades require `Authorization: Bearer` (or the `dsh_token` query for WebSockets) while the static dist fallback stays open; omitted, the plain loopback posture is unchanged ([note](../.agents/notes/implemented/feature/2026-08-22-desktop-loopback-token.md)) |
 | [`packages/client/connection/src/client/rpc.ts`](../packages/client/connection/src/client/rpc.ts) | Picks up `?dsh_token` from the page URL once and attaches it to every generic RPC fetch as an `Authorization: Bearer` header; a plain browser without the query is unchanged ([note](../.agents/notes/implemented/feature/2026-08-22-desktop-loopback-token.md)). Upstream deleted the old `web-api-client.ts` bearer path in the browser-auth rework; the desktop's bridge routes keep their own bearer pickup in `apps/desktop/bridge-client/src/client/bridge-fetch.ts` |
@@ -40,6 +42,8 @@ The [root standing orders](../AGENTS.md) carry the obligation, and [the README](
 | [`.gitignore`](../.gitignore) | Ignores the desktop build outputs `src-tauri/target/`, `src-tauri/gen/`, `src-tauri/binaries/`, `.bridge-pack/`, and `.runtime/`, plus `temp/` |
 
 ## Removed upstream automation
+
+Upstream added its own Electron-based `apps/desktop` (PR #3413); this fork rejects that tree on merge and keeps the Tauri 2 shell described in [the desktop README](../apps/desktop/README.md).
 
 This fork keeps no inherited workflow. `build-exe-for-python-sdk.yml`, `build-preview-cloudflare.yml`, `ci.yml`, `ci-master.yml`, `docs-pages.yml`, `e2b-e2e.yml`, `e2e.yml`, `expected-filenames.yml`, `issue-lifecycle.yml`, `issue-policy.yml`, `landlock-run.yml`, `landlock-run-release.yml`, `pi-ai-provider-e2e.yml`, `python-release.yml`, `release.yml`, `release-publish.yml`, `release-vendor.yml`, `release-vendor-publish.yml`, and `sandbox.yml` are all absent, and none of them is restored.
 
