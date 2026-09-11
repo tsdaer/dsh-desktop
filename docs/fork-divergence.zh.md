@@ -31,6 +31,7 @@
 | [`scripts/install-lefthook.mjs`](../scripts/install-lefthook.mjs) | 惰性导入 lefthook 的清单，使裁掉该 devDependency 的生产安装不会让 `postinstall` 失败（[note](../.agents/notes/implemented/bug-fix/2026-08-16-root-postinstall-production-install.zh.md)） |
 | [`scripts/gen-config-catalog.ts`](../scripts/gen-config-catalog.ts) | 将粘贴的声明规范为 LF，使 Windows CRLF checkout 生成与其他主机相同的双语目录（[note](../.agents/notes/implemented/process/2026-08-08-native-windows-pull-request-ci.zh.md)） |
 | [`scripts/gen-cordis-catalog.ts`](../scripts/gen-cordis-catalog.ts) | 将生成的 Cordis 区域规范为 LF，为双语配对提供相同的跨主机保证（[note](../.agents/notes/implemented/process/2026-08-08-native-windows-pull-request-ci.zh.md)） |
+| [`scripts/gen-tool-catalog.ts`](../scripts/gen-tool-catalog.ts) | 把本 fork 的 `bash-wsl` 工具加入待编目集合，使生成的 [`docs/tool-catalog.md`](tool-catalog.zh.md) 与英文版带有该行与章节 |
 | [`scripts/desktop-release-workflow.spec.ts`](../scripts/desktop-release-workflow.spec.ts) | 新增，用于固定本 fork 自有的发布工作流 |
 
 ## 构建与 CI 配置
@@ -40,12 +41,13 @@
 | [`.github/workflows/desktop-release.yml`](../.github/workflows/desktop-release.yml) | 新增：标签门控的签名桌面发布（[note](../.agents/notes/implemented/process/2026-08-17-tag-gated-desktop-release-builds.zh.md)） |
 | [`.github/dependabot.yml`](../.github/dependabot.yml) | 去掉 `python/sdk` 的 `uv` 生态条目，本 fork 不发布它 |
 | [`.gitignore`](../.gitignore) | 忽略桌面构建产物 `src-tauri/target/`、`src-tauri/gen/`、`src-tauri/binaries/`、`.bridge-pack/`、`.runtime/`，以及 `temp/` |
+| [`pnpm-workspace.yaml`](../pnpm-workspace.yaml) | 去掉上游在 `patchedDependencies` 中的 `@electron/osx-sign` 条目，以及 `patches/@electron__osx-sign@1.3.3.patch`；只有 Electron 打包器会读该补丁，而未使用的补丁会让 `pnpm install` 失败 |
 
 ## 移除的上游自动化
 
-上游新增了它自己的基于 Electron 的 apps/desktop（PR #3413）；本 fork 在合并时拒绝该目录树，并保留[桌面 README](../apps/desktop/README.zh.md) 所述的 Tauri 2 外壳。
+上游新增了它自己的基于 Electron 的 apps/desktop（PR #3413）；本 fork 保留[桌面 README](../apps/desktop/README.zh.md) 所述的 Tauri 2 外壳，上游在该路径下新增的任何文件都不会在合并后留存。
 
-本 fork 不保留任何继承来的工作流。`build-exe-for-python-sdk.yml`、`build-preview-cloudflare.yml`、`ci.yml`、`ci-master.yml`、`docs-pages.yml`、`e2b-e2e.yml`、`e2e.yml`、`expected-filenames.yml`、`issue-lifecycle.yml`、`issue-policy.yml`、`landlock-run.yml`、`landlock-run-release.yml`、`pi-ai-provider-e2e.yml`、`python-release.yml`、`release.yml`、`release-publish.yml`、`release-vendor.yml`、`release-vendor-publish.yml` 与 `sandbox.yml` 全部缺失，且都不恢复。
+本 fork 不保留任何继承来的工作流。上游的 `build-exe-for-python-sdk.yml`、`build-preview-cloudflare.yml`、`ci.yml`、`ci-master.yml`、`docs-pages.yml`、`e2b-e2e.yml`、`e2e.yml`、`expected-filenames.yml`、`issue-lifecycle.yml`、`issue-policy.yml`、`node-addon-system.yml`、`node-addon-system-release.yml`、`pi-ai-provider-e2e.yml`、`python-release.yml`、`release.yml`、`release-publish.yml`、`release-vendor.yml`、`release-vendor-publish.yml`、`sandbox.yml`、`weighted-approval.yml` 与 `weighted-approval-review-event.yml` 全部缺失，且都不恢复。这些工作流驱动的辅助目录 `.github/issue-management/` 与 `.github/review-ownership/` 保留，因为它们的测试本身不读取工作流。
 
 有一个后果是关键的：`scripts/ci-workflow.spec.ts` 会读取这些文件，因此它在本 fork 里以 `.github/workflows/ci.yml` 的 `ENOENT` 失败。该失败在此处属于预期，并不表示存在缺陷。不要通过恢复上游自动化来消除它。
 

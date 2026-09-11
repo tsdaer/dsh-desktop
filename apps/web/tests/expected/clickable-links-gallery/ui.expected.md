@@ -1,10 +1,9 @@
 - banner:
   - navigation "Session hierarchy":
     - button "Clickable links gallery" [disabled]
-  - button "Session log":
-    - text: Session log
+  - button "More actions":
     - img
-  - button "Open the sidebar":
+  - button "Open right sidebar":
     - img
   - tablist:
     - tab "Chat" [selected]
@@ -154,7 +153,7 @@
 - paragraph:
   - text: Wrote
   - code:
-    - button "Open site/report.html": report.html
+    - button "Open site/report.html in sidebar": report.html
   - text: plus two
   - code: style.css
   - text: copies;
@@ -170,7 +169,7 @@
 - list:
   - listitem:
     - paragraph: Footnote references stay inert superscripts. ↩
-- text: Produced
+- text: Files changed
 - button "Open site/report.html": report.html
 - button "Open a/style.css": style.css
 - button "Open b/style.css": style.css
@@ -192,14 +191,14 @@
 - text: {{clock}}
 - button "Back to bottom":
   - img
-- textbox "Message or run a task... / commands, @ files or sessions"
-- button "Commands":
-  - img
-- button "Add attachment":
+- textbox "Message or run a task, / commands, @ files or sessions"
+- button "Add files or run commands":
   - img
 - 'button "Access mode, current: Workspace Write"': Workspace Write
 - button "Select model, current DeepSeek-V4-Flash":
   - text: DeepSeek-V4-Flash
   - img
 - button "Send message" [disabled]
-- text: 1 turns · 2 steps LLM {{duration}} · Tool call {{duration}}
+- button "1 turns 2 steps":
+  - img
+  - text: 1 turns 2 steps

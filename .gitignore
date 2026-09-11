@@ -51,3 +51,4 @@ worktrees/
 apps/desktop/.runtime/
 apps/desktop/src-tauri/runtime/
 apps/desktop/src-tauri/binaries/
+native/system/test/bin/

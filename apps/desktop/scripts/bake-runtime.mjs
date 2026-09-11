@@ -336,14 +336,14 @@ function pruneNodeModules(root) {
 }
 
 /// Map every workspace package name to its source directory.
-/// Layout: packages/<group>/<pkg>, vendor/<pkg>, apps/<pkg>, native/<pkg>/packages/<pkg>.
+/// Layout: packages/<group>/<pkg>, vendor/<pkg>, apps/<pkg>, native/system/packages/<pkg>.
 function workspaceSources() {
   const map = new Map();
   const roots = [
     join(repoRoot, 'packages'),
     join(repoRoot, 'vendor'),
     join(repoRoot, 'apps'),
-    join(repoRoot, 'native/landlock-run/packages'),
+    join(repoRoot, 'native/system/packages'),
   ];
   const candidates = [];
   for (const root of roots) {

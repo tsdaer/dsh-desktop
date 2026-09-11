@@ -31,6 +31,7 @@ The [root standing orders](../AGENTS.md) carry the obligation, and [the README](
 | [`scripts/install-lefthook.mjs`](../scripts/install-lefthook.mjs) | Imports lefthook's manifest lazily, so a production install that prunes the devDependency does not fail `postinstall` ([note](../.agents/notes/implemented/bug-fix/2026-08-16-root-postinstall-production-install.md)) |
 | [`scripts/gen-config-catalog.ts`](../scripts/gen-config-catalog.ts) | Normalizes pasted declarations to LF so Windows CRLF checkouts generate the same bilingual catalog as other hosts ([note](../.agents/notes/implemented/process/2026-08-08-native-windows-pull-request-ci.md)) |
 | [`scripts/gen-cordis-catalog.ts`](../scripts/gen-cordis-catalog.ts) | Normalizes generated Cordis regions to LF for the same cross-host bilingual pairing guarantee ([note](../.agents/notes/implemented/process/2026-08-08-native-windows-pull-request-ci.md)) |
+| [`scripts/gen-tool-catalog.ts`](../scripts/gen-tool-catalog.ts) | Adds the fork's `bash-wsl` tool to the catalogued set, so the generated [`docs/tool-catalog.md`](tool-catalog.md) and its Chinese counterpart carry that row and section |
 | [`scripts/desktop-release-workflow.spec.ts`](../scripts/desktop-release-workflow.spec.ts) | Added to pin the release workflow this fork owns |
 
 ## Build and CI configuration
@@ -40,12 +41,13 @@ The [root standing orders](../AGENTS.md) carry the obligation, and [the README](
 | [`.github/workflows/desktop-release.yml`](../.github/workflows/desktop-release.yml) | Added: the tag-gated signed desktop release ([note](../.agents/notes/implemented/process/2026-08-17-tag-gated-desktop-release-builds.md)) |
 | [`.github/dependabot.yml`](../.github/dependabot.yml) | Drops the `uv` ecosystem entry for `python/sdk`, which this fork does not release |
 | [`.gitignore`](../.gitignore) | Ignores the desktop build outputs `src-tauri/target/`, `src-tauri/gen/`, `src-tauri/binaries/`, `.bridge-pack/`, and `.runtime/`, plus `temp/` |
+| [`pnpm-workspace.yaml`](../pnpm-workspace.yaml) | Drops upstream's `@electron/osx-sign` entry from `patchedDependencies`, together with `patches/@electron__osx-sign@1.3.3.patch`; only the Electron packager reads that patch, and `pnpm install` fails on an unused one |
 
 ## Removed upstream automation
 
-Upstream added its own Electron-based `apps/desktop` (PR #3413); this fork rejects that tree on merge and keeps the Tauri 2 shell described in [the desktop README](../apps/desktop/README.md).
+Upstream added its own Electron-based `apps/desktop` (PR #3413); this fork keeps the Tauri 2 shell described in [the desktop README](../apps/desktop/README.md), and no file upstream adds under that path survives a merge.
 
-This fork keeps no inherited workflow. `build-exe-for-python-sdk.yml`, `build-preview-cloudflare.yml`, `ci.yml`, `ci-master.yml`, `docs-pages.yml`, `e2b-e2e.yml`, `e2e.yml`, `expected-filenames.yml`, `issue-lifecycle.yml`, `issue-policy.yml`, `landlock-run.yml`, `landlock-run-release.yml`, `pi-ai-provider-e2e.yml`, `python-release.yml`, `release.yml`, `release-publish.yml`, `release-vendor.yml`, `release-vendor-publish.yml`, and `sandbox.yml` are all absent, and none of them is restored.
+This fork keeps no inherited workflow. Upstream's `build-exe-for-python-sdk.yml`, `build-preview-cloudflare.yml`, `ci.yml`, `ci-master.yml`, `docs-pages.yml`, `e2b-e2e.yml`, `e2e.yml`, `expected-filenames.yml`, `issue-lifecycle.yml`, `issue-policy.yml`, `node-addon-system.yml`, `node-addon-system-release.yml`, `pi-ai-provider-e2e.yml`, `python-release.yml`, `release.yml`, `release-publish.yml`, `release-vendor.yml`, `release-vendor-publish.yml`, `sandbox.yml`, `weighted-approval.yml`, and `weighted-approval-review-event.yml` are all absent, and none of them is restored. The helper directories those workflows drive, `.github/issue-management/` and `.github/review-ownership/`, stay because their own tests read no workflow.
 
 One consequence is load-bearing: `scripts/ci-workflow.spec.ts` reads those files, so it fails here with `ENOENT` on `.github/workflows/ci.yml`. That failure is expected in this fork and is not evidence of a defect. Do not silence it by restoring upstream automation.
 
