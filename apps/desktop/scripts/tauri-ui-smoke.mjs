@@ -143,6 +143,7 @@ export function realizePersistedFixture(fixtureText, workspace, sessionId) {
     version: recordedHeader.version,
     id: sessionId,
     createdAt: recordedHeader.createdAt,
+    isSeeded: false,
     cwd: join(workspace, 'workspace'),
     delegationDepth: 0,
     agentPreset: 'standard',
@@ -173,6 +174,22 @@ export function realizePersistedFixture(fixtureText, workspace, sessionId) {
 }
 
 /**
+ * Name the persistence log of one Session format generation. The backend
+ * refuses a log whose filename and header disagree, so the seeded file must
+ * carry the generation of the header it is written with; this mirrors
+ * `sessionFormatLogFilename` in `@deepseek-ai/dsh-session-format`.
+ *
+ * @param {number} version Non-negative Session format generation.
+ * @returns {string} Canonical basename for that generation.
+ */
+export function persistedLogName(version) {
+  if (!Number.isSafeInteger(version) || version < 0) {
+    throw new Error(`native UI fixture generation must be a non-negative safe integer: ${version}`);
+  }
+  return version === 0 ? 'session.jsonl' : `session.v${version}.jsonl`;
+}
+
+/**
  * Materialize a committed session fixture in the runtime's plaintext JSONL
  * mode. The temporary home patch selects the same compression explicitly;
  * this keeps the fixture writer independent of private Zstandard APIs.
@@ -197,12 +214,13 @@ export function materializeFixture(home, fixturePath) {
   ].join('\n'), { encoding: 'utf8' });
 
   const contents = realizePersistedFixture(readFileSync(fixturePath, 'utf8'), workspace, sessionId);
+  const generation = JSON.parse(contents.split('\n', 1)[0]).version;
   const sessionPath = join(
     home,
     'sessions',
     projectKey(join(workspace, 'workspace')),
     encodeSegment(sessionId),
-    'session.jsonl',
+    persistedLogName(generation),
   );
   mkdirSync(dirname(sessionPath), { recursive: true });
   writeFileSync(sessionPath, contents, { encoding: 'utf8' });

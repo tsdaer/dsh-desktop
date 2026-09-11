@@ -16,6 +16,7 @@ import {
   materializeFixture,
   nativeUiDriverEnvironment,
   parseArguments,
+  persistedLogName,
   projectKey,
   redactNativeUiDiagnostics,
   realizePersistedFixture,
@@ -69,6 +70,7 @@ test('materializes the committed session fixture without path tokens', () => {
       version: recordedHeader.version,
       id: 'dsh-desktop-native-ui',
       createdAt: recordedHeader.createdAt,
+      isSeeded: false,
       cwd: join(home, 'workspace', 'workspace'),
       delegationDepth: 0,
       agentPreset: 'standard',
@@ -92,6 +94,7 @@ test('materializes the committed session fixture without path tokens', () => {
     const toolResult = records.find(record => record.type === 'tool/result');
     assert.equal(assistant?.data.message.role, 'assistant');
     assert.equal(toolResult?.data.message.content[0].type, 'tool-result');
+    assert.equal(materialized.sessionPath, join(home, 'sessions', projectKey(join(home, 'workspace', 'workspace')), encodeSegment(materialized.sessionId), persistedLogName(recordedHeader.version)));
     assert.equal(materialized.patchPath, join(home, 'cordis.patch.yml'));
     assert.match(readFileSync(materialized.patchPath, 'utf8'), /compression: none/);
     assert.match(materialized.sessionPath, new RegExp(`${projectKey(join(home, 'workspace', 'workspace'))}`));
@@ -99,6 +102,13 @@ test('materializes the committed session fixture without path tokens', () => {
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test('names the seeded log by its declared generation', () => {
+  assert.equal(persistedLogName(0), 'session.jsonl');
+  assert.equal(persistedLogName(3), 'session.v3.jsonl');
+  assert.throws(() => persistedLogName(-1), /non-negative safe integer/);
+  assert.throws(() => persistedLogName(1.5), /non-negative safe integer/);
 });
 
 test('advances seq past the line count when a fixture carries packed chunk rows', () => {
