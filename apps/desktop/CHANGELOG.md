@@ -2,6 +2,12 @@
 
 All notable changes to dsh-desktop are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The draft-release workflow copies the matching version's section into its GitHub release notes.
 
+## [0.5.10] - 2026-09-11
+
+### Changed
+
+- Integrated upstream harness master through dsh 0.1.5-rc.2 (852 commits), advancing the hosted web profile from dsh 0.1.2-alpha.5. The merge carries the `present` deliverable tool with its conversation cards, the v3 session format together with the adjacent v0-to-v1, v1-to-v2, and v2-to-v3 migrations, the client resource and sidebar restructuring (file upload, in-app file opening, document preview, right sidebar docking), HTTP proxy support, and the rename of the native launcher packages from `native/landlock-run` to `native/system`. The desktop retains its fork-owned release workflow, authenticated loopback bridge, file previews, Worktree controls, WSL Bash integration, and desktop settings.
+
 ## [0.5.9] - 2026-09-03
 
 ### Fixed

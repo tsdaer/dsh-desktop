@@ -2,6 +2,12 @@
 
 dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循[语义化版本](https://semver.org/spec/v2.0.0.html)。draft-release workflow 会把对应版本的章节复制到 GitHub release 的 notes 里。
 
+## [0.5.10] - 2026-09-11
+
+### 变更
+
+- 合并上游 harness master 至 dsh 0.1.5-rc.2（852 个提交），把承载的 web profile 从 dsh 0.1.2-alpha.5 推进到该版本。本次合并带来 `present` 交付工具及其会话卡片、v3 会话格式连同 v0 到 v1、v1 到 v2、v2 到 v3 的相邻迁移、客户端资源与侧边栏重组（文件上传、应用内打开文件、文档预览、右侧栏停靠）、HTTP 代理支持，以及原生启动器包从 `native/landlock-run` 到 `native/system` 的重命名。桌面端继续保留 fork 自有 release workflow、已认证的 loopback bridge、文件预览、Worktree 控制、WSL Bash 集成和桌面设置。
+
 ## [0.5.9] - 2026-09-03
 
 ### 修复

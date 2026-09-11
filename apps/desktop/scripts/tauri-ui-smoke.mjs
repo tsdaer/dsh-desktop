@@ -1,7 +1,7 @@
 // Drive one installed Linux desktop package through WebKitWebDriver. The
 // session fixture is a committed keyless transcript, so this check observes
 // the native Tauri WebView while keeping model traffic out of CI.
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { createConnection } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -13,9 +13,35 @@ import { runCommand as run } from './run-command.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(here, '../../..');
-const defaultFixture = resolve(repositoryRoot, 'snapshots/web/navigation-panes/session.jsonl');
+const scenarioDirectory = resolve(repositoryRoot, 'snapshots/web/navigation-panes');
 const sensitiveEnvironmentName = /(KEY|SECRET|TOKEN|PASSWORD)/i;
 const driverOutputLimit = 64 * 1024;
+/** Canonical parent-role fixture name: `session.jsonl` or `session.vN.jsonl`. */
+const parentFixtureName = /^session(?:\.v([1-9]\d*))?\.jsonl$/u;
+
+/**
+ * Resolve the newest recorded generation of a scenario's parent fixture.
+ * A scenario keeps one file per Session format generation and replay reads the
+ * highest, so a hardcoded generation name breaks whenever the corpus advances.
+ *
+ * @param {string} directory Scenario directory holding the recorded fixture.
+ * @returns {string} Absolute path of the highest-generation parent fixture.
+ */
+export function highestGenerationFixture(directory) {
+  const candidates = [];
+  for (const name of readdirSync(directory)) {
+    const match = parentFixtureName.exec(name);
+    if (match === null) continue;
+    candidates.push({ name, version: match[1] === undefined ? 0 : Number(match[1]) });
+  }
+  if (candidates.length === 0) {
+    throw new Error(`${directory}: no canonical session[.vN].jsonl fixture to replay`);
+  }
+  candidates.sort((left, right) => right.version - left.version);
+  return join(directory, candidates[0].name);
+}
+
+const defaultFixture = highestGenerationFixture(scenarioDirectory);
 
 /**
  * Parse the Linux native WebView smoke options.

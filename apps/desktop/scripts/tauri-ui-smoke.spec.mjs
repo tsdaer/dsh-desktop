@@ -11,6 +11,7 @@ import {
   advanceWelcomeNotice,
   advanceSeededSessionNavigation,
   encodeSegment,
+  highestGenerationFixture,
   isClosedWindowError,
   materializeFixture,
   nativeUiDriverEnvironment,
@@ -55,17 +56,19 @@ test('materializes the committed session fixture without path tokens', () => {
   try {
     const fixture = join(root, 'seed.jsonl');
     const home = join(root, 'home');
-    const sourceFixture = fileURLToPath(new URL('../../../snapshots/web/navigation-panes/session.jsonl', import.meta.url));
+    const scenario = fileURLToPath(new URL('../../../snapshots/web/navigation-panes/', import.meta.url));
+    const sourceFixture = highestGenerationFixture(scenario);
     const source = readFileSync(sourceFixture, 'utf8');
+    const recordedHeader = JSON.parse(source.split('\n', 1)[0]);
     writeFileSync(fixture, source, { encoding: 'utf8' });
     const materialized = materializeFixture(home, fixture);
     const stored = readFileSync(materialized.sessionPath, 'utf8');
     const header = JSON.parse(stored.split('\n', 1)[0]);
     assert.deepEqual(header, {
       type: 'session',
-      version: 0,
+      version: recordedHeader.version,
       id: 'dsh-desktop-native-ui',
-      createdAt: 1785011380476,
+      createdAt: recordedHeader.createdAt,
       cwd: join(home, 'workspace', 'workspace'),
       delegationDepth: 0,
       agentPreset: 'standard',
@@ -73,8 +76,7 @@ test('materializes the committed session fixture without path tokens', () => {
     assert.equal(stored.includes('{{sessionId}}'), false);
     assert.equal(stored.includes('{{cwd}}'), false);
     // Projected fixtures omit envelopes; the realized log must carry contiguous
-    // seq on every event (packed chunk rows advance by their member count) so
-    // the JSONL backend can commit the whole session.
+    // seq on every event so the JSONL backend can commit the whole session.
     const storedEvents = stored.split(String.fromCharCode(10)).slice(1).filter(line => line.trim().length > 0);
     assert.ok(storedEvents.length > 0, 'realized fixture must contain events');
     let nextSeq = 0;
@@ -85,7 +87,6 @@ test('materializes the committed session fixture without path tokens', () => {
       assert.equal(seq, nextSeq, record.type + ' must carry contiguous seq');
       nextSeq += packed ? record.data.texts?.length ?? record.data.args?.length ?? 1 : 1;
     }
-    assert.ok(nextSeq > storedEvents.length, 'packed rows must expand past their line count');
     const records = storedEvents.map(line => JSON.parse(line));
     const assistant = records.find(record => record.type === 'assistant/message');
     const toolResult = records.find(record => record.type === 'tool/result');
@@ -95,6 +96,35 @@ test('materializes the committed session fixture without path tokens', () => {
     assert.match(readFileSync(materialized.patchPath, 'utf8'), /compression: none/);
     assert.match(materialized.sessionPath, new RegExp(`${projectKey(join(home, 'workspace', 'workspace'))}`));
     assert.match(materialized.sessionPath, new RegExp(encodeSegment(materialized.sessionId)));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('advances seq past the line count when a fixture carries packed chunk rows', () => {
+  const header = JSON.stringify({ type: 'session', version: 3, id: '{{sessionId}}', createdAt: 0, cwd: '{{cwd}}' });
+  const packed = JSON.stringify({ type: 'text-chunks', data: { texts: ['a', 'b', 'c'] } });
+  const ordinary = JSON.stringify({ type: 'turn/start', data: {} });
+  const realized = realizePersistedFixture([header, packed, ordinary].join('\n'), '/tmp/workspace', 'smoke');
+  const rows = realized.split('\n').slice(1).map(line => JSON.parse(line));
+  assert.deepEqual(rows.map(row => row.type === 'text-chunks' ? row.seq0 : row.seq), [0, 3]);
+});
+
+test('selects the highest recorded generation of a scenario fixture', () => {
+  const root = mkdtempSync(join(tmpdir(), 'dsh-tauri-ui-generation-'));
+  try {
+    writeFileSync(join(root, 'session.jsonl'), '{}\n');
+    writeFileSync(join(root, 'session.v2.jsonl'), '{}\n');
+    writeFileSync(join(root, 'session.v3.jsonl'), '{}\n');
+    writeFileSync(join(root, 'session.1.v3.jsonl'), '{}\n');
+    writeFileSync(join(root, 'snapshot.yml'), 'version: 1\n');
+    assert.equal(highestGenerationFixture(root), join(root, 'session.v3.jsonl'));
+    rmSync(join(root, 'session.v3.jsonl'));
+    assert.equal(highestGenerationFixture(root), join(root, 'session.v2.jsonl'));
+    rmSync(join(root, 'session.v2.jsonl'));
+    assert.equal(highestGenerationFixture(root), join(root, 'session.jsonl'));
+    rmSync(join(root, 'session.jsonl'));
+    assert.throws(() => highestGenerationFixture(root), /no canonical session/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
