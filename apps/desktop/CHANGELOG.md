@@ -2,6 +2,13 @@
 
 All notable changes to dsh-desktop are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The draft-release workflow copies the matching version's section into its GitHub release notes.
 
+## [0.5.11] - 2026-09-13
+
+### Fixed
+
+- Workspace Explorer "Open with dsh-desktop" routing realigns with the current client-store contracts: the workspace list readiness lifecycle (`phase`) and session starting through the `uiWorkspace` navigation service. A forwarded directory again switches to the owning Workspace and opens its most recent session, or offers Workspace registration when no Workspace owns the directory.
+- Session activation failures whose error text matches an installed plugin reaching for a context member this build no longer provides now carry a diagnostic hint naming third-party plugin incompatibility, in both the resume and create failure messages and their error details.
+
 ## [0.5.10] - 2026-09-11
 
 ### Changed
