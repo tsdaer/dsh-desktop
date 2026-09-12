@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-13-desktop-bridge-client-store-contract.md
+2026-09-13-desktop-bridge-client-store-contract.md: 025bbb9d5c592a3d6b9a8813e832b0276afea863
+2026-09-13-desktop-bridge-client-store-contract.zh.md: b1faae9978cfda3ad953b20ebae2e145a781641b

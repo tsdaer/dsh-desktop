@@ -37,7 +37,7 @@ import { en, zh } from './locales.ts'
 export const name = 'desktop-bridge-client'
 
 /** Services required before the listener and settings rows can run. */
-export const inject = ['sessions', 'workspaces', 'slots', 'locale', 'theme']
+export const inject = ['sessions', 'workspaces', 'slots', 'locale', 'theme', 'uiWorkspace']
 
 /** Minimal view of the client-runtime sessions service this plugin consumes. */
 interface SessionsLike {
@@ -52,14 +52,17 @@ interface SessionsLike {
 interface WorkspacesLike {
   list: {
     getSnapshot(): {
-      baselinesReady: boolean
+      phase: 'pending' | 'ready'
       items: readonly { workspaceId: string; path: string; title: string; sessionIds: readonly string[] }[]
     }
     subscribe(listener: () => void): () => void
   }
   create(input: { path: string }): Promise<{ workspaceId: string }>
+}
+
+/** Minimal view of the uiWorkspace navigation service this plugin consumes. */
+interface UiWorkspaceLike {
   startSession(workspaceId?: string): void
-  openPath(path: string): Promise<void>
 }
 
 /** Minimal view of the slots service this plugin consumes. */
@@ -78,6 +81,7 @@ interface LocaleLike {
 interface BridgeClientContext {
   sessions: SessionsLike
   workspaces: WorkspacesLike
+  uiWorkspace: UiWorkspaceLike
   slots: SlotsLike
   locale: LocaleLike
   theme: {
@@ -359,10 +363,10 @@ const NS = 'settings.bridge'
  */
 function waitForWorkspaces(ctx: BridgeClientContext): Promise<void> {
   const list = ctx.workspaces.list
-  if (list.getSnapshot().baselinesReady) return Promise.resolve()
+  if (list.getSnapshot().phase === 'ready') return Promise.resolve()
   return new Promise((resolve) => {
     const unsubscribe = list.subscribe(() => {
-      if (!list.getSnapshot().baselinesReady) return
+      if (list.getSnapshot().phase !== 'ready') return
       unsubscribe()
       resolve()
     })
@@ -387,7 +391,7 @@ function openWorkspace(ctx: BridgeClientContext, workspaceId: string): void {
     .filter(id => sessions.byId[id] !== undefined)
     .sort((a, b) => (sessions.byId[b]?.updatedAt ?? 0) - (sessions.byId[a]?.updatedAt ?? 0))[0]
   if (mostRecent !== undefined) ctx.sessions.open(mostRecent)
-  else ctx.workspaces.startSession(workspaceId)
+  else ctx.uiWorkspace.startSession(workspaceId)
 }
 
 function confirmWorkspace(path: string, t: (key: string) => string): Promise<boolean> {
@@ -454,7 +458,7 @@ async function openExplorerPath(ctx: BridgeClientContext, path: string, t: (key:
   if (!await confirmWorkspace(path, t)) return
   try {
     const workspace = await ctx.workspaces.create({ path })
-    ctx.workspaces.startSession(workspace.workspaceId)
+    ctx.uiWorkspace.startSession(workspace.workspaceId)
   } catch (error) {
     window.alert(t('workspace.addFailed') + String(error))
   }
