@@ -28,6 +28,7 @@ import {
   ApiSessionNotFound,
   ApiSessionPresetConflict,
   ApiSessionSubagentOwnership,
+  apiSessionPluginHint,
   apiSessionSubagentOwnershipError,
   hasApiSessionSubagentOwner,
   inspectApiSession,
@@ -535,7 +536,12 @@ export class SessionCommandController {
     if (error instanceof ApiSessionSubagentOwnership) {
       throw apiSessionSubagentOwnershipError(error.sessionId)
     }
-    throw new RemoteError('gateway/internal', `failed to create session "${sessionId}": ${String(error)}`, {})
+    const hint = apiSessionPluginHint(error)
+    throw new RemoteError(
+      'gateway/internal',
+      `failed to create session "${sessionId}": ${String(error)}${hint === undefined ? '' : ` (${hint})`}`,
+      hint === undefined ? {} : { hint },
+    )
   }
 
   private async readSessionState(sessionId: SessionId): Promise<SessionReadState> {

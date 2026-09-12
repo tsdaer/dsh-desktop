@@ -15,6 +15,7 @@ import {
   ApiSessionCwdConflict,
   ApiSessionNotFound,
   ApiSessionSubagentOwnership,
+  apiSessionPluginHint,
   inspectApiSession,
 } from '../src/agent.ts'
 import { installModelSelectionProjection } from '../src/model-selection-projection.ts'
@@ -234,6 +235,31 @@ describe('ApiSession Agent lookup and recovery', () => {
     vi.spyOn(failed.ctx.agents, 'resume').mockRejectedValue(new Error('factory unavailable'))
     await expect(failed.agents.resolveAgent(meta.id)).resolves.toMatchObject({
       error: { code: 'gateway/internal', message: expect.stringContaining('factory unavailable') as string },
+    })
+  })
+
+  it('hints at plugin incompatibility only for context-resolution failures', async () => {
+    expect(apiSessionPluginHint(new Error('cannot get property "agent" without inject')))
+      .toContain('an installed plugin may be incompatible')
+    expect(apiSessionPluginHint(new Error('cannot get required service "tools" in inactive context')))
+      .toContain('an installed plugin may be incompatible')
+    expect(apiSessionPluginHint(new Error('factory unavailable'))).toBeUndefined()
+    expect(apiSessionPluginHint('without inject')).toContain('an installed plugin may be incompatible')
+
+    const mismatched = await harness()
+    const meta = header('plugin-mismatch')
+    providePersistence(mismatched.ctx, {
+      list: () => Promise.resolve([meta]),
+      inspect: () => Promise.resolve({ meta, events: [] }),
+    })
+    vi.spyOn(mismatched.ctx.agents, 'resume')
+      .mockRejectedValue(new Error('cannot get property "agent" without inject'))
+    await expect(mismatched.agents.resolveAgent(meta.id)).resolves.toMatchObject({
+      error: {
+        code: 'gateway/internal',
+        message: expect.stringContaining('an installed plugin may be incompatible with this build') as string,
+        details: { hint: expect.stringContaining('review the third-party plugins') },
+      },
     })
   })
 

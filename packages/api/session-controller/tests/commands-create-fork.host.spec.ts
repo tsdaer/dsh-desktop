@@ -138,6 +138,27 @@ describe('Session creation failures', () => {
     await ctx.fiber.dispose()
   })
 
+  it('hints at plugin incompatibility when create hits a context-resolution failure', async () => {
+    const ctx = await baseContext()
+    ctx.provide('workspaceRegistry', { get: () => undefined, list: () => [] } as never)
+    const controller = new SessionCommandController(
+      ctx,
+      controllerAgents({
+        ensureSession: () => Promise.reject(new Error('cannot get property "agent" without inject')),
+      }),
+      '/default',
+    )
+
+    await expect(controller.create({
+      sessionId: SessionId('failed-create'), cwd: '/requested',
+    })).rejects.toMatchObject({
+      code: 'gateway/internal',
+      message: expect.stringContaining('an installed plugin may be incompatible with this build') as string,
+      details: { hint: expect.stringContaining('review the third-party plugins') },
+    })
+    await ctx.fiber.dispose()
+  })
+
   it('rejects contradictory create targets', async () => {
     const ctx = await baseContext()
     const controller = new SessionCommandController(ctx, controllerAgents(), '/default')

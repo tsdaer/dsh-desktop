@@ -60,6 +60,25 @@ export class ApiSessionPresetConflict extends Error {
 /** Failures produced while resolving one ordinary Session identity to its live Agent. */
 export type ApiSessionAgentError = RemoteError<'session/not-found' | 'session/agent-busy' | 'gateway/internal'>
 
+/** Error texts of Cordis context resolution that an installed plugin reaching for a removed service also produces. */
+const PLUGIN_MISMATCH_PATTERN = /without inject|cannot get required service/
+
+/**
+ * Build the diagnostic for an activation failure whose text matches a plugin
+ * API mismatch: an installed plugin wrapped session activation and read a
+ * context member this build no longer provides. Every other failure gets no
+ * hint, so an exact host bug stays uncluttered.
+ * @param error - the raw activation failure.
+ * @returns the hint text, or undefined when the failure shape is not matched.
+ */
+export function apiSessionPluginHint(error: unknown): string | undefined {
+  const message = error instanceof Error ? error.message : String(error)
+  return PLUGIN_MISMATCH_PATTERN.test(message)
+    ? 'an installed plugin may be incompatible with this build; '
+      + 'review the third-party plugins in the profile (their rows live in the profile cordis.patch.yml)'
+    : undefined
+}
+
 /** Result of resolving one ordinary Session identity to its live Agent. */
 export type ApiSessionAgentResult =
   | { readonly agent: Agent }
@@ -211,11 +230,12 @@ export class ApiSessionAgentController {
       if (racedSession !== undefined && hasApiSessionSubagentOwner(this.ctx, racedSession, undefined)) {
         return { error: apiSessionSubagentOwnershipError(sessionId) }
       }
+      const hint = apiSessionPluginHint(error)
       return {
         error: new RemoteError(
           'gateway/internal',
-          `resume failed for session "${sessionId}": ${String(error)}`,
-          {},
+          `resume failed for session "${sessionId}": ${String(error)}${hint === undefined ? '' : ` (${hint})`}`,
+          hint === undefined ? {} : { hint },
         ),
       }
     }
