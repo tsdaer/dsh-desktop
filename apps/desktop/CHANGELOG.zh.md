@@ -2,6 +2,11 @@
 
 dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循[语义化版本](https://semver.org/spec/v2.0.0.html)。draft-release workflow 会把对应版本的章节复制到 GitHub release 的 notes 里。
 
+## [0.5.14] - 2026-09-20
+
+### 变更
+
+- 相对 0.5.13 无源码变更的重建发布。上游 0.1.6-alpha.2 合并后，本地 checkout 的工作区需要完整重装并重建依赖（合并后的依赖重装需要交互式确认清空 node_modules，无 TTY 时会中止，导致工作区包未构建、dev 启动报 "web boot: entries did not activate"）；本版本从已验证的重建产物树重新发布。
 ## [0.5.13] - 2026-09-20
 
 ### 修复

@@ -2,6 +2,11 @@
 
 All notable changes to dsh-desktop are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The draft-release workflow copies the matching version's section into its GitHub release notes.
 
+## [0.5.14] - 2026-09-20
+
+### Changed
+
+- Rebuilt release with no source changes relative to 0.5.13. After the upstream 0.1.6-alpha.2 merge, the local checkout's workspace had to be reinstalled and rebuilt in full (the post-merge dependency reinstall requires an interactive node_modules purge confirmation and aborts without a TTY, leaving workspace packages unbuilt and dev launches failing with "web boot: entries did not activate"); this release refreshes the artifacts from the verified rebuilt tree.
 ## [0.5.13] - 2026-09-20
 
 ### Fixed
