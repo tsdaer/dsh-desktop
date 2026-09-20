@@ -2,6 +2,11 @@
 
 All notable changes to dsh-desktop are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The draft-release workflow copies the matching version's section into its GitHub release notes.
 
+## [0.5.15] - 2026-09-20
+
+### Fixed
+
+- The installed desktop window could report every web plugin as failed to import ("web boot: N entries did not activate", with HTTP 431 on the plugin combo scripts): the browser-session cookie was named per host plus port while the runtime listens on a random port each boot, so the WebView accumulated one persistent cookie per boot until the request head exceeded the server limit. The cookie name now binds the host alone and the login exchange expires superseded `dsh-auth-*` cookies, so the first launch after upgrading clears accumulated entries.
 ## [0.5.14] - 2026-09-20
 
 ### Changed

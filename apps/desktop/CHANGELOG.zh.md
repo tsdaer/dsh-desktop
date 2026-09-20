@@ -2,6 +2,11 @@
 
 dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循[语义化版本](https://semver.org/spec/v2.0.0.html)。draft-release workflow 会把对应版本的章节复制到 GitHub release 的 notes 里。
 
+## [0.5.15] - 2026-09-20
+
+### 修复
+
+- 安装版桌面窗口可能把全部 web 插件报为导入失败（"web boot: N entries did not activate"，插件组合脚本返回 HTTP 431）：浏览器会话 Cookie 按 host 加端口命名，而运行时每次启动监听随机端口，WebView 每次启动都累积一条持久 Cookie，直到请求头超出服务器上限。现在 Cookie 名称只绑定 host，登录交换会使被取代的 `dsh-auth-*` Cookie 过期，升级后首次启动即清除累积条目。
 ## [0.5.14] - 2026-09-20
 
 ### 变更
