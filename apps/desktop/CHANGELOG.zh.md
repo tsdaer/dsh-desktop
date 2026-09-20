@@ -2,6 +2,11 @@
 
 dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循[语义化版本](https://semver.org/spec/v2.0.0.html)。draft-release workflow 会把对应版本的章节复制到 GitHub release 的 notes 里。
 
+## [0.5.13] - 2026-09-20
+
+### 修复
+
+- 桌面发布构建在包含上游 Office 转换所用的 LibreOffice 引擎后重新通过运行时体积门禁：目标预算调整为 Windows 480 MB、Linux 320 MB、macOS 400 MB，并让 Windows 发布步骤在体积门禁失败时真正将作业标记为失败。
 ## [0.5.12] - 2026-09-20
 
 ### 变更

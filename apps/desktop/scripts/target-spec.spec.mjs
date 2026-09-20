@@ -30,7 +30,7 @@ const expected = {
     updaterArtifactSuffixes: ['.exe', '.exe.sig'],
     tauriConfig: 'src-tauri/tauri.windows-x64.conf.json',
     runtimeRelativeDir: 'src-tauri/runtime/windows-x64',
-    sizeBudgetMiB: 200,
+    sizeBudgetMiB: 480,
   },
   'x86_64-unknown-linux-gnu': {
     productTarget: 'linux-x64',
@@ -53,7 +53,7 @@ const expected = {
     updaterArtifactSuffixes: ['.AppImage', '.AppImage.sig', '.deb', '.deb.sig'],
     tauriConfig: 'src-tauri/tauri.linux-x64.conf.json',
     runtimeRelativeDir: 'src-tauri/runtime/linux-x64',
-    sizeBudgetMiB: 220,
+    sizeBudgetMiB: 320,
   },
   'aarch64-apple-darwin': {
     productTarget: 'macos-arm64',
@@ -76,7 +76,7 @@ const expected = {
     updaterArtifactSuffixes: ['.app', '.app.tar.gz', '.app.tar.gz.sig', '.dmg', '.dmg.sig'],
     tauriConfig: 'src-tauri/tauri.macos-arm64.conf.json',
     runtimeRelativeDir: 'src-tauri/runtime/macos-arm64',
-    sizeBudgetMiB: 220,
+    sizeBudgetMiB: 400,
   },
 };
 

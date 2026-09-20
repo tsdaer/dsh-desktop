@@ -84,7 +84,7 @@ corepack pnpm deploy --filter @deepseek-ai/dsh --legacy --config.nodeLinker=hois
 
 - **M1**：`bake-runtime.mjs` 改用 `--prod` 部署，配合既有 scan/bake/boot 自愈循环。mermaid/typescript/oxlint/eslint/lefthook/tsx/rolldown/esbuild/vitest/jsdom/jscpd/knip/publint 等 dev 工具链全部退出运行时。
 - **M2**：`pruneRuntime` 单平台化 node-pty（保留 win32-x64 prebuild、删除 .pdb/多平台/构建产物）。sharp（@img 18.4 MB）确认为 `@deepseek-ai/dsh-attachment-local` 的运行时依赖，保留，且已单平台（仅 sharp-win32-x64）。
-- **M3**：`scripts/size-report.mjs --check` 体积门禁（预算 200 MB + dev 工具泄漏断言）；`pnpm --filter @deepseek-ai/dsh-desktop size-check` 可运行。
+- **M3**：`scripts/size-report.mjs --check` 体积门禁（目标预算：Windows 480 MB、Linux 320 MB、macOS 400 MB；含上游 Office 转换的 LibreOffice kit，并保留 dev 工具泄漏断言）；`pnpm --filter @deepseek-ai/dsh-desktop size-check` 可运行。
 
 剩余可选项（M6）——已分析，结论为「有意挂载，不建议裁」：
 

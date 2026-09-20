@@ -2,6 +2,11 @@
 
 All notable changes to dsh-desktop are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The draft-release workflow copies the matching version's section into its GitHub release notes.
 
+## [0.5.13] - 2026-09-20
+
+### Fixed
+
+- Desktop release builds pass the runtime size gate with the upstream LibreOffice Office-conversion engine included: target budgets are recalibrated to Windows 480 MB, Linux 320 MB, and macOS 400 MB, and the Windows release step now fails the job when the size gate fails.
 ## [0.5.12] - 2026-09-20
 
 ### Changed

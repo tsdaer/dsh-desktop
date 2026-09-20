@@ -100,7 +100,9 @@ jobs:
         shell: pwsh
         run: |
           pnpm --filter @deepseek-ai/dsh-desktop size-check -- --target x86_64-pc-windows-msvc
+          if ($LASTEXITCODE -ne 0) { throw 'desktop runtime size gate failed' }
           node apps/desktop/scripts/release-artifacts.mjs --target x86_64-pc-windows-msvc --output "$env:RUNNER_TEMP\dsh-desktop-artifacts"
+          if ($LASTEXITCODE -ne 0) { throw 'desktop artifact staging failed' }
 
       - name: Smoke-test the installed Windows NSIS package
         shell: pwsh

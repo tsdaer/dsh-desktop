@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { resolve as resolvePath } from 'node:path';
 
+// Runtime budgets include the platform LibreOffice kit pulled by the upstream Office-conversion bundle.
 const TARGET_ROWS = [
   {
     productTarget: 'windows-x64',
@@ -21,7 +22,7 @@ const TARGET_ROWS = [
     updaterArtifactSuffixes: ['.exe', '.exe.sig'],
     tauriConfig: 'src-tauri/tauri.windows-x64.conf.json',
     runtimeRelativeDir: 'src-tauri/runtime/windows-x64',
-    sizeBudgetMiB: 200,
+    sizeBudgetMiB: 480,
   },
   {
     productTarget: 'linux-x64',
@@ -45,7 +46,7 @@ const TARGET_ROWS = [
     updaterArtifactSuffixes: ['.AppImage', '.AppImage.sig', '.deb', '.deb.sig'],
     tauriConfig: 'src-tauri/tauri.linux-x64.conf.json',
     runtimeRelativeDir: 'src-tauri/runtime/linux-x64',
-    sizeBudgetMiB: 220,
+    sizeBudgetMiB: 320,
   },
   {
     productTarget: 'macos-arm64',
@@ -69,7 +70,7 @@ const TARGET_ROWS = [
     updaterArtifactSuffixes: ['.app', '.app.tar.gz', '.app.tar.gz.sig', '.dmg', '.dmg.sig'],
     tauriConfig: 'src-tauri/tauri.macos-arm64.conf.json',
     runtimeRelativeDir: 'src-tauri/runtime/macos-arm64',
-    sizeBudgetMiB: 220,
+    sizeBudgetMiB: 400,
   },
 ];
 
