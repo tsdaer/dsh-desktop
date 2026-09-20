@@ -2,6 +2,11 @@
 
 dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循[语义化版本](https://semver.org/spec/v2.0.0.html)。draft-release workflow 会把对应版本的章节复制到 GitHub release 的 notes 里。
 
+## [0.5.12] - 2026-09-20
+
+### 变更
+
+- 集成上游 harness master 至 dsh 0.1.6-alpha.2（1548 个提交），把托管 Web profile 从 dsh 0.1.5-rc.2 向前推进。本次合并带来 Sidebar Browser、带安装脚本审批与可取消运行的插件安装管理、可选插件 bundle、文档/Office 预览解耦、CLI profile 命令简写、会话与工作区控制器更新，以及最新的客户端、模型与 Windows 运行时修复。桌面端保留 fork 自有的发布与更新验收工作流、带认证的 loopback bridge、文件预览、Worktree 控件、WSL Bash 集成与桌面设置。
 ## [0.5.11] - 2026-09-13
 
 ### 修复

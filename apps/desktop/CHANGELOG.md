@@ -2,6 +2,11 @@
 
 All notable changes to dsh-desktop are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The draft-release workflow copies the matching version's section into its GitHub release notes.
 
+## [0.5.12] - 2026-09-20
+
+### Changed
+
+- Integrated upstream harness master through dsh 0.1.6-alpha.2 (1548 commits), advancing the hosted web profile from dsh 0.1.5-rc.2. The merge carries the Sidebar Browser, plugin installation management with install-script approval and cancelable runs, optional plugin bundles, document/Office preview decoupling, CLI profile command shorthand, session and workspace controller updates, and the latest client, model, and Windows runtime fixes. The desktop retains its fork-owned release and update-acceptance workflows, authenticated loopback bridge, file previews, Worktree controls, WSL Bash integration, and desktop settings.
 ## [0.5.11] - 2026-09-13
 
 ### Fixed
