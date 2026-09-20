@@ -114,7 +114,8 @@ function browserCookie(connection: HostConnectionHandle, authority: string): str
   )
   const setCookie = exchanged.state.headers?.['set-cookie']
   if (setCookie === undefined) throw new Error('browser token exchange did not set a cookie')
-  return setCookie.split(';', 1)[0]!
+  const minted = (typeof setCookie === 'string' ? [setCookie] : setCookie)[0]!
+  return minted.split(';', 1)[0]!
 }
 
 describe('connection node half', () => {

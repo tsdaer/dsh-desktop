@@ -103,8 +103,10 @@ function tokenMatches(actual: string, expected: string): boolean {
   return actualBytes.byteLength === expectedBytes.byteLength && timingSafeEqual(actualBytes, expectedBytes)
 }
 
+/** Canonical jar key for one host: browsers store cookies per host (port-blind), so only the hostname names the slot. */
 function cookieName(authority: string): string {
-  return COOKIE_PREFIX + encodeBase64Url(createHash('sha256').update(authority).digest())
+  return COOKIE_PREFIX + encodeBase64Url(createHash('sha256')
+    .update(new URL(`http://${authority}`).hostname).digest())
 }
 
 /** Read the exact generated cookie without implementing general Cookie decoding. */
@@ -120,6 +122,35 @@ function cookieValue(headerValue: string, name: string): string | undefined {
 /** Serialize the fixed browser-session attributes; generated names and values are cookie-safe base64url. */
 function sessionCookie(name: string, value: string, expiresAt: number, maxAgeSeconds: number): string {
   return `${name}=${value}; Max-Age=${String(maxAgeSeconds)}; Path=/; Expires=${new Date(expiresAt).toUTCString()}; HttpOnly; SameSite=Strict`
+}
+
+/**
+ * Superseded browser-session names the exchange request still carries. The
+ * token exchange is the only moment the server observes which stale
+ * `dsh-auth-*` entries the browser jar holds for the host, so the mint
+ * expires every other name of the prefix; without this, sessions minted
+ * under per-port names accumulate across random-port boots until request
+ * heads exceed the server's header limit and every plugin import fails
+ * with HTTP 431.
+ * @param headerValue - raw Cookie header of the mint request, if any.
+ * @param keep - freshly minted cookie name that must survive.
+ * @returns distinct stale names in header order.
+ */
+function supersededCookieNames(headerValue: string | undefined, keep: string): string[] {
+  if (headerValue === undefined) return []
+  const names = new Set<string>()
+  for (const segment of headerValue.split(';')) {
+    const at = segment.indexOf('=')
+    if (at === -1) continue
+    const name = segment.slice(0, at).trim()
+    if (name.startsWith(COOKIE_PREFIX) && name !== keep) names.add(name)
+  }
+  return [...names]
+}
+
+/** Serialize the deletion attributes; Path must match the minted cookie's so the browser drops the exact jar entry. */
+function expiredCookie(name: string): string {
+  return `${name}=; Max-Age=0; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Strict`
 }
 
 function signature(secret: Buffer, body: string): Buffer {
@@ -247,6 +278,7 @@ export class BrowserAuth {
         && authority !== undefined && tokenMatches(tokens.join(''), this.launchToken)) {
         const issuedAt = Date.now()
         const expiresAt = issuedAt + this.maxAgeMilliseconds
+        const name = cookieName(authority)
         const value = encodeCookie({
           version: COOKIE_PAYLOAD_VERSION,
           authority,
@@ -257,9 +289,10 @@ export class BrowserAuth {
           'cache-control': 'no-store',
           'location': redirectLocation(url),
           'referrer-policy': 'no-referrer',
-          'set-cookie': sessionCookie(
-            cookieName(authority), value, expiresAt, Math.floor(this.maxAgeMilliseconds / 1000),
-          ),
+          'set-cookie': [
+            sessionCookie(name, value, expiresAt, Math.floor(this.maxAgeMilliseconds / 1000)),
+            ...supersededCookieNames(header(req.headers, 'cookie'), name).map(expiredCookie),
+          ],
         })
         res.end()
         return false

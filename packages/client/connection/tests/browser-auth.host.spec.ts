@@ -27,7 +27,7 @@ function signedBodyCookie(store: RecordCredentials, name: string, body: string):
 
 interface ResponseState {
   status?: number
-  headers?: Readonly<Record<string, string>>
+  headers?: Readonly<Record<string, string | readonly string[]>>
   body?: string
 }
 
@@ -76,14 +76,15 @@ function request(url: string, authority = '127.0.0.1:3080', init?: {
 function exchange(
   auth: BrowserAuth,
   authority = '127.0.0.1:3080',
-): { cookie: string; launchUrl: string; state: ResponseState } {
+): { cookie: string; cookieLines: readonly string[]; launchUrl: string; state: ResponseState } {
   const launchUrl = auth.authenticatedUrl(`http://${authority}`)
   const target = new URL(launchUrl)
   const res = response()
   expect(auth.authorizeIndex(request(`${target.pathname}${target.search}`, authority), res.value)).toBe(false)
   const setCookie = res.state.headers?.['set-cookie']
   if (setCookie === undefined) throw new Error('token exchange did not set a cookie')
-  return { cookie: setCookie.split(';', 1)[0]!, launchUrl, state: res.state }
+  const cookieLines = typeof setCookie === 'string' ? [setCookie] : setCookie
+  return { cookie: cookieLines[0]!.split(';', 1)[0]!, cookieLines, launchUrl, state: res.state }
 }
 
 afterEach(() => {
@@ -105,8 +106,8 @@ describe('BrowserAuth', () => {
         'referrer-policy': 'no-referrer',
       },
     })
-    expect(login.state.headers?.['set-cookie']).toMatch(/; Max-Age=2592000; Path=\/; Expires=.*; HttpOnly; SameSite=Strict$/u)
-    expect(login.state.headers?.['set-cookie']).not.toContain('Secure')
+    expect(login.cookieLines[0]).toMatch(/; Max-Age=2592000; Path=\/; Expires=.*; HttpOnly; SameSite=Strict$/u)
+    expect(login.cookieLines[0]).not.toContain('Secure')
     const desktopLogin = response()
     const launchToken = new URL(login.launchUrl).searchParams.get('token')
     expect(first.authorizeIndex(request(
@@ -213,6 +214,39 @@ describe('BrowserAuth', () => {
     expect(auth.isAuthenticated(request('/', '127.0.0.1:3080', { cookie }))).toBe(false)
     vi.setSystemTime(new Date('2026-08-23T00:00:00.000Z'))
     expect(auth.isAuthenticated(request('/', '127.0.0.1:3080', { cookie }))).toBe(false)
+  })
+
+  it('names the cookie per host so sibling ports share one jar slot while the payload keeps the port', async () => {
+    const auth = await createAuth(new RecordCredentials())
+    const portOne = exchange(auth, '127.0.0.1:3080')
+    const portTwo = exchange(auth, '127.0.0.1:3081')
+
+    expect(portTwo.cookie.split('=', 1)[0]).toBe(portOne.cookie.split('=', 1)[0])
+    expect(auth.isAuthenticated(request('/', '127.0.0.1:3081', { cookie: portTwo.cookie }))).toBe(true)
+    expect(auth.isAuthenticated(request('/', '127.0.0.1:3081', { cookie: portOne.cookie }))).toBe(false)
+  })
+
+  it('expires every superseded dsh-auth cookie at the token exchange and leaves other cookies alone', async () => {
+    const auth = await createAuth(new RecordCredentials())
+    const launchUrl = new URL(auth.authenticatedUrl('http://127.0.0.1:3080'))
+    const res = response()
+    expect(auth.authorizeIndex(request(
+      `${launchUrl.pathname}${launchUrl.search}`,
+      '127.0.0.1:3080',
+      { cookie: 'dsh-auth-stale-one=x; other-session=y; dsh-auth-stale-two=z; dsh-auth-stale-one=x' },
+    ), res.value)).toBe(false)
+
+    const setCookie = res.state.headers?.['set-cookie']
+    const lines = typeof setCookie === 'string' ? [setCookie] : setCookie ?? []
+    const minted = lines[0] ?? ''
+    const deletions = lines.slice(1)
+    expect(minted).toMatch(/^dsh-auth-[^=]+=/u)
+    expect(deletions).toHaveLength(2)
+    for (const name of ['dsh-auth-stale-one', 'dsh-auth-stale-two']) {
+      expect(deletions).toContainEqual(`${name}=; Max-Age=0; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Strict`)
+    }
+    expect(lines.join('\n')).not.toContain('other-session')
+    expect(lines.join('\n')).not.toContain(minted.split('=', 1)[0] + '=;')
   })
 
   it('loads one secret per activation and replaces it after deletion on the next activation', async () => {

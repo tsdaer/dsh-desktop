@@ -92,7 +92,7 @@ export interface ConnectionIndexRequest extends ConnectionTrustRequest {
 
 /** Root/index response operations owned by the browser-token exchange. */
 export interface ConnectionIndexResponse {
-  writeHead(status: number, headers?: Readonly<Record<string, string>>): unknown
+  writeHead(status: number, headers?: Readonly<Record<string, string | string[]>>): unknown
   end(body?: string): unknown
 }
 

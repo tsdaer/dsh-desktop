@@ -59,7 +59,7 @@ function browserCookie(ctx: Context): string {
     url: `${target.pathname}${target.search}`,
     headers: { host: target.host },
   }, {
-    writeHead(_status, headers) { setCookie = headers?.['set-cookie'] },
+    writeHead(_status, headers) { const lines = headers?.['set-cookie']; setCookie = typeof lines === 'string' ? lines : lines?.[0] },
     end() {},
   })
   if (setCookie === undefined) throw new Error('gateway stream fixture did not receive a browser cookie')
