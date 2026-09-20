@@ -58,7 +58,7 @@ export class ApiSessionPresetConflict extends Error {
 }
 
 /** Failures produced while resolving one ordinary Session identity to its live Agent. */
-export type ApiSessionAgentError = RemoteError<'session/not-found' | 'session/agent-busy' | 'gateway/internal'>
+export type ApiSessionAgentError = RemoteError<'session/not-found' | 'session/agent-busy' | 'session/writer-held' | 'gateway/internal'>
 
 /** Error texts of Cordis context resolution that an installed plugin reaching for a removed service also produces. */
 const PLUGIN_MISMATCH_PATTERN = /without inject|cannot get required service/
@@ -78,6 +78,7 @@ export function apiSessionPluginHint(error: unknown): string | undefined {
       + 'review the third-party plugins in the profile (their rows live in the profile cordis.patch.yml)'
     : undefined
 }
+
 
 /** Result of resolving one ordinary Session identity to its live Agent. */
 export type ApiSessionAgentResult =
@@ -216,7 +217,11 @@ export class ApiSessionAgentController {
       this.resumes.set(sessionId, resume)
     }
     try {
-      return { agent: await resume }
+      const agent = await resume
+      // A shared resume can publish an identity that subagent routing adopts
+      // before every waiter observes it; apply the live ownership policy again.
+      const published = this.liveAgent(sessionId)
+      return published ?? { agent }
     } catch (error: unknown) {
       if (error instanceof ApiSessionNotFound) {
         return { error: new RemoteError('session/not-found', error.message, { sessionId }) }
@@ -229,6 +234,9 @@ export class ApiSessionAgentController {
       const racedSession = this.ctx.sessions.get(sessionId)
       if (racedSession !== undefined && hasApiSessionSubagentOwner(this.ctx, racedSession, undefined)) {
         return { error: apiSessionSubagentOwnershipError(sessionId) }
+      }
+      if (error instanceof Error && error.name === 'SessionAlreadyOwnedError') {
+        return { error: new RemoteError('session/writer-held', error.message, { sessionId }) }
       }
       const hint = apiSessionPluginHint(error)
       return {

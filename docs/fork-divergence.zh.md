@@ -6,7 +6,7 @@
 
 ## 范围与登记义务
 
-`apps/desktop/` 之外的一切都归上游所有，包括 `packages/`、`apps/cli/`、`scripts/`、根配置、`docs/` 与 `.agents/`。桌面发布工作流是本 fork 唯一完全自有的例外。
+`apps/desktop/` 之外的一切都归上游所有，包括 `packages/`、`apps/cli/`、`scripts/`、根配置、`docs/` 与 `.agents/`。桌面工作流文件 `.github/workflows/desktop-*.yml` 是本 fork 唯一完全自有的例外。
 
 改动上游所有的路径时，必须在同一次改动里为它补上本页的一行及原因。仅限于 `apps/desktop/` 内的工作无需登记。每一行说明本 fork 的不同之处，并链接持有原因的 Agent Note；此处不重复其推理。
 
@@ -24,6 +24,12 @@
 | [`packages/host/webserver/src/index.ts`](../packages/host/webserver/src/index.ts) | 可选 `token` 配置：已注册路由与 upgrade 需要 `Authorization: Bearer`（WebSocket 用 `dsh_token` 查询参数），静态 dist fallback 保持开放；缺省时纯 loopback 姿态不变（[note](../.agents/notes/implemented/feature/2026-08-22-desktop-loopback-token.zh.md)） |
 | [`packages/client/connection/src/client/rpc.ts`](../packages/client/connection/src/client/rpc.ts) | 从页面 URL 读取一次 `?dsh_token`，附加到每个通用 RPC fetch 作为 `Authorization: Bearer` header；无该查询参数的普通浏览器保持不变（[note](../.agents/notes/implemented/feature/2026-08-22-desktop-loopback-token.zh.md)）。上游在 browser-auth 重构中删除了旧的 `web-api-client.ts` bearer 路径；桌面的 bridge 路由保留在 `apps/desktop/bridge-client/src/client/bridge-fetch.ts` 中的自有 bearer 拾取 |
 
+| [`apps/web/src/main.ts`](../apps/web/src/main.ts)、[`apps/web/src/desktop-preview.tsx`](../apps/web/src/desktop-preview.tsx) | 将 `?dsh_preview=1` 路由到只读工作树预览挂载，普通页面继续沿用上游桌面启动路径（[note](../.agents/notes/implemented/feature/2026-08-22-desktop-file-viewer.zh.md)） |
+| [`packages/api/session-controller/src/agent.ts`](../packages/api/session-controller/src/agent.ts) | 在会话激活失败中加入插件不兼容提示，让读取已移除服务的已安装插件在错误里被点名 |
+| [`packages/llm/llm/src/index.ts`](../packages/llm/llm/src/index.ts)、[`packages/llm/llm/src/types.ts`](../packages/llm/llm/src/types.ts)、[`packages/llm/llm-deepseek/src/adapter.ts`](../packages/llm/llm-deepseek/src/adapter.ts) | 新增桌面标题栏使用的 account-summary 能力与 DeepSeek `/user/balance` 覆盖（[note](../.agents/notes/implemented/feature/2026-08-16-desktop-titlebar-version-and-balance.zh.md)） |
+| [`packages/client/connection/src/browser-auth.ts`](../packages/client/connection/src/browser-auth.ts)、[`packages/client/connection/src/client/loopback-token.ts`](../packages/client/connection/src/client/loopback-token.ts) | 在 index 重定向中保留 `dsh_token` 并在 client 中读取，使桌面桥接认证在登录后仍有效（[note](../.agents/notes/implemented/architecture/2026-08-24-browser-token-authentication.zh.md)） |
+| [`packages/shell/bash-wsl`](../packages/shell/bash-wsl)、[`packages/shell/tool-bash-wsl`](../packages/shell/tool-bash-wsl) | 新增 WSL Bash 执行器与其模型可见工具，由桌面 WSL 设置启用（[note](../.agents/notes/implemented/feature/2026-08-22-desktop-cross-platform-shell-runtime.zh.md)） |
+
 ## 仓库脚本
 
 | 路径 | 分歧 |
@@ -34,11 +40,13 @@
 | [`scripts/gen-tool-catalog.ts`](../scripts/gen-tool-catalog.ts) | 把本 fork 的 `bash-wsl` 工具加入待编目集合，使生成的 [`docs/tool-catalog.md`](tool-catalog.zh.md) 与英文版带有该行与章节 |
 | [`scripts/desktop-release-workflow.spec.ts`](../scripts/desktop-release-workflow.spec.ts) | 新增，用于固定本 fork 自有的发布工作流 |
 
+| [`scripts/gen-third-party-notices.ts`](../scripts/gen-third-party-notices.ts)、[`scripts/gen-third-party-notices.spec.ts`](../scripts/gen-third-party-notices.spec.ts) | 去掉上游的 `apps/desktop/scripts/primary-runtime-lock.json` 导入与 Desktop 捆绑 Python 发行版章节，因为 Tauri 外壳不分发该载荷 |
+
 ## 构建与 CI 配置
 
 | 路径 | 分歧 |
 |---|---|
-| [`.github/workflows/desktop-release.yml`](../.github/workflows/desktop-release.yml) | 新增：标签门控的签名桌面发布（[note](../.agents/notes/implemented/process/2026-08-17-tag-gated-desktop-release-builds.zh.md)） |
+| [`.github/workflows/desktop-*.yml`](../.github/workflows) | 新增：标签门控的签名桌面发布，以及 macOS/Windows/Linux 安装后更新验收工作流（[note](../.agents/notes/implemented/process/2026-08-17-tag-gated-desktop-release-builds.zh.md)） |
 | [`.github/dependabot.yml`](../.github/dependabot.yml) | 去掉 `python/sdk` 的 `uv` 生态条目，本 fork 不发布它 |
 | [`.gitignore`](../.gitignore) | 忽略桌面构建产物 `src-tauri/target/`、`src-tauri/gen/`、`src-tauri/binaries/`、`.bridge-pack/`、`.runtime/`，以及 `temp/` |
 | [`pnpm-workspace.yaml`](../pnpm-workspace.yaml) | 去掉上游在 `patchedDependencies` 中的 `@electron/osx-sign` 条目，以及 `patches/@electron__osx-sign@1.3.3.patch`；只有 Electron 打包器会读该补丁，而未使用的补丁会让 `pnpm install` 失败 |

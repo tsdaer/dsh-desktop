@@ -6,7 +6,7 @@ This fork of [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deeps
 
 ## What counts, and what must be recorded
 
-Everything outside `apps/desktop/` is upstream-owned, including `packages/`, `apps/cli/`, `scripts/`, root configuration, `docs/`, and `.agents/`. The desktop release workflow is the one exception this fork owns outright.
+Everything outside `apps/desktop/` is upstream-owned, including `packages/`, `apps/cli/`, `scripts/`, root configuration, `docs/`, and `.agents/`. The desktop workflow files `.github/workflows/desktop-*.yml` are the one exception this fork owns outright.
 
 A change to an upstream-owned path adds its row here, with the reason, in the same change that makes it. Work confined to `apps/desktop/` needs no row. Each row states what the fork does differently and links the Agent Note that owns the rationale; the reasoning is not repeated here.
 
@@ -24,6 +24,12 @@ The [root standing orders](../AGENTS.md) carry the obligation, and [the README](
 | [`packages/host/webserver/src/index.ts`](../packages/host/webserver/src/index.ts) | Optional `token` config: registered routes and upgrades require `Authorization: Bearer` (or the `dsh_token` query for WebSockets) while the static dist fallback stays open; omitted, the plain loopback posture is unchanged ([note](../.agents/notes/implemented/feature/2026-08-22-desktop-loopback-token.md)) |
 | [`packages/client/connection/src/client/rpc.ts`](../packages/client/connection/src/client/rpc.ts) | Picks up `?dsh_token` from the page URL once and attaches it to every generic RPC fetch as an `Authorization: Bearer` header; a plain browser without the query is unchanged ([note](../.agents/notes/implemented/feature/2026-08-22-desktop-loopback-token.md)). Upstream deleted the old `web-api-client.ts` bearer path in the browser-auth rework; the desktop's bridge routes keep their own bearer pickup in `apps/desktop/bridge-client/src/client/bridge-fetch.ts` |
 
+| [`apps/web/src/main.ts`](../apps/web/src/main.ts), [`apps/web/src/desktop-preview.tsx`](../apps/web/src/desktop-preview.tsx) | Routes `?dsh_preview=1` to the read-only worktree preview mount while ordinary pages keep the upstream desktop boot path ([note](../.agents/notes/implemented/feature/2026-08-22-desktop-file-viewer.md)) |
+| [`packages/api/session-controller/src/agent.ts`](../packages/api/session-controller/src/agent.ts) | Adds the plugin-incompatibility hint to session-activation failures so an installed plugin reaching a removed service is named in the error |
+| [`packages/llm/llm/src/index.ts`](../packages/llm/llm/src/index.ts), [`packages/llm/llm/src/types.ts`](../packages/llm/llm/src/types.ts), [`packages/llm/llm-deepseek/src/adapter.ts`](../packages/llm/llm-deepseek/src/adapter.ts) | Adds the account-summary capability and the DeepSeek `/user/balance` override used by the desktop title bar ([note](../.agents/notes/implemented/feature/2026-08-16-desktop-titlebar-version-and-balance.md)) |
+| [`packages/client/connection/src/browser-auth.ts`](../packages/client/connection/src/browser-auth.ts), [`packages/client/connection/src/client/loopback-token.ts`](../packages/client/connection/src/client/loopback-token.ts) | Keeps `dsh_token` on the index redirect and captures it in the client so desktop bridge authentication survives login ([note](../.agents/notes/implemented/architecture/2026-08-24-browser-token-authentication.md)) |
+| [`packages/shell/bash-wsl`](../packages/shell/bash-wsl), [`packages/shell/tool-bash-wsl`](../packages/shell/tool-bash-wsl) | Adds the WSL bash executor and its model-facing tool, enabled by the desktop WSL setting ([note](../.agents/notes/implemented/feature/2026-08-22-desktop-cross-platform-shell-runtime.md)) |
+
 ## Repository scripts
 
 | Path | Divergence |
@@ -34,11 +40,13 @@ The [root standing orders](../AGENTS.md) carry the obligation, and [the README](
 | [`scripts/gen-tool-catalog.ts`](../scripts/gen-tool-catalog.ts) | Adds the fork's `bash-wsl` tool to the catalogued set, so the generated [`docs/tool-catalog.md`](tool-catalog.md) and its Chinese counterpart carry that row and section |
 | [`scripts/desktop-release-workflow.spec.ts`](../scripts/desktop-release-workflow.spec.ts) | Added to pin the release workflow this fork owns |
 
+| [`scripts/gen-third-party-notices.ts`](../scripts/gen-third-party-notices.ts), [`scripts/gen-third-party-notices.spec.ts`](../scripts/gen-third-party-notices.spec.ts) | Drops upstream's `apps/desktop/scripts/primary-runtime-lock.json` import and its Desktop bundled Python distributions section because the Tauri shell does not ship that payload |
+
 ## Build and CI configuration
 
 | Path | Divergence |
 |---|---|
-| [`.github/workflows/desktop-release.yml`](../.github/workflows/desktop-release.yml) | Added: the tag-gated signed desktop release ([note](../.agents/notes/implemented/process/2026-08-17-tag-gated-desktop-release-builds.md)) |
+| [`.github/workflows/desktop-*.yml`](../.github/workflows) | Added: the tag-gated signed desktop release and the macOS/Windows/Linux installed-update acceptance workflows ([note](../.agents/notes/implemented/process/2026-08-17-tag-gated-desktop-release-builds.md)) |
 | [`.github/dependabot.yml`](../.github/dependabot.yml) | Drops the `uv` ecosystem entry for `python/sdk`, which this fork does not release |
 | [`.gitignore`](../.gitignore) | Ignores the desktop build outputs `src-tauri/target/`, `src-tauri/gen/`, `src-tauri/binaries/`, `.bridge-pack/`, and `.runtime/`, plus `temp/` |
 | [`pnpm-workspace.yaml`](../pnpm-workspace.yaml) | Drops upstream's `@electron/osx-sign` entry from `patchedDependencies`, together with `patches/@electron__osx-sign@1.3.3.patch`; only the Electron packager reads that patch, and `pnpm install` fails on an unused one |

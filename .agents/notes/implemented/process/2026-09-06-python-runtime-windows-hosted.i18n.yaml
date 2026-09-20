@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-09-06-python-runtime-windows-hosted.md
-2026-09-06-python-runtime-windows-hosted.md: 2ed6eb1f2db520030d640d7e453bf14afd41cea2
-2026-09-06-python-runtime-windows-hosted.zh.md: 78449a76c402ee43c1be20ede18a921e0df22f04
+2026-09-06-python-runtime-windows-hosted.md: e5ed3af668e0551760a504f8b5a5c94ee74fb872
+2026-09-06-python-runtime-windows-hosted.zh.md: 2c7a91e9a7f06039495cc74769dd332504a29724
