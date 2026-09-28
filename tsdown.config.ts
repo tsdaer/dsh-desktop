@@ -11,10 +11,10 @@ function isBuildFaceClient(value: unknown): boolean {
  * The ordinary workspace build consumes JavaScript emitted by the Host
  * TypeScript project and runs Typert. The Client pass selects packages that
  * declare a browser bundle and lets their package-local configs emit both
- * their Node loader entry and browser artifact. `apps/desktop` bundles after
- * this pass (root package.json `build:lib:host`): its main bundle inlines
- * workspace devDependencies from their lib/ output, and tsdown builds
- * workspace members concurrently without ordering them.
+ * their Node loader entry and browser artifact. `apps/desktop` is outside both
+ * passes: the Tauri shell compiles through its own tsconfig and packages
+ * installers through its target-specific bundle step, never through the
+ * workspace build.
  */
 export default defineConfig(({ env }) => {
   const client = isBuildFaceClient(env?.DSH_BUILD_FACE)
