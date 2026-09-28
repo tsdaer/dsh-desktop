@@ -1,5 +1,6 @@
 import { BridgeCloseRow } from './BridgeCloseRow.tsx'
 import { bridgeFetch, readBridgeConfig } from './bridge-fetch.ts'
+import { installWorkspaceTracking } from './DesktopWorkspaceTracking.ts'
 import { mountAccountController } from './DesktopAccountSummary.ts'
 import { buildMenuItems, classifyTarget, copyFromComposer, copySelection, cutFromComposer, pasteIntoComposer } from './DesktopContextMenu.ts'
 import type { ContextMenuLabels } from './DesktopContextMenu.ts'
@@ -63,6 +64,9 @@ interface WorkspacesLike {
 /** Minimal view of the uiWorkspace navigation service this plugin consumes. */
 interface UiWorkspaceLike {
   startSession(workspaceId?: string): void
+  openWorkspace?(workspaceId: string, ...rest: never[]): unknown
+  openSession?(sessionId: string, ...rest: never[]): unknown
+  forkSession?(sessionId: string, ...rest: never[]): unknown
 }
 
 /** Minimal view of the slots service this plugin consumes. */
@@ -552,12 +556,15 @@ export function apply(ctx: BridgeClientContext): () => void {
     order: 0,
     locale: NS,
   }, BridgeWslRow))
+  // The workspace panels follow the user's last navigation; the upstream
+  // service keeps that selection private, so wrap the navigation methods.
+  const workspaceTracking = installWorkspaceTracking(ctx.uiWorkspace, ctx.workspaces.list)
   ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
     name: 'sidebar.footer.action',
     id: 'desktop-workspace-workbench',
     order: -100,
     locale: NS,
-  }, createDesktopWorkspaceWorkbench(ctx.workspaces, ctx.sessions)))
+  }, createDesktopWorkspaceWorkbench(ctx.workspaces, ctx.sessions, workspaceTracking)))
   // Shell wiring at bind: read the stored desktop settings and mirror them
   // into the shell (close-to-tray interception, WebView2 devtools, and Logo motion).
   applyLogoMotion(false)
@@ -643,7 +650,20 @@ export function apply(ctx: BridgeClientContext): () => void {
   let disposeAccount: (() => void) | undefined
   try {
     disposeAccount = mountAccountController({
-      sessions: { list: ctx.sessions.list },
+      sessions: {
+        list: {
+          getSnapshot: () => {
+            const catalog = ctx.sessions.list.getSnapshot()
+            const trackedSession = workspaceTracking.getSnapshot().sessionId
+            if (trackedSession === undefined) return catalog
+            return {
+              ids: [trackedSession, ...catalog.ids.filter(id => id !== trackedSession)],
+              byId: { ...catalog.byId, [trackedSession]: { ...catalog.byId[trackedSession], updatedAt: Number.MAX_SAFE_INTEGER } },
+            }
+          },
+          subscribe: ctx.sessions.list.subscribe,
+        },
+      },
       model: { getCurrentProvider: () => undefined },
       fetch: (url, init) => bridgeFetch(url, init),
       signal: () => new AbortController().signal,

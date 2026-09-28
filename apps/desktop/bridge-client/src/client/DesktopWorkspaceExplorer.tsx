@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconBrowseOutlineRegular, IconFolderCloseRegular, IconFolderOpenRegular, IconWarningOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import { latestSessionId } from './DesktopLatestSession.ts'
+import { NO_WORKSPACE_TRACKING, type WorkspaceTrackingSource, type TrackedWorkspaceSelection } from './DesktopWorkspaceTracking.ts'
 import css from './DesktopWorkspaceWorkbench.module.css'
 import {
   SourceControlActionButtons,
@@ -41,6 +42,7 @@ interface SessionSource {
 interface ExplorerProps {
   workspaces: WorkspaceSource
   sessions: SessionSource
+  tracked?: WorkspaceTrackingSource
   t: (key: string) => string
 }
 
@@ -90,17 +92,27 @@ function useSourceSnapshot<T extends { getSnapshot(): unknown; subscribe(listene
 
 function chooseWorkspace(
   workspaces: readonly WorkspaceView[],
+  tracked: TrackedWorkspaceSelection | undefined,
   current: string | undefined,
 ): WorkspaceView | undefined {
-  return workspaces.find(workspace => current !== undefined && workspace.sessionIds.includes(current))
+  return (tracked?.workspaceId !== undefined
+    ? workspaces.find(workspace => workspace.workspaceId === tracked.workspaceId)
+    : undefined)
+    ?? (tracked?.sessionId !== undefined
+      ? workspaces.find(workspace => workspace.sessionIds.includes(tracked.sessionId ?? ''))
+      : undefined)
+    ?? workspaces.find(workspace => current !== undefined && workspace.sessionIds.includes(current))
     ?? workspaces[0]
 }
 
 /** Render the bounded, lazy directory tree owned by the desktop Worktree view. */
-export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions: sessionSource, t }: ExplorerProps): React.ReactElement {
+export function DesktopWorkspaceExplorer(
+  { workspaces: workspaceSource, sessions: sessionSource, tracked = NO_WORKSPACE_TRACKING, t }: ExplorerProps,
+): React.ReactElement {
   const workspaceSnapshot = useSourceSnapshot(workspaceSource.list)
   const sessionSnapshot = useSourceSnapshot(sessionSource.list)
-  const workspace = chooseWorkspace(workspaceSnapshot.items, latestSessionId(sessionSnapshot))
+  const trackedSnapshot = useSourceSnapshot(tracked)
+  const workspace = chooseWorkspace(workspaceSnapshot.items, trackedSnapshot, latestSessionId(sessionSnapshot))
   const workspaceId = workspace?.workspaceId
   const [nodes, setNodes] = useState<Record<string, NodeState>>({})
   const [expandedByWorkspace, setExpandedByWorkspace] = useState<Record<string, readonly string[]>>(() => readExpanded())

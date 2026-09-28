@@ -1,3 +1,4 @@
+import { type WorkspaceTrackingSource } from './DesktopWorkspaceTracking.ts'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import css from './DesktopWorkspaceWorkbench.module.css'
@@ -30,6 +31,7 @@ interface DesktopWorkspaceWorkbenchProps {
   t: (key: string) => string
   workspaces: WorkspaceSource
   sessions: SessionSource
+  tracked: WorkspaceTrackingSource
 }
 
 type Mode = 'workspace' | 'worktree'
@@ -52,7 +54,7 @@ function ModeIcon({ mode }: { mode: Mode }): React.ReactElement {
 }
 
 /** Add the desktop-only Workspace/Worktree switch without replacing the shared Workspace plugin. */
-export function DesktopWorkspaceWorkbench({ wide, t, workspaces, sessions }: DesktopWorkspaceWorkbenchProps) {
+export function DesktopWorkspaceWorkbench({ wide, t, workspaces, sessions, tracked }: DesktopWorkspaceWorkbenchProps) {
   const anchor = useRef<HTMLSpanElement>(null)
   const [region, setRegion] = useState<HTMLElement | null>(null)
   const [mode, setMode] = useState<Mode>('workspace')
@@ -98,7 +100,7 @@ export function DesktopWorkspaceWorkbench({ wide, t, workspaces, sessions }: Des
       </div>
       {showWorktree && (
         <div id="desktop-workbench-worktree" className={css.worktreePanel} role="tabpanel">
-          <DesktopWorkspaceSearch workspaces={workspaces} sessions={sessions} t={t} />
+          <DesktopWorkspaceSearch workspaces={workspaces} sessions={sessions} tracked={tracked} t={t} />
         </div>
       )}
     </div>
@@ -113,8 +115,8 @@ export function DesktopWorkspaceWorkbench({ wide, t, workspaces, sessions }: Des
 }
 
 /** Bind the desktop runtime sources once while preserving the slot owner props. */
-export function createDesktopWorkspaceWorkbench(workspaces: WorkspaceSource, sessions: SessionSource) {
-  return function BoundDesktopWorkspaceWorkbench(props: Omit<DesktopWorkspaceWorkbenchProps, 'workspaces' | 'sessions'>): React.ReactElement {
-    return <DesktopWorkspaceWorkbench {...props} workspaces={workspaces} sessions={sessions} />
+export function createDesktopWorkspaceWorkbench(workspaces: WorkspaceSource, sessions: SessionSource, tracked: WorkspaceTrackingSource) {
+  return function BoundDesktopWorkspaceWorkbench(props: Omit<DesktopWorkspaceWorkbenchProps, 'workspaces' | 'sessions' | 'tracked'>): React.ReactElement {
+    return <DesktopWorkspaceWorkbench {...props} workspaces={workspaces} sessions={sessions} tracked={tracked} />
   }
 }

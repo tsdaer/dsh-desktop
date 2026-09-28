@@ -28,6 +28,7 @@ function renderWorkbench(wide: boolean) {
     t: (key: string) => key,
     workspaces: inertSource({ items: [] }),
     sessions: inertSource({ ids: [], byId: {} }),
+    tracked: { getSnapshot: () => ({}), subscribe: () => () => {} },
   }))
 }
 

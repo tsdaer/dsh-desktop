@@ -1,3 +1,4 @@
+import { NO_WORKSPACE_TRACKING, type WorkspaceTrackingSource } from './DesktopWorkspaceTracking.ts'
 import { latestSessionId } from './DesktopLatestSession.ts'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { bridgeFetch } from './bridge-fetch.ts'
@@ -31,6 +32,7 @@ interface SessionSource {
 interface SearchProps {
   workspaces: WorkspaceSource
   sessions: SessionSource
+  tracked?: WorkspaceTrackingSource
   t: (key: string) => string
 }
 
@@ -48,13 +50,19 @@ interface SearchListing {
 }
 
 /** Search the selected Workspace through the bounded desktop Host route. */
-export function DesktopWorkspaceSearch({ workspaces: workspaceSource, sessions: sessionSource, t }: SearchProps): React.ReactElement {
+export function DesktopWorkspaceSearch(
+  { workspaces: workspaceSource, sessions: sessionSource, tracked = NO_WORKSPACE_TRACKING, t }: SearchProps,
+): React.ReactElement {
   const workspaceSnapshot = useSourceSnapshot(workspaceSource.list)
   const sessionSnapshot = useSourceSnapshot(sessionSource.list)
-  const current = latestSessionId(sessionSnapshot)
-  const workspace = workspaceSnapshot.items.find(
-    item => current !== undefined && item.sessionIds.includes(current),
-  )
+  const trackedSnapshot = useSourceSnapshot(tracked)
+  const current = trackedSnapshot.sessionId ?? latestSessionId(sessionSnapshot)
+  const workspace = (trackedSnapshot.workspaceId !== undefined
+    ? workspaceSnapshot.items.find(item => item.workspaceId === trackedSnapshot.workspaceId)
+    : undefined)
+    ?? workspaceSnapshot.items.find(
+      item => current !== undefined && item.sessionIds.includes(current),
+    )
     ?? workspaceSnapshot.items[0]
   const [query, setQuery] = useState('')
   const [caseSensitive, setCaseSensitive] = useState(false)
@@ -160,7 +168,11 @@ export function DesktopWorkspaceSearch({ workspaces: workspaceSource, sessions: 
           onClick={() => { setWholeWord(value => !value); setListing(null) }}
         >Word</button>
       </form>
-      {busy ? <div className={css.explorerState}>{t('worktree.searching')}</div> : listing === null ? <DesktopWorkspaceExplorer workspaces={workspaceSource} sessions={sessionSource} t={t} /> : null}
+      {busy
+        ? <div className={css.explorerState}>{t('worktree.searching')}</div>
+        : listing === null
+          ? <DesktopWorkspaceExplorer workspaces={workspaceSource} sessions={sessionSource} tracked={tracked} t={t} />
+          : null}
       {error === null ? null : <div className={css.searchError} role="alert">{error}</div>}
       {listing !== null && listing.matches.length === 0 && !busy ? <div className={css.explorerState}>{t('worktree.noMatches')}</div> : null}
       {viewer !== null && workspace !== undefined ? (
