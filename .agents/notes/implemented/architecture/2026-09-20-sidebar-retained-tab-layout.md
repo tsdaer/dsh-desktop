@@ -36,7 +36,7 @@ A background Session with no initialized retained body leaves the view list. Its
 
 `BrowserFrame` remains navigation and observable page state. Presentation creates and attaches the carrier DOM, without pane, clipping or stacking knowledge. Electron's provider receives physical attach/detach callbacks: hiding retained content emits neither, while an actual unmount cancels pending attachment and releases the guest. A subsequent physical mount recreates it from its known address. Disposal waits for pending creation and guest releases; an acquisition completing after cancellation is released rather than attached.
 
-The [Desktop Browser decision](../feature/2026-09-20-desktop-browser-webview.md) retains guest security, shared IPC declarations and Workspace partition ownership. Separate tabs and Sessions never share one page instance merely because they share a storage partition. Web remains disabled by default and retains its iframe carrier when explicitly enabled.
+Separate tabs and Sessions never share one page instance merely because they share a storage partition. Web remains disabled by default and retains its iframe carrier when explicitly enabled.
 
 ### Retention versus recovery
 
@@ -75,7 +75,7 @@ The [Desktop Browser decision](../feature/2026-09-20-desktop-browser-webview.md)
 
 Layout correctness belongs to Sidebar/DockKit rather than Browser. The cost is stable content containers and explicit Session-reference ownership: background retention holds Session scopes and subscriptions as well as page memory. There is no implicit LRU or idle timeout; future reclamation requires an explicit suspension/recovery policy. Other tab types do not automatically acquire these costs.
 
-Sidebar/DockKit own chrome, float stacking, focus and platform styles as well as retained content placement. The [docking infrastructure](../feature/2026-09-04-right-sidebar-docking-infrastructure.md) owns the layout engine, persistence and tab-type navigation; the [Desktop Browser decision](../feature/2026-09-20-desktop-browser-webview.md) owns guest navigation, storage and security.
+Sidebar/DockKit own chrome, float stacking, focus and platform styles as well as retained content placement. The [docking infrastructure](../feature/2026-09-04-right-sidebar-docking-infrastructure.md) owns the layout engine, persistence and tab-type navigation.
 
 ## Verification
 

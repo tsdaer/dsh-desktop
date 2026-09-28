@@ -14,7 +14,7 @@ Linux 故障切换池在同一台虚拟机上运行多个 runner 实例。PR 覆
 
 npm 保留配置的持久化缓存，在 POSIX 上通常为 `$HOME/.npm`；主 CI 和发布工作流不设置每作业覆盖。pnpm store 保持共享于 `$HOME/.local/share/pnpm/store`。两者依靠包管理器的并发访问支持保留跨 runner 复用；共享缓存容量及文件系统故障仍由运维负责。消费者作业将 Playwright 浏览器下载和安装锁放在 `RUNNER_TEMP` 旁；托管缓存恢复使用同一位置。
 
-[发布演练决策](../process/2026-09-06-release-rehearsal-selfhosted.zh.md) 对发布消费者采用相同的生命周期规则。[故障切换运行手册](../process/2026-07-26-ci-failover-runbook.zh.md) 继续负责 runner 选择和共享主机容量。本变更不调整作业目标、不降低并发、不重试测试、不削弱断言，也不修改仅在 master 上执行的 CI。
+本变更不调整作业目标、不降低并发、不重试测试、不削弱断言，也不修改仅在 master 上执行的 CI。
 
 ## ACP 完成顺序的录制
 

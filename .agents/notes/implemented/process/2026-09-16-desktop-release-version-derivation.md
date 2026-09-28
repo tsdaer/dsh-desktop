@@ -10,7 +10,7 @@ Replacing a dsh prerelease identifier with the update channel name loses the bas
 
 ## Decision
 
-The [Desktop release rules](https://github.com/deepseek-ai/deepseek-harness/blob/master/apps/desktop/README.md#release-versions) preserve the complete dsh base for production and derive dated, indexed test versions from that base. The derived version is [passed to packaging as an argument](2026-09-21-desktop-build-version-as-input.md) rather than written into manifests, and it is derived from the dsh base so another test release cannot append a second date suffix.
+The [Desktop release rules](https://github.com/deepseek-ai/deepseek-harness/blob/master/apps/desktop/README.md#release-versions) preserve the complete dsh base for production and derive dated, indexed test versions from that base. The derived version is passed to packaging as an argument rather than written into manifests, and it is derived from the dsh base so another test release cannot append a second date suffix.
 
 The fixed Nightly feed is a distribution address, independent of version derivation. Existing clients continue to use that address with prerelease updates enabled and downgrades disabled. Test distribution does not publish the unsuffixed base. Operators check existing release records and objects before assigning an index.
 

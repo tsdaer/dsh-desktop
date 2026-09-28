@@ -74,7 +74,7 @@ agent 每次更新都发送完整列表；新列表替换旧列表，因此没�
 - **部署策略，而非编码规则。** `allowParallelInProgress` 是必填组合选择，因为工具无法观测运行时并发；持久日志不变式刻意不跟随它，因此一种策略下写入的日志在切换到另一种策略后仍可回放。
 - **校验确保日志快照如实反映输入。** schema 层拒绝未知键、`execute` 层拒绝空或重复 content，使持久快照与模型自认为写入的内容一致。
 
-[todo_write 工具 Agent Note](../../../.agents/notes/archived/feature/2026-06-29-todo-write-tool.md) 记录原始设计与备选方案；[并行 in-progress Agent Note](../../../.agents/notes/archived/feature/2026-07-26-todo-parallel-in-progress.md) 记录该策略决策。
+todo_write 工具 Agent Note 记录原始设计与备选方案；并行 in-progress Agent Note 记录该策略决策。
 
 ### 源码地图
 
@@ -114,8 +114,8 @@ agent 每次更新都发送完整列表；新列表替换旧列表，因此没�
 - [todo 组映射](../README.zh.md)——同级组页面及其包表格。
 - [生成的工具目录](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-todo)——模型接收的 `todo_write` schema。
 - [生成的配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-tool-todo)——每个受支持配置字段及其源声明。
-- [todo_write 工具 Agent Note](../../../.agents/notes/archived/feature/2026-06-29-todo-write-tool.md)——原始设计、备选方案与未采纳的字段。
-- [并行 in-progress Agent Note](../../../.agents/notes/archived/feature/2026-07-26-todo-parallel-in-progress.md)——为何活跃计数上限成为部署策略。
+- todo_write 工具 Agent Note——原始设计、备选方案与未采纳的字段。
+- 并行 in-progress Agent Note——为何活跃计数上限成为部署策略。
 
 -----
 

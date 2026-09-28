@@ -16,7 +16,7 @@ Status: proposed
 
 保留 `filterEvents` 和 `_filterEvents`，以及语义提取和过滤辅助函数。保留 `observeSession`、`readTitleSnapshots`、`readSurface`、`readEvent`、列举、搜索和追踪。保留共享会话集合解析及其现有所有权和失败行为。
 
-[历史上的统一查询决策](../../archived/architecture/2026-07-23-unified-session-query-service.md) 解释了保留的单服务结构。本提案删除选定的便利操作，不改变该结构。没有活动记录被完全取代；保持归档记录冻结，并从受影响的当前文档链接到这一较窄的决策。
+历史上的统一查询决策 解释了保留的单服务结构。本提案删除选定的便利操作，不改变该结构。没有活动记录被完全取代；保持归档记录冻结，并从受影响的当前文档链接到这一较窄的决策。
 
 ## 考虑过的替代方案
 

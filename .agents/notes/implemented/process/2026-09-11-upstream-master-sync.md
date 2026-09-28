@@ -12,7 +12,7 @@ This fork carries thousands of its own commits on top of [deepseek-ai/deepseek-h
 
 A sync merges `upstream/master` into `feat/tauri-shell`, starting from a pre-merge checkpoint branch so the resolved tree can be compared against the tree before the merge. Resolution follows [the divergence register](../../../../docs/fork-divergence.md) and four standing rules.
 
-**Rejected upstream trees are deleted, never merged.** Every file the merge brings in under `.github/workflows/` other than the fork's own desktop workflows, and every file under `apps/desktop/` that upstream added, is removed with `git rm`. Upstream files that also exist in the fork's Tauri shell never reach the same path, so the deletion is by added-path status against `HEAD`, not by directory.
+**Rejected upstream trees are deleted, never merged.** Every file the merge brings in under `.github/workflows/` other than the fork's own desktop workflows, and every file under `apps/desktop/` that upstream added, is removed with `git rm`. Upstream files that also exist in the fork's Tauri shell never reach the same path, so the deletion is by added-path status against `HEAD`, not by directory. The same rule covers upstream Agent Notes whose subject is a rejected upstream system — the Electron desktop and the inherited CI lanes — deleted with their complete triplets, and it keeps the frozen archive empty: the fork records no note for a system it does not carry, and upstream's history stays readable on `upstream/master`.
 
 **Bilingual pairs take upstream's side, then re-applies the fork's own edit.** Upstream runs the same translation passes the fork inherited, including mechanical link rewrites, so its Chinese side is usually the newer base. The fork's semantic edit is re-applied on top and the sidecar re-recorded with `pnpm run verify-translation-pairing --write <pair>`; a pair left diverging structurally fails the pairing driver on the next merge.
 
@@ -26,6 +26,7 @@ A sync merges `upstream/master` into `feat/tauri-shell`, starting from a pre-mer
 |---|---|
 | Inherited workflow files added upstream | Deleted. The register lists every absent workflow, and none is restored |
 | Upstream files under `apps/desktop/` | Deleted. The fork keeps the Tauri 2 shell; upstream's Tauri shell adds no `apps/desktop` file |
+| Upstream Agent Notes for rejected systems (Electron desktop, inherited CI lanes) | Deleted with their complete triplets; the register records the initial purge, and the frozen archive stays empty |
 | `apps/desktop/package.json` | The fork's `name`, `version`, description, scripts, Tauri devDependencies, and MIT license replace upstream's Electron manifest |
 | `AGENTS.md`, `.gitignore` | Upstream's rewritten lines are taken; the fork's own lines are preserved alongside them |
 | `scripts/gen-tool-catalog.ts` | Upstream's new tool entries are taken in upstream order, with the fork's `bash-wsl` entry re-inserted after `tool-bash` |

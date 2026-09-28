@@ -57,7 +57,7 @@ Session Controller 负责 catalog 与 history read；`@deepseek-ai/dsh-subagent`
 
 - `session.projections` 接受 `sessionId`，返回一次 live-preferred Session observation 的完整 projection 基线，不激活 Agent。Client 将基线写入标准 projection store；subagent 消费者选择 `subagentCatalog`。父 Agent 可用性来自 Session 列表摘要与生命周期事件。
 - `session.page` 与 `session.follow` 接受包含 mode 的完整地址。它们在观察到的 cut 上校验 child header、直接 parent、descriptor identity 与 mode，随后在不发布 Agent 的情况下返回普通 raw event、pagination、live reconciliation 与 Host projection baseline。
-- `subagent.prompt` 只接受 `mode: 'continuable'` 地址、`delivery: 'queue' | 'steer'` 与上传形态的 `PromptContentPart[]`；Host 在投递前把图片部分准入并持久化为持久引用（[图片投递](../../archived/bug-fix/2026-08-27-steer-followup-image-delivery.md)）。它要求确切的存活 parent，重新校验目录地址，使用 continuation manager 共享的人类投递准入，并返回已接受的 `MessageId`。
+- `subagent.prompt` 只接受 `mode: 'continuable'` 地址、`delivery: 'queue' | 'steer'` 与上传形态的 `PromptContentPart[]`；Host 在投递前把图片部分准入并持久化为持久引用（图片投递）。它要求确切的存活 parent，重新校验目录地址，使用 continuation manager 共享的人类投递准入，并返回已接受的 `MessageId`。
 
 网关会将 parent 或目录条目缺失、child 不可恢复或未授权、请求取消、图片准入或图片能力拒绝（`subagent/attachment-invalid`）以及继续执行准入暂时不可用等失败映射为类型化 RPC 错误。它不会公开描述符或提供方细节。list／prompt 竞态属于正常情况：权威依据是提示词操作的结果，而不是更早的可用性或活动快照。
 
@@ -65,7 +65,7 @@ Session Controller 负责 catalog 与 history read；`@deepseek-ai/dsh-subagent`
 
 普通 `session.page` 与 `session.follow` 地址对于普通会话和 subagent 会话同样只执行观察，但它既不携带目录地址，也不授予继续执行权限。每条需要 Agent 的普通路由都会在恢复冷会话前经过共享所有权栅栏；`session.cancel` 保留该栅栏。`session.updateQueue` 只有一个目标本地例外：目标是在线 child，且其当前 projection identity 为 continuable 并来自自身的非 seed suffix；one-shot、缺失、未知、损坏、仅含 seed identity 或冷 child 仍受栅栏阻挡。
 
-适配器仍位于生成的 Remote 命名空间之后；`dsh-host-webserver` 仍作为载体。浏览器代码通过现有连接包导入约定，绝不直接访问宿主 `ctx`，从而保持[已归档的 GUI RPC 分层决策](../../archived/architecture/2026-07-19-gui-layering-and-rpc-protocol.md)。
+适配器仍位于生成的 Remote 命名空间之后；`dsh-host-webserver` 仍作为载体。浏览器代码通过现有连接包导入约定，绝不直接访问宿主 `ctx`，从而保持已归档的 GUI RPC 分层决策。
 
 ## 客户端对象层与呈现
 

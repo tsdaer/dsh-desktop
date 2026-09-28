@@ -4,7 +4,7 @@ Status: implemented
 
 [English](2026-06-21-bounded-llm-request-recovery.md) | 中文
 
-[按提供方配置的请求重试策略](../../archived/feature/2026-07-24-provider-retry-policies.md)在此基础上增加了确切提供方配置与显式无界 mode。本说明继续负责结构化失败事实、失败尝试的恢复边界、normal mode 的暂时性默认值、可见的单次尝试和持久重试状态。[LLM（大语言模型）流的终止失败](2026-07-29-terminal-llm-stream-failures.zh.md)取代了其中关于抛出错误身份和流 sidecar 的机制。
+按提供方配置的请求重试策略在此基础上增加了确切提供方配置与显式无界 mode。本说明继续负责结构化失败事实、失败尝试的恢复边界、normal mode 的暂时性默认值、可见的单次尝试和持久重试状态。[LLM（大语言模型）流的终止失败](2026-07-29-terminal-llm-stream-failures.zh.md)取代了其中关于抛出错误身份和流 sidecar 的机制。
 
 ## 问题
 
@@ -46,7 +46,7 @@ agent loop（智能体循环）会将终止 finish 的 `LlmFailure` 传给 `agen
 
 适配器会先提取结构化事实，再回退到消息检查。它们会验证 HTTP 状态，将 `Retry-After` 的秒数或日期解析为正的有限毫秒延迟，在提供方公开请求 id 时将其品牌化，并区分自身超时与调用方中止。提供方专用 code 和消息可以细化映射，但恢复监听器不会解析它们。
 
-共享的暂时性 code 集有意保持很小：适配器针对 `RATE_LIMIT` 和 `SERVER` 的映射，远程失败使用的显式 `TIMEOUT` 和 `TRANSPORT` code，以及提供方响应已完成却没有内容块时使用的 `EMPTY_RESPONSE`。两个适配器都会把最后一种情况归类为错误 finish；详见[空模型响应可重试](../../archived/bug-fix/2026-07-24-empty-model-response-is-retryable.md)。身份验证、配额、无效请求、上下文溢出、协议、中止和未知失败都保留不同的稳定 code，且默认不属于暂时性失败。新增 code 需要适配器 fixture（测试前置数据）和已记录的策略决策；无需扩展第二个失败类枚举。
+共享的暂时性 code 集有意保持很小：适配器针对 `RATE_LIMIT` 和 `SERVER` 的映射，远程失败使用的显式 `TIMEOUT` 和 `TRANSPORT` code，以及提供方响应已完成却没有内容块时使用的 `EMPTY_RESPONSE`。两个适配器都会把最后一种情况归类为错误 finish；详见空模型响应可重试。身份验证、配额、无效请求、上下文溢出、协议、中止和未知失败都保留不同的稳定 code，且默认不属于暂时性失败。新增 code 需要适配器 fixture（测试前置数据）和已记录的策略决策；无需扩展第二个失败类枚举。
 
 ### 将重试策略放在现有失败步骤扩展点上
 
@@ -100,7 +100,7 @@ agent loop（智能体循环）会将终止 finish 的 `LlmFailure` 传给 `agen
 - **向 `dsh-llm` 增加响应开始、中断、丢弃、失败和提交事件**：拒绝采用，因为 agent 日志已经分隔原始分片、成功消息和编号尝试。第二套状态机会重复归属关系，又不能支持有界的同路由重试。
 - **增加逻辑路由、能力矩阵和故障转移选择**：拒绝采用，因为当前请求已经显式指定提供方和模型，每个提供方由一个适配器负责，而且没有当前消费方要求自动回退或能够证明语义兼容性。
 - **把 `retryable` 或 `failover` 放在 `LlmFailure` 上**：拒绝采用，因为适配器报告事实，部署策略决定动作。同一个 429 可以在交互式组合包中重试，也可以在成本受限的批处理中被拒绝。
-- **只要调用方仍处于活跃状态就无限重试**：[按提供方配置的策略](../../archived/feature/2026-07-24-provider-retry-policies.md)对显式 `always` 配置项推翻了这项拒绝，同时保留有界的 normal mode 作为默认值。
+- **只要调用方仍处于活跃状态就无限重试**：按提供方配置的策略对显式 `always` 配置项推翻了这项拒绝，同时保留有界的 normal mode 作为默认值。
 - **只通过进程 logger 记录重试状态**：拒绝采用，因为进程日志无法重建会话行为，也不能驱动回放后的 UI 状态。
 - **只保留扁平 code**：拒绝采用，因为重试延迟和提供方请求 id 是结构化的提供方事实，而当不同协议失败共用一个稳定 code 时，诊断还需要 HTTP 状态。
 
@@ -131,9 +131,9 @@ agent loop（智能体循环）会将终止 finish 的 `LlmFailure` 传给 `agen
 
 ## 相关资料
 
-- [结构化错误分类体系](../../archived/architecture/2026-06-11-structured-error-taxonomy.md)负责稳定、可供机器路由的 code 与 cause chaining。
+- 结构化错误分类体系负责稳定、可供机器路由的 code 与 cause chaining。
 - [可重建请求](../../implemented/architecture/2026-07-05-reconstructable-requests.zh.md)使提供方／模型和完整请求输入在分发前持久化。
 - [超时 deadline 库](../../implemented/architecture/2026-07-06-timeout-deadline-library.zh.md)将共享的 deadline 分类与能力自身拥有的终止操作分开。
 - [调用后压缩压力与上下文溢出恢复](../../implemented/architecture/2026-07-10-after-call-compaction-pressure-and-overflow-recovery.zh.md)负责当前已关闭步骤的请求恢复扩展点与有界溢出重试。
 - [提供方路由的 LLM 适配器](../../implemented/architecture/2026-07-14-provider-routed-llm-adapters.zh.md)负责显式提供方／模型路由与每个提供方仅有一个适配器的不变量。
-- [Terminal turn errors survive same-turn retry history](../../archived/bug-fix/2026-08-20-turn-error-survives-same-turn-retry-history.md)负责移除曾藏掉耗尽恢复终态错误行的 Web 重试历史抑制。
+- Terminal turn errors survive same-turn retry history负责移除曾藏掉耗尽恢复终态错误行的 Web 重试历史抑制。

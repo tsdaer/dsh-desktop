@@ -40,7 +40,7 @@ Start with the Python SDK (the sibling implementation of the client contract), t
 - [Python SDK](../../python/README.md) — the Python counterpart that speaks the same protocol and ships a bundled runtime.
 - [SDK application bundle](../bundle/sdk-app/README.md) — the `dsh --profile sdk` application that boots the JSON-RPC server.
 - [Architecture](../../docs/architecture.md) — why the packaged Python client launches the same named profiles.
-- [SDK project toolchain removal](../../.agents/notes/archived/simplification/2026-08-11-remove-sdk-project-toolchain.md) — why this group never creates, configures, or builds developer projects.
+- SDK project toolchain removal — why this group never creates, configures, or builds developer projects.
 - [SDK subagent provider](../subagent/subagent-dsh-sdk/README.md) — a harness-internal consumer of the TypeScript client.
 
 <a id="dev-note"></a>

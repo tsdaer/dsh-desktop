@@ -18,7 +18,7 @@ Keep the plugin's missing-provider no-op and the pure `renderAgentInstructions` 
 
 Migrate direct helper tests to explicitly owned local or controlled providers. The [test suite](../../../../packages/context/agent-instructions/tests/agent-instructions.spec.ts) already mounts both. Preserve unique assertions and consolidate duplicate Node-mocking cases into provider coverage. Expected deletion is roughly 50–65 production lines before signature/documentation updates, plus redundant test machinery; measure the actual reduction during implementation.
 
-The [symlink decision](../../implemented/feature/2026-07-21-follow-instruction-symlinks.md) remains active because its accepted behavior survives. At implementation, update its references to the two implementations and the [package README](../../../../packages/context/agent-instructions/README.md), including bilingual counterparts. The [archived workspace-context note](../../archived/feature/2026-06-24-workspace-context.md) remains frozen; no existing note changes accompany this proposal.
+The [symlink decision](../../implemented/feature/2026-07-21-follow-instruction-symlinks.md) remains active because its accepted behavior survives. At implementation, update its references to the two implementations and the [package README](../../../../packages/context/agent-instructions/README.md), including bilingual counterparts. The archived workspace-context note remains frozen; no existing note changes accompany this proposal.
 
 ## Alternatives considered
 

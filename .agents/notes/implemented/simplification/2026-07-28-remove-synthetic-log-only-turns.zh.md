@@ -22,7 +22,7 @@ Status: implemented
 
 `SessionStore.fork()` 保留独立标题和其他插件所属的纯日志记录。[精确事件 fork 决策](../feature/2026-08-18-arbitrary-seq-session-fork.zh.md)负责切点选择与开放尾部的子会话自有结束事件。
 
-历史上的[通用轮次封闭决策](../../archived/architecture/2026-06-15-turn-enclosure-invariant.md)如今只适合用于解释为何曾引入合成机制。[上下文注入决策](../architecture/2026-07-24-separate-context-injection-from-turn-execution.zh.md)确立了当前语义：一个轮次表示一次模型循环执行。[排队手动压缩决策](../feature/2026-07-30-queued-manual-compaction.zh.md)将该规则应用于持久多事件标记对，并拥有其标记与接纳语义。
+历史上的通用轮次封闭决策如今只适合用于解释为何曾引入合成机制。[上下文注入决策](../architecture/2026-07-24-separate-context-injection-from-turn-execution.zh.md)确立了当前语义：一个轮次表示一次模型循环执行。[排队手动压缩决策](../feature/2026-07-30-queued-manual-compaction.zh.md)将该规则应用于持久多事件标记对，并拥有其标记与接纳语义。
 
 ## 曾考虑的替代方案
 

@@ -10,7 +10,7 @@ Windows 的第二个原生窗口无法与父窗口原子地缩放，最大化时
 
 ## 决策
 
-Windows 使用一个原生窗口和顶栏下方的壳源站 frame。此决策部分取代[强更客户端](../feature/2026-09-11-desktop-mandatory-update-client.zh.md)的展示决策；该说明继续负责策略与安装归属。macOS 保留原生蒙层。
+Windows 使用一个原生窗口和顶栏下方的壳源站 frame。macOS 保留原生蒙层。
 
 隔离的应用预加载将私有 MessageChannel 端点直接传给壳 frame。只有配对私有端口上的消息才能授权更新 IPC；合成的 window 事件不能调用操作。主进程校验当前应用主 frame，并在主窗口变化时重新绑定状态投递。已销毁窗口不再接收状态或焦点操作。
 

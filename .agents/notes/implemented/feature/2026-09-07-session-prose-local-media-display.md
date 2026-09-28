@@ -36,7 +36,7 @@ The Client vocabulary cannot bypass Host authentication or the filesystem provid
 
 Windows-style authored paths remain unsupported by the Client vocabulary. Trajectory and tool-card Markdown consumers do not supply this vocabulary, and audio/video Markdown nodes do not render players. These are renderer limitations, independent of the file route's readable MIME types.
 
-The archived [model-readable image paths](../../archived/feature/2026-08-21-model-readable-image-paths.md) note owns the model-facing behavior; this note owns user-facing display and does not supersede it.
+The archived model-readable image paths note owns the model-facing behavior; this note owns user-facing display and does not supersede it.
 
 ## Testing
 

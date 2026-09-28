@@ -12,7 +12,7 @@ Status: implemented
 
 ## 决策
 
-普通的 `pnpm run test:coverage` 命令仍只启动一次 Vitest。Linux 覆盖率 CI 将 `DSH_COVERAGE_PARTITIONS` 固定为 4；原生 Windows 现在也固定为 4，以降低自托管高并发下的进程创建压力。运行期间不会由任何耗时触发器改变这两个数量。[覆盖率豁免重型套件](../../archived/process/2026-07-31-coverage-exempt-heavy-suites.md)仍作为独立的无插桩门禁与插桩工作并排运行。
+普通的 `pnpm run test:coverage` 命令仍只启动一次 Vitest。Linux 覆盖率 CI 将 `DSH_COVERAGE_PARTITIONS` 固定为 4；原生 Windows 现在也固定为 4，以降低自托管高并发下的进程创建压力。运行期间不会由任何耗时触发器改变这两个数量。覆盖率豁免重型套件仍作为独立的无插桩门禁与插桩工作并排运行。
 
 整个 `packages/typert/` 组豁免源码覆盖率，并在无插桩门禁中运行。其编译器 fixture（测试前置数据）、目录复现、loader、协议及注册表断言仍为必需检查。共享的[豁免清单](../../../../scripts/coverage-exempt.ts)选择每个 Typert 包及其嵌套测试；project 排除规则与分区清单都使用该清单。豁免只移除覆盖率采集，不忽略测试或钩子失败。
 

@@ -6,7 +6,7 @@ English | [中文](2026-09-10-hosted-image-test-assumptions.zh.md)
 
 ## Problem
 
-The [failover leg](../process/2026-09-09-blacksmith-failover-leg.md) runs this suite on pools this repository does not own — Blacksmith's ephemeral images, and the in-house `vm-backup` and `dsh-win-ci` standbys. On the hosted image the coverage lanes failed on host properties their cases never named: whether the host offered a usable user-systemd scope decided which containment a mocked PTY exit raced; a managed scope reported a signal failure during ACP teardown; a starved reader coalesced writes the illegal-UTF-8 residual cases assumed arrived as separate chunks; and a Windows Server image refuses `CoCreateInstance(CLSID_FileOpenDialog)` outright.
+The failover leg runs this suite on pools this repository does not own — Blacksmith's ephemeral images, and the in-house `vm-backup` and `dsh-win-ci` standbys. On the hosted image the coverage lanes failed on host properties their cases never named: whether the host offered a usable user-systemd scope decided which containment a mocked PTY exit raced; a managed scope reported a signal failure during ACP teardown; a starved reader coalesced writes the illegal-UTF-8 residual cases assumed arrived as separate chunks; and a Windows Server image refuses `CoCreateInstance(CLSID_FileOpenDialog)` outright.
 
 ## Decision
 

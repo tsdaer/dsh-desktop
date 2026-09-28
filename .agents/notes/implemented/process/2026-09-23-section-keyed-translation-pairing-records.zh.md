@@ -53,4 +53,4 @@ Status: implemented
 
 ## Related
 
-[双语配对门禁 Agent Note](2026-07-02-bilingual-docs-and-pairing-gate.zh.md) 负责三文件配对及其两种语言同权的规则；本文取代其中的整文件 hash 记录。[已归档的自动配对合并 Agent Note](../../archived/process/2026-08-08-automatic-translation-pairing-merges.md) 记录已退役的合并驱动。
+[双语配对门禁 Agent Note](2026-07-02-bilingual-docs-and-pairing-gate.zh.md) 负责三文件配对及其两种语言同权的规则；本文取代其中的整文件 hash 记录。已归档的自动配对合并 Agent Note 记录已退役的合并驱动。

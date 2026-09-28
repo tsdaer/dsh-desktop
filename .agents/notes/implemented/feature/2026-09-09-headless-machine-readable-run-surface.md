@@ -6,7 +6,7 @@ English | [中文](2026-09-09-headless-machine-readable-run-surface.zh.md)
 
 ## Problem
 
-`dsh --profile headless` serves a human terminal: the task arrives only through argv, stdout carries one final assistant message, provider reasoning streams to stderr, and every run creates a fresh random session. [Headless is a direct core entry point](../../archived/architecture/2026-08-09-headless-direct-core-entry-point.md) owns that transport and completion contract; [headless reasoning progress](../../archived/feature/2026-08-21-headless-reasoning-progress.md) owns the stderr projection.
+`dsh --profile headless` serves a human terminal: the task arrives only through argv, stdout carries one final assistant message, provider reasoning streams to stderr, and every run creates a fresh random session. Headless is a direct core entry point owns that transport and completion contract; headless reasoning progress owns the stderr projection.
 
 A supervising process that drives one headless process per wake, such as an external agent runtime, needs three things that contract does not provide. It needs the task over a private pipe rather than argv, because a long prompt exceeds the argument limit and argv is visible to other processes. It needs a machine-readable stream that separates assistant text, reasoning, tool calls and results, turn boundaries, and usage, because scraping stderr yields only reasoning and the final stdout line yields no tool activity. It needs an exact session identity it can pass back on the next wake, because a fresh random session per process makes continuity impossible.
 
@@ -14,7 +14,7 @@ A supervising process that drives one headless process per wake, such as an exte
 
 The `dsh-headless` bundle owns an opt-in machine-readable run surface. The default invocation keeps the previous contract unchanged: one final assistant message on stdout, reasoning on stderr, exit 0 exactly when the terminal `turn/end` reason is `completed`.
 
-Three additions extend the app-owned command line that [Apps own their command lines](../../archived/architecture/2026-08-06-app-owned-command-line.md) established:
+Three additions extend the app-owned command line that Apps own their command lines established:
 
 - `--json` replaces the stdout payload with newline-delimited JSON run events. Reasoning becomes an event instead of stderr output, so stderr carries only `dsh:` diagnostics.
 - `--session-id <id>` selects the exact session identity: adopt the persisted session with that id, and fail when no such log exists. Without the flag the run mints `session-<uuid>` as before.

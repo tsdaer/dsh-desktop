@@ -12,7 +12,7 @@ The optimization must retain every test and the merged per-file 100% thresholds.
 
 ## Decision
 
-The ordinary `pnpm run test:coverage` command remains one Vitest invocation. Linux coverage CI fixes `DSH_COVERAGE_PARTITIONS=4`; native Windows now also fixes it at 4 to reduce process-creation pressure under high self-hosted concurrency. No elapsed-time trigger changes either count while a run is in progress. The [coverage-exempt heavy suite](../../archived/process/2026-07-31-coverage-exempt-heavy-suites.md) remains a separate uninstrumented gate beside the instrumented work.
+The ordinary `pnpm run test:coverage` command remains one Vitest invocation. Linux coverage CI fixes `DSH_COVERAGE_PARTITIONS=4`; native Windows now also fixes it at 4 to reduce process-creation pressure under high self-hosted concurrency. No elapsed-time trigger changes either count while a run is in progress. The coverage-exempt heavy suite remains a separate uninstrumented gate beside the instrumented work.
 
 The entire `packages/typert/` group is exempt from source coverage and runs in the uninstrumented gate. Its compiler fixtures, catalog reproduction, loader, protocol, and registry assertions remain required. The shared [exempt roster](../../../../scripts/coverage-exempt.ts) selects every Typert package, including nested tests; both project exclusions and partition inventory consume that roster. Exemption removes coverage collection, not test or hook failures.
 

@@ -6,7 +6,7 @@ Status: implemented
 
 ## 问题
 
-`dsh --profile headless` 面向的是人类终端：任务只能通过 argv 传入，stdout 只输出最终一条助手消息，provider 的推理过程流式写到 stderr，而且每次运行都新建一个随机会话。[Headless is a direct core entry point](../../archived/architecture/2026-08-09-headless-direct-core-entry-point.md) 拥有那套传输与完成契约；[headless reasoning progress](../../archived/feature/2026-08-21-headless-reasoning-progress.md) 拥有 stderr 投影。
+`dsh --profile headless` 面向的是人类终端：任务只能通过 argv 传入，stdout 只输出最终一条助手消息，provider 的推理过程流式写到 stderr，而且每次运行都新建一个随机会话。Headless is a direct core entry point 拥有那套传输与完成契约；headless reasoning progress 拥有 stderr 投影。
 
 一个"每次唤醒起一个 headless 进程"的监督进程（例如外部 agent 运行时）需要三样该契约没有提供的东西。它需要通过私有管道而不是 argv 传入任务，因为长提示词会超出参数上限，而 argv 对其他进程可见。它需要一条机器可读的流，把助手文本、推理、工具调用与结果、轮次边界和用量区分开，因为抓取 stderr 只能拿到推理，而 stdout 最后一行拿不到任何工具活动。它需要一个精确的会话身份，以便在下一次唤醒时传回去，因为每次进程都新建随机会话意味着无法连续。
 
@@ -14,7 +14,7 @@ Status: implemented
 
 `dsh-headless` bundle 拥有一个可选的机器可读运行接口。默认调用保持原有契约不变：stdout 输出一条最终助手消息，推理走 stderr，当且仅当终端 `turn/end` 原因为 `completed` 时退出码为 0。
 
-三项新增扩展 [Apps own their command lines](../../archived/architecture/2026-08-06-app-owned-command-line.md) 确立的 app 自有命令行：
+三项新增扩展 Apps own their command lines 确立的 app 自有命令行：
 
 - `--json` 把 stdout 负载换成逐行 JSON 运行事件。推理变成一条事件而不再写 stderr，因此该模式下 stderr 只承载 `dsh:` 诊断。
 - `--session-id <id>` 选定精确的会话身份：采用具有该 id 的持久化会话，不存在时就失败。不带该 flag 时，运行仍像以前一样生成 `session-<uuid>`。

@@ -6,7 +6,7 @@ Status: implemented
 
 ## 问题
 
-[宿主发起的 goal 暂停中止当前轮次](../../archived/bug-fix/2026-09-01-host-goal-pause-aborts-turn.md) 修复了当前模型轮次不停止的问题，但之后的人类轮次仍可通过 `update_goal resume` 解除持久的 `paused` goal。Web 条带也只读取持久的 `goal` 投影，因此 active-but-disarmed 的 goal 与 armed 的 goal 渲染相同，并提供相同的暂停动作。
+宿主发起的 goal 暂停中止当前轮次 修复了当前模型轮次不停止的问题，但之后的人类轮次仍可通过 `update_goal resume` 解除持久的 `paused` goal。Web 条带也只读取持久的 `goal` 投影，因此 active-but-disarmed 的 goal 与 armed 的 goal 渲染相同，并提供相同的暂停动作。
 
 ## 决策
 

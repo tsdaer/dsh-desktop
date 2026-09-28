@@ -565,8 +565,7 @@ describe('CI workflow', () => {
       ))
       // Removing this injection would send every pnpm call in the lane (setup,
       // store-path probe, install, and the gate) back to the root partition's
-      // /tmp; rationale in
-      // .agents/notes/implemented/process/2026-08-28-ci-node-compile-cache-data-disk.md.
+      // /tmp.
       expect(redirectStepIndex, `${jobKey} must inject NODE_COMPILE_CACHE into GITHUB_ENV`).toBeGreaterThan(-1)
       const pnpmSetupIndex = job.steps.findIndex((step): step is Record<string, unknown> & { uses: string } => (
         isRecord(step) && typeof step.uses === 'string' && step.uses.includes('pnpm/action-setup')

@@ -155,7 +155,7 @@ SDK 接受符合协议的工具，并执行现代 HTTP header 声明检查。注
 
 ### 断连 / 崩溃
 
-每个实例的连接监督器在连接丢失后以有界指数退避和单次故障尝试预算自动重连，成功后重新执行发现流程；尝试耗尽则注销该服务器的工具并停止，直到重新加载。[自动重连 Agent Note](../../archived/feature/2026-08-06-mcp-client-auto-reconnect.md) 拥有该决策，包括 `reconnect` 配置块和恢复手动 HMR/重启恢复的 `reconnect.enabled: false` opt-out。
+每个实例的连接监督器在连接丢失后以有界指数退避和单次故障尝试预算自动重连，成功后重新执行发现流程；尝试耗尽则注销该服务器的工具并停止，直到重新加载。自动重连 Agent Note 拥有该决策，包括 `reconnect` 配置块和恢复手动 HMR/重启恢复的 `reconnect.enabled: false` opt-out。
 
 图片在结果策略之前进入内容的原因见[图文结果保留决策](../../implemented/bug-fix/2026-09-21-multimodal-tool-result-retention.zh.md)。
 
@@ -171,7 +171,7 @@ SDK 接受符合协议的工具，并执行现代 HTTP header 声明检查。注
 
 ### 指数退避自动重连
 
-单次连接设计否决了该方案：它会引入部分可用状态（工具已注册但暂时不可用），且 stdio 崩溃往往表明配置问题，重试无法修复；HMR 曾是恢复路径。运营反馈扭转了该延期决定——[自动重连 Agent Note](../../archived/feature/2026-08-06-mcp-client-auto-reconnect.md)以有界的单次故障预算和 opt-out 实现了自动重连。
+单次连接设计否决了该方案：它会引入部分可用状态（工具已注册但暂时不可用），且 stdio 崩溃往往表明配置问题，重试无法修复；HMR 曾是恢复路径。运营反馈扭转了该延期决定——自动重连 Agent Note以有界的单次故障预算和 opt-out 实现了自动重连。
 
 ### 桥接 Resources 和 Prompts
 
@@ -221,5 +221,5 @@ SDK 接受符合协议的工具，并执行现代 HTTP header 声明检查。注
 - **MCP SDK 稳定性**：`@modelcontextprotocol/client` 仍在演进中；破坏性变更需要更新桥接。版本已固定，且该 SDK 被广泛采用（Claude Desktop、Cursor、VS Code），因此破坏性变更不太可能悄然发生。
 - **工具 schema 质量**：MCP 服务器可能暴露描述不佳的工具（模糊的描述、不完整的 JSON Schema）。harness 原样透传——垃圾进垃圾出；这是服务器作者的责任，不是桥接的。
 - **Stdio 进程管理**：行为异常的 MCP 服务器如果忽略信号，可能卡住 dispose。Cordis fiber 的 dispose 具有有界的完全停稳过程；卡住的传输层最终会在框架层面超时。
-- 崩溃恢复在[重连预算](../../archived/feature/2026-08-06-mcp-client-auto-reconnect.md)内自动进行；耗尽后或配置 `reconnect.enabled: false` 时回退为手动重新加载。
+- 崩溃恢复在重连预算内自动进行；耗尽后或配置 `reconnect.enabled: false` 时回退为手动重新加载。
 - 图片载荷只有通过共享持久附件存储和确切正向路由能力，才能进入模型上下文。音频与嵌入资源载荷仍只存在于执行局部，并附带明确诊断。

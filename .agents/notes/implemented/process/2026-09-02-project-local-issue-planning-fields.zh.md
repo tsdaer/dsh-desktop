@@ -20,7 +20,7 @@ PR 策略工作流使用仓库 `GITHUB_TOKEN` 执行 REST Issue 和 PR 读取，
 
 Issue 生命周期工作流仅在 `pull_request.opened` 时初始化 `Start Date`。工作流读取 PR 的实时正文，保留每个能解析为 Issue 的同仓库引用，把 `created_at` 按配置的 Project 时区转换为日历日期，确保 Issue 是 Project item，并仅在当前 Project 值为空时写入日期。
 
-[组织字段实现](../../archived/process/2026-08-31-pr-opened-issue-start-dates.md)记录了已被取代的跨 Project 所有权决策及其事件时机依据。由事件直接指定的 Status 转换仍由[生命周期决策](2026-08-10-event-directed-pr-review-status.zh.md)负责。
+组织字段实现记录了已被取代的跨 Project 所有权决策及其事件时机依据。由事件直接指定的 Status 转换仍由[生命周期决策](2026-08-10-event-directed-pr-review-status.zh.md)负责。
 
 ## 验证
 

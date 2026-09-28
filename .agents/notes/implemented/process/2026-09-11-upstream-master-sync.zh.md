@@ -12,7 +12,7 @@ Status: implemented
 
 同步把 `upstream/master` 合并进 `feat/tauri-shell`，并从合并前的检查点分支开始，以便把解决后的树与合并前的树对比。解决依据[分歧登记页](../../../../docs/fork-divergence.zh.md)与四条固定规则。
 
-**被拒绝的上游目录树一律删除，不做合并。** 合并带入的 `.github/workflows/` 下除本 fork 自有桌面工作流之外的文件，以及上游新增的 `apps/desktop/` 下文件，都用 `git rm` 删除。上游文件与本 fork Tauri 外壳也不会落到同一路径，因此判定依据是相对 `HEAD` 的新增路径状态，而不是目录名。
+**被拒绝的上游目录树一律删除，不做合并。** 合并带入的 `.github/workflows/` 下除本 fork 自有桌面工作流之外的文件，以及上游新增的 `apps/desktop/` 下文件，都用 `git rm` 删除。同一规则也覆盖主体是被拒绝上游系统的上游 Agent Note——Electron 桌面与继承的 CI lane——连同其完整三元组一起删除，并保持冻结归档区为空：本 fork 不为不携带的系统保留笔记，上游的历史始终可以在 `upstream/master` 上读取。
 
 **双语配对先取上游一侧，再重新施加本 fork 的改动。** 上游运行着本 fork 继承的同一套翻译流程，其中包含机械化的链接改写，因此它的中文侧通常是更新的基线。在其上重新施加本 fork 的语义改动，并用 `pnpm run verify-translation-pairing --write <pair>` 重新记录配对记录；配对若在结构上仍然分歧，下一次合并会被配对驱动拦下。
 
@@ -26,6 +26,7 @@ Status: implemented
 |---|---|
 | 上游新增的继承工作流文件 | 删除。登记页列出全部缺失的工作流，且都不恢复 |
 | `apps/desktop/` 下的上游文件 | 删除。本 fork 保留 Tauri 2 外壳；上游的 Tauri 外壳不会新增 `apps/desktop` 文件 |
+| 主体为被拒绝系统的上游 Agent Note（Electron 桌面、继承的 CI lane） | 连同完整三元组删除；登记页记录首次清理，冻结归档区保持为空 |
 | `apps/desktop/package.json` | 用本 fork 的 `name`、`version`、描述、脚本、Tauri devDependencies 与 MIT 许可证替换上游的 Electron 清单 |
 | `AGENTS.md`、`.gitignore` | 取上游重写后的行，同时保留本 fork 自己的行 |
 | `scripts/gen-tool-catalog.ts` | 按上游顺序取上游新增的工具条目，并把本 fork 的 `bash-wsl` 条目重新插回 `tool-bash` 之后 |

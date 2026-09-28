@@ -14,7 +14,7 @@ The static, coverage, and consumer jobs in [PR CI](https://github.com/deepseek-a
 
 npm keeps its configured persistent cache, normally `$HOME/.npm` on POSIX, without a per-job override in the main CI or release workflows. The pnpm store remains shared at `$HOME/.local/share/pnpm/store`. Both retain cross-runner reuse under the package managers’ concurrent-access support; shared-cache capacity and filesystem failures remain operational responsibilities. The consumer job places Playwright browser downloads and installation locks beside `RUNNER_TEMP`; hosted cache restore uses that same location.
 
-The [release rehearsal decision](../process/2026-09-06-release-rehearsal-selfhosted.md) applies the same lifetime rule to release consumers. The [failover runbook](../process/2026-07-26-ci-failover-runbook.md) continues to own runner selection and shared-host capacity. This change does not retarget jobs, reduce concurrency, retry tests, weaken assertions, or modify master-only CI.
+This change does not retarget jobs, reduce concurrency, retry tests, weaken assertions, or modify master-only CI.
 
 ## Recorded ACP completion order
 

@@ -10,7 +10,7 @@ A second native Windows window does not resize atomically with its parent, produ
 
 ## Decision
 
-Windows uses one native window and a shell-origin frame below the caption. This partially supersedes the presentation decision in the [mandatory-update client](../feature/2026-09-11-desktop-mandatory-update-client.md); that note retains policy and installation ownership. macOS retains its native overlay.
+Windows uses one native window and a shell-origin frame below the caption. macOS retains its native overlay.
 
 The isolated application preload transfers a private MessageChannel endpoint directly to the shell frame. Only messages on the paired private port authorize update IPC; synthetic window events cannot invoke actions. The main process validates the current application main frame and rebinds state delivery when the main window changes. Destroyed windows receive neither state nor focus operations.
 

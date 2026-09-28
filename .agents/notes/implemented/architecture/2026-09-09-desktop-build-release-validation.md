@@ -12,7 +12,7 @@ The shell and runtime descriptor ship together. Comparing their release facts on
 
 The packaging verifier owns descriptor schema, shell version, platform, architecture, declared Host protocol version, and Node/pnpm semver validation. Startup reads the fields needed for profile preparation and retains shared-package record and Host-entry checks. The actual Host ready message still validates its protocol version.
 
-This partially supersedes startup release compatibility checks in the [bundled-runtime decision](2026-09-08-desktop-bundled-runtime-and-external-plugins.md). That note retains package ownership and distribution rationale.
+This partially supersedes startup release compatibility checks that the Electron-era bundled-runtime decision owned.
 
 ## Alternatives considered
 

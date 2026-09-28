@@ -10,7 +10,7 @@ English | [中文](2026-09-19-retire-app-bin-boot-helpers.zh.md)
 
 An exact-symbol search across packages, apps, and scripts finds ten `resolveConfigPath` calls in eight fixture drivers, all passing `undefined` for replay mode. The only non-unit `loadEnv` caller is the [Loader smoke fixture](../../../../packages/test-support/loader-smoke/tests/fixtures/headless-driver.ts). The [snapshot launcher](../../../../packages/test-support/session-snapshot/src/launcher.ts) separately owns replay patch selection. The old helpers consequently retain two public APIs, unused production replay policy, and dedicated tests for fixture-only needs.
 
-The [shared app-bin glue record](../../archived/simplification/2026-07-04-share-app-bin-boot-glue.md) explains the original shared-bin use. The active [single-launcher decision](../../implemented/architecture/2026-08-22-single-dsh-application-launcher.md) replaces those supported entry paths. This is partial supersession: `boot` and fail-loud handling still have owners, and the archived record remains frozen.
+The shared app-bin glue record explains the original shared-bin use. The active [single-launcher decision](../../implemented/architecture/2026-08-22-single-dsh-application-launcher.md) replaces those supported entry paths. This is partial supersession: `boot` and fail-loud handling still have owners, and the archived record remains frozen.
 
 ## Proposal
 

@@ -6,7 +6,7 @@ English | [中文](2026-08-04-draft-provider-endpoint-interrogation.zh.md)
 
 ## Problem
 
-Once a pi-ai route became [a declaration rather than a catalog lookup](../../archived/architecture/2026-08-03-pi-ai-declared-provider-catalog.md), a person adding a compatible gateway had to know its model ids before they could configure it. The adapter no longer constrains them to an installed catalog, which is the point, but it also means nothing tells the user what the endpoint actually serves — and OpenAI- and Anthropic-compatible endpoints publish that list through protocol-specific model-listing routes.
+Once a pi-ai route became a declaration rather than a catalog lookup, a person adding a compatible gateway had to know its model ids before they could configure it. The adapter no longer constrains them to an installed catalog, which is the point, but it also means nothing tells the user what the endpoint actually serves — and OpenAI- and Anthropic-compatible endpoints publish that list through protocol-specific model-listing routes.
 
 The obvious answer, a dynamic runtime catalog refreshed in the background, was rejected with the layer below it: it makes a route's model list external mutable state needing a cache, an invalidation story, and an offline path, while the product need is narrower. What is needed is a *question asked once*, whose answer the user adopts into `settings.yaml` — so `settings.yaml` remains the only thing deciding what a route serves.
 

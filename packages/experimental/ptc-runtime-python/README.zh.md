@@ -90,7 +90,7 @@ kind: "package-reference"
 
 - [PTC 运行时 seam](../../ptc-runtime/ptc-runtime/README.zh.md) — 本后端实现的抽象契约。
 - [fd-3 协议 Agent Note](../../../.agents/notes/implemented/architecture/2026-07-31-ptc-runtime-python-fd3-protocol.zh.md) — 设计理由与 wire 契约。
-- [结算修复 Agent Note](../../../.agents/notes/archived/bug-fix/2026-07-31-code-runtime-python-settlement-fixes.md) — 结算、计量与隔离修复及其回归用例。
+- 结算修复 Agent Note — 结算、计量与隔离修复及其回归用例。
 - [Node 进程后端](../../ptc-runtime/ptc-runtime-node/README.zh.md) — 已发布的 TypeScript 兄弟。
 - [PTC 运行时子系统参考](../../../docs/subsystems/ptc-runtime.zh.md) — 请求／结果词汇、binding 与失败分类。
 

@@ -6,7 +6,7 @@ Status: implemented
 
 ## Problem
 
-[macOS 隐藏标题栏工作](../feature/2026-09-13-macos-hidden-titlebar-vibrancy.zh.md)在 darwin 上把收起的侧边栏整列隐藏，并把重新打开与 New Session 控件移入会话头部的 slot（`conversation.session.header.leading`），在 `data-sidebar-collapsed` 发布期间由 CSS 显示。但只有会话界面有这个座：选中任何其他主面板（插件管理器或未来的全局面板）时，收起的窗口只剩悬浮的红绿灯压在面板内容上，屏幕上没有任何重新打开控件。每个新面板都得自建 leading 座并重复同一套避让几何。
+macOS 隐藏标题栏工作在 darwin 上把收起的侧边栏整列隐藏，并把重新打开与 New Session 控件移入会话头部的 slot（`conversation.session.header.leading`），在 `data-sidebar-collapsed` 发布期间由 CSS 显示。但只有会话界面有这个座：选中任何其他主面板（插件管理器或未来的全局面板）时，收起的窗口只剩悬浮的红绿灯压在面板内容上，屏幕上没有任何重新打开控件。每个新面板都得自建 leading 座并重复同一套避让几何。
 
 ## Decision
 

@@ -24,7 +24,7 @@ The two event surfaces have separate consumers. Observers following one message 
 
 Plugins that need current-step atomic rewriting return messages from `agent/pre-step`. Plugins that only need later context may mutate `agent.inbox` directly. Workspace context uses both paths: asynchronous filesystem projections stage one replaceable `next-step` item, while the next entering pre-step folds that item or a newly composed baseline into its final batch and removes the pending copy. Rejection keeps the item queued.
 
-The archived [addressable queue occurrence decision](../../archived/feature/2026-07-29-addressable-queue-operations.md) describes the superseded occurrence-wrapper design. `MessageId` owns addressability, while `AgentLoop` contributes `inbox` as the standard session projection over durable splices. The generic projection carrier serves that fold for live updates, history-tail reconnect baselines, and cold process-restart recovery without a live Agent mirror.
+The archived addressable queue occurrence decision describes the superseded occurrence-wrapper design. `MessageId` owns addressability, while `AgentLoop` contributes `inbox` as the standard session projection over durable splices. The generic projection carrier serves that fold for live updates, history-tail reconnect baselines, and cold process-restart recovery without a live Agent mirror.
 
 ## Alternatives considered
 

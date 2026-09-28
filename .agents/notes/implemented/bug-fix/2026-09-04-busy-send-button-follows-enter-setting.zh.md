@@ -6,7 +6,7 @@ Status: implemented
 
 ## 问题
 
-Web composer 为 agent（智能体）运行期间的提交只提供一个面向用户的选择：`ui-conversation.busyEnter` 设置在 Queue 与 Steer 之间选择。[运行中草稿取得主 Send 操作](../../archived/bug-fix/2026-08-20-running-draft-primary-send.md)（已归档）为运行中的草稿提供了指针 Send 按钮，有意让它不跟随该偏好，以避免一个只标注为 Send 的按钮携带不可见模式，并把每次点击都路由到公共的 `InputActions.submit()` 接口，而 `SessionInputShell.actions` 把该接口固定为 `'queue'`。用户在设置中选择 Steer 后，Enter 得到 Steer，同一草稿旁的按钮却得到 Queue，且按钮只标注为"发送消息"。composer 中没有任何内容解释这一分歧，设置行的标题和描述也只提到 Enter 键，因此该设置看起来像是失效，而不是有意只覆盖一部分。
+Web composer 为 agent（智能体）运行期间的提交只提供一个面向用户的选择：`ui-conversation.busyEnter` 设置在 Queue 与 Steer 之间选择。运行中草稿取得主 Send 操作（已归档）为运行中的草稿提供了指针 Send 按钮，有意让它不跟随该偏好，以避免一个只标注为 Send 的按钮携带不可见模式，并把每次点击都路由到公共的 `InputActions.submit()` 接口，而 `SessionInputShell.actions` 把该接口固定为 `'queue'`。用户在设置中选择 Steer 后，Enter 得到 Steer，同一草稿旁的按钮却得到 Queue，且按钮只标注为"发送消息"。composer 中没有任何内容解释这一分歧，设置行的标题和描述也只提到 Enter 键，因此该设置看起来像是失效，而不是有意只覆盖一部分。
 
 ## 决策
 

@@ -4,7 +4,7 @@ Status: implemented
 
 English | [中文](2026-07-25-web-client-session-scope-and-provide-channel.zh.md)
 
-> Scope: the client Agent scope (actx) and targeted events, the client/host materialization parity model, the blank-session bit and reuse (`connectWorkspace`), the per-session provisioning channel (`sessions.provide`), and the host wire smalls that carry these capabilities (the summary `blank` column, the `host/session-added` frame field, and the `host/commands-changed` frame). The input state machine and the slash pipeline live in the [input machine note](../../archived/architecture/2026-07-25-web-input-machine-and-slash-pipeline.md); the command business surfaces live in the [command surfaces note](../../archived/architecture/2026-07-25-web-command-surfaces-and-assembly.md).
+> Scope: the client Agent scope (actx) and targeted events, the client/host materialization parity model, the blank-session bit and reuse (`connectWorkspace`), the per-session provisioning channel (`sessions.provide`), and the host wire smalls that carry these capabilities (the summary `blank` column, the `host/session-added` frame field, and the `host/commands-changed` frame). The input state machine and the slash pipeline live in the input machine note; the command business surfaces live in the command surfaces note.
 
 ## Problem
 
@@ -76,7 +76,7 @@ A session "materialized but with no first prompt" is governed by the summary-der
 
 `workspaces.connectWorkspace(workspaceId): Promise<SessionId>` (owned by WorkspaceRuntime — it holds both the workspace canonical path and the sessions reference):
 
-- The reuse arm: the list mirror is searched for `blank && cwd == workspace.path && sessionIds.includes(id)` — the host's own membership rule, never cwd alone. A cwd match without the account slot (a CLI/TUI session birthed at the host cwd, or a deleted/recreated registration) would open a session no grouping surface can show under this Workspace, so it falls through to the create arm instead (see the [membership reuse fix](../../archived/bug-fix/2026-08-05-workspace-blank-session-reuse-membership.md)); a hit is adopted with explicit-id `session.create`, which acquires and retains the writer before returning. Only writer contention skips a candidate.
+- The reuse arm: the list mirror is searched for `blank && cwd == workspace.path && sessionIds.includes(id)` — the host's own membership rule, never cwd alone. A cwd match without the account slot (a CLI/TUI session birthed at the host cwd, or a deleted/recreated registration) would open a session no grouping surface can show under this Workspace, so it falls through to the create arm instead (see the membership reuse fix); a hit is adopted with explicit-id `session.create`, which acquires and retains the writer before returning. Only writer contention skips a candidate.
 - The create arm: when no candidate can be acquired, `session.create({workspaceId})` returns the new id.
 - An unknown workspaceId fails loud (never silently creating somewhere else).
 - The resolution guarantee (one contract for both arms): when the promise resolves, the returned id is already in the list store. The view owner then retains it synchronously, so a draft mover can write text through that binding before history readiness without waiting for a notifier flush.
@@ -111,7 +111,7 @@ Blank Sessions retain the header's leading and corner slots so navigation contro
 
 - The summary `blank` column and the `host/session-added` frame's `blank` field (see the blank bit above).
 - The SSE frame `host/commands-changed` (a pure invalidation signal); the client routes it into the typed events `commands/changed` and `connection/reset` (broadcast after each connection generation is established; wire-derived caches uniformly treat prior state as stale). The commands frame and its typed client event were later replaced by verbatim forwarding of `commands/change` through `ctx.remote.$on` ([forwarded Remote events](2026-08-10-remote-event-delivery.md)); `connection/reset` is unchanged, and the invalidation-not-diffing contract this bullet states still holds.
-- `command.list/execute` and `skills/list` are uniformly single-addressed by `sessionId` (a session always has an Agent; `agentFor`'s resume semantics come ready-made); the command-surface narrative lives in the [command surfaces note](../../archived/architecture/2026-07-25-web-command-surfaces-and-assembly.md).
+- `command.list/execute` and `skills/list` are uniformly single-addressed by `sessionId` (a session always has an Agent; `agentFor`'s resume semantics come ready-made); the command-surface narrative lives in the command surfaces note.
 - The `session.create` request shape: workspaceId/cwd as either-or, plus an optional caller-preallocated sessionId (a same-id same-cwd retry is idempotent; a different cwd reports `session-conflict`).
 
 ## Alternatives considered

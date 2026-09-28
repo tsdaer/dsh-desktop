@@ -37,7 +37,7 @@ The launcher captures the root context in `boot()`'s `prepare` hook rather than 
 
 ## Alternatives considered
 
-**Reset the terminal from the fail-loud handler** (write `ESC [ ? 2004 l`, pop the keyboard protocol, clear raw mode). This duplicates pi-tui's teardown in a package that owns no terminal, and would drift as pi-tui's startup sequence changes. It also cannot absorb the in-flight Device Attributes reply, which is what corrupts the next prompt — only draining stdin while it is still raw does that.
+**Reset the terminal from the fail-loud handler** (write `ESC  ? 2004 l`, pop the keyboard protocol, clear raw mode). This duplicates pi-tui's teardown in a package that owns no terminal, and would drift as pi-tui's startup sequence changes. It also cannot absorb the in-flight Device Attributes reply, which is what corrupts the next prompt — only draining stdin while it is still raw does that.
 
 **Register a `process.on('exit')` terminal reset in the TUI.** Exit handlers are synchronous, so they cannot await `drainInput()`; the stray reply would still land. It also puts teardown on a global hook rather than the disposal path that already exists.
 
@@ -55,6 +55,6 @@ The guarantee belongs to whichever bin owns the terminal: a surface that grabs t
 
 `packages/boot/app-boot/tests/app-boot.spec.ts` covers the release contract: the hook is awaited before the exit commits, a rejecting hook still exits 1, a never-settling hook exits after `FAIL_LOUD_RELEASE_TIMEOUT_MS`, and a burst of rejections reports only the first while the release still completes.
 
-Those fake-process tests cannot observe the two failure modes that matter most — process exit code with a real event loop, and terminal state after exit — so the regression lives in `apps/cli/tests/tui-keyless-smoke.e2e.ts`. It boots the shipped tree in a real PTY over `fixtures/tui-invalid-provider.cordis.yml` (a list-shaped `providers`, the mistake users actually make), expects exit 1, and asserts the captured bytes contain both the labelled boot rejection (`dsh: plugin tree failed to load:`) and `ESC[?2004l`. The same case pins the boot path end to end: it caught the [HMR initial-scan boot deadlock](../../archived/bug-fix/2026-08-03-hmr-initial-scan-boot-deadlock.md) that silently exited 13 with the terminal stranded.
+Those fake-process tests cannot observe the two failure modes that matter most — process exit code with a real event loop, and terminal state after exit — so the regression lives in `apps/cli/tests/tui-keyless-smoke.e2e.ts`. It boots the shipped tree in a real PTY over `fixtures/tui-invalid-provider.cordis.yml` (a list-shaped `providers`, the mistake users actually make), expects exit 1, and asserts the captured bytes contain both the labelled boot rejection (`dsh: plugin tree failed to load:`) and `ESC[?2004l`. The same case pins the boot path end to end: it caught the [HMR initial-scan boot deadlock that silently exited 13 with the terminal stranded.
 
 The `/exit` path keeps its existing assertion that the same reset appears on a clean exit.

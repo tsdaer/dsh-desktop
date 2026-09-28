@@ -48,8 +48,8 @@
   en: d599a7db35e1f96d
   zh: a2655e0410565c93
 /agent-note-mcp-client-plugin-connect-to-external-mcp-servers-and-bridge-their-tools/decision/disconnection-crash:
-  en: e8207a70c6511778
-  zh: aa281be51d85be13
+  en: fa90a5fd2bb22e7d
+  zh: e13c309e365f145b
 /agent-note-mcp-client-plugin-connect-to-external-mcp-servers-and-bridge-their-tools/alternatives-considered:
   en: 6119e2aff3b6be5a
   zh: 76136ef5249c23eb
@@ -60,8 +60,8 @@
   en: caefc1146f9b2b16
   zh: 9c4a5d55019d8002
 /agent-note-mcp-client-plugin-connect-to-external-mcp-servers-and-bridge-their-tools/alternatives-considered/auto-reconnect-with-exponential-backoff:
-  en: e92d18530feb1ee3
-  zh: 2fecc50b4b6a96d9
+  en: 6394563707b2bb11
+  zh: d60d35e583d252ff
 /agent-note-mcp-client-plugin-connect-to-external-mcp-servers-and-bridge-their-tools/alternatives-considered/bridge-resources-and-prompts:
   en: 606ee33502fa60cc
   zh: 0c21afec01caf4c2
@@ -90,5 +90,5 @@
   en: 4bb5be21c1097a57
   zh: d12bf01bb70e1bc3
 /agent-note-mcp-client-plugin-connect-to-external-mcp-servers-and-bridge-their-tools/consequences:
-  en: ef35ec18568b38e5
-  zh: ca85076585c2b787
+  en: a1ac08478ae95c99
+  zh: 8c0e064eed68da29

@@ -6,7 +6,7 @@ English | [中文](2026-09-10-derived-workspace-recency.zh.md)
 
 ## Problem
 
-An editable activity-promoted list can disagree with its displayed timestamps without a drag: an older Session arriving late is promoted ahead of a newer Session already observed. Repeating the same complete list preserves that inversion. The historical [sidebar-order decision](../../archived/feature/2026-08-11-workspace-sidebar-order-and-folding.md) shared one editable order between Manual and Last updated to preserve positions when switching modes. That trade-off does not satisfy chronological browsing.
+An editable activity-promoted list can disagree with its displayed timestamps without a drag: an older Session arriving late is promoted ahead of a newer Session already observed. Repeating the same complete list preserves that inversion. The historical sidebar-order decision shared one editable order between Manual and Last updated to preserve positions when switching modes. That trade-off does not satisfy chronological browsing.
 
 ## Decision
 

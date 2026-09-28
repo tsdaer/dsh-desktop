@@ -6,7 +6,7 @@ Status: implemented
 
 ## 问题
 
-[文件系统能力 seam](../../archived/architecture/2026-06-17-filesystem-capability-seam.md)中的文件系统能力目前让一个抽象 `FileSystem` 服务同时负责两项不同工作：
+文件系统能力 seam中的文件系统能力目前让一个抽象 `FileSystem` 服务同时负责两项不同工作：
 
 1. **提供方操作**——解析目标、stat/版本元数据、文本读取/流式读取、原子写入，以及受保护的字面编辑。
 2. **面向 agent（智能体）的策略**——行窗口、字面编辑语义，以及读后写/编辑的观测状态。
@@ -65,7 +65,7 @@ type FsWriteIntent =
 
 这是一个*文本存储* seam，刻意比字节级 fsspec（`cat`/`open` 返回原始字节）高半个层次。UTF-8 解码、二进制/NUL 拒绝、受保护的全文件写入和受保护的字面文本编辑都在提供方内完成，因此策略层从不接触原始字节、不重新实现跨分片解码、也不将陈旧检查与变更临界区分离。面向模型的概念仍然不下沉到提供方：行窗口、带行号的行、渲染的页脚、观测状态存储都不会泄漏下去。
 
-从 `dsh-fs` 删除：`readPage`、`FsExpectation`、`FsView`、`FsStateSource`、`FsReadRequest`、`FsTextLine`、行/窗口常量、`formatReadBody` 和 observed-state `WeakMap`。`applyEdit` 由更窄的提供方原语 `editText` 取代，其约定是带版本守卫的字面文本变更，而非策略层读取授权。`FS_PARTIAL_OBSERVATION` 错误码也从 `FsErrorCode` 分类体系中移除：新鲜度授权没有部分/完整之分，因此没有任何路径会抛出它。`FsTargetKey` 和 `FsVersion` 按现有[品牌化 id Agent Note](../../archived/architecture/2026-06-20-branded-ids.md) 成为品牌化不透明 id。
+从 `dsh-fs` 删除：`readPage`、`FsExpectation`、`FsView`、`FsStateSource`、`FsReadRequest`、`FsTextLine`、行/窗口常量、`formatReadBody` 和 observed-state `WeakMap`。`applyEdit` 由更窄的提供方原语 `editText` 取代，其约定是带版本守卫的字面文本变更，而非策略层读取授权。`FS_PARTIAL_OBSERVATION` 错误码也从 `FsErrorCode` 分类体系中移除：新鲜度授权没有部分/完整之分，因此没有任何路径会抛出它。`FsTargetKey` 和 `FsVersion` 按现有品牌化 id Agent Note 成为品牌化不透明 id。
 
 ## 策略约定
 
@@ -99,7 +99,7 @@ type FsWriteIntent =
 
 ## 取代
 
-本 Agent Note 推翻[文件系统能力 seam](../../archived/architecture/2026-06-17-filesystem-capability-seam.md)中的两项决策，并收窄第三项：
+本 Agent Note 推翻文件系统能力 seam中的两项决策，并收窄第三项：
 
 - 读后写/编辑策略从 `ctx.fs` 移出，进入 `dsh-fs-observation-policy` 插件（通过 `fs/*` 事件门控）。
 - 文本读取不再返回后端编号的行记录或 `full`/`partial` 视图；授权基于版本新鲜度，因此窗口化读取在文件未变时即可授权编辑。
@@ -113,7 +113,7 @@ type FsWriteIntent =
 
 ## 后续扩展
 
-后来，[为文件系统 seam 添加直接目录列表](../../archived/architecture/2026-07-03-filesystem-directory-listing-seam.md)进一步扩展了该 seam。该后续工作单独记录，使本文继续描述最初落地的 fsspec 风格改造。
+后来，为文件系统 seam 添加直接目录列表进一步扩展了该 seam。该后续工作单独记录，使本文继续描述最初落地的 fsspec 风格改造。
 
 ## 曾考虑的替代方案
 

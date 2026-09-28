@@ -22,4 +22,4 @@ The Win32 picker needs to decode a NUL-terminated UTF-16 string allocated by `IS
 
 ## Consequences
 
-Real-Koffi tests exercise the production result-path conversion over live UTF-16 buffers, including U+5F00, surrogate pairs, NUL termination and strings exceeding 32 KiB. Separate four- and eight-byte BigInt cases verify pointer preservation and release of the original address. Test-owned buffers stay live through the synchronous read; pointer bytes are checked before native dereferencing. The earlier scanning decision remains in the [archived note](../../archived/bug-fix/2026-08-23-win32-utf16-nul-truncation.md).
+Real-Koffi tests exercise the production result-path conversion over live UTF-16 buffers, including U+5F00, surrogate pairs, NUL termination and strings exceeding 32 KiB. Separate four- and eight-byte BigInt cases verify pointer preservation and release of the original address. Test-owned buffers stay live through the synchronous read; pointer bytes are checked before native dereferencing. The earlier scanning decision remains in the archived note.

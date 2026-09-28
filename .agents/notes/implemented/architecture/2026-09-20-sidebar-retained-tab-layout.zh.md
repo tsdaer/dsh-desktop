@@ -36,7 +36,7 @@ Tab 提供 Body 保活持有，而不独立申请会话引用。View 的稳定 `
 
 `BrowserFrame` 仍只负责导航与可观察页面状态。Presentation 创建、挂载载体 DOM，不了解 Pane、裁剪或层叠。Electron 提供方接收物理 attach/detach 回调：隐藏保活内容不触发这些回调，真正卸载则取消未完成的挂载并释放 guest；之后再次物理挂载时从已知地址重建。dispose（资源释放）会等待未完成的创建和 guest 释放，取消后才完成的申请只释放、不挂载。
 
-[Desktop Browser 决策](../feature/2026-09-20-desktop-browser-webview.zh.md)继续负责 guest 安全、共享 IPC 声明和 Workspace 分区所有权。不同 Tab 和会话不能因为共享存储分区就共享一个页面实例。Web 默认仍关闭，显式启用时继续使用 iframe 载体。
+不同 Tab 和会话不能因为共享存储分区就共享一个页面实例。Web 默认仍关闭，显式启用时继续使用 iframe 载体。
 
 ### 保活与恢复
 
@@ -75,7 +75,7 @@ Tab 提供 Body 保活持有，而不独立申请会话引用。View 的稳定 `
 
 布局正确性由 Sidebar/DockKit 负责，而不是 Browser。代价是稳定的内容容器与显式会话引用所有权：后台保活不仅持有页面内存，也持有会话 scope 和订阅。没有隐式 LRU 或空闲超时，未来回收需要明确的暂停与恢复策略；其他 Tab 类型不会自动承担这些成本。
 
-Sidebar/DockKit 除了负责保活内容布局, 还负责控件、浮窗层级、焦点和平台样式. [停靠基础设施](../feature/2026-09-04-right-sidebar-docking-infrastructure.zh.md)负责布局引擎、持久化和 Tab 类型导航; [Desktop Browser 决策](../feature/2026-09-20-desktop-browser-webview.zh.md)负责 guest 导航、存储和安全.
+Sidebar/DockKit 除了负责保活内容布局, 还负责控件、浮窗层级、焦点和平台样式. [停靠基础设施](../feature/2026-09-04-right-sidebar-docking-infrastructure.zh.md)负责布局引擎、持久化和 Tab 类型导航.
 
 ## Verification
 

@@ -30,7 +30,7 @@ Token accounting applies selections to the affected nodes' image occurrences wit
 
 ## Alternatives considered
 
-**Reuse `compaction/prune` and `surfaceOp: replace`.** The [archived replacement design](../../archived/architecture/2026-09-02-durable-image-offload.md) records full carrying-message copies and couples omission to node replacement and shadow-price accounting. A dedicated event expresses which images are omitted while retaining message identity and keeping retry policy in the same plugin.
+**Reuse `compaction/prune` and `surfaceOp: replace`.** The archived replacement design records full carrying-message copies and couples omission to node replacement and shadow-price accounting. A dedicated event expresses which images are omitted while retaining message identity and keeping retry policy in the same plugin.
 
 **Record a request-local projection outcome.** A record that does not affect subsequent derivation cannot prevent omitted images from returning. Logging whole request bodies repeats message history for a decision that needs only occurrence indexes.
 

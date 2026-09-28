@@ -14,7 +14,7 @@ Status: implemented
 
 - **`@deepseek-ai/dsh-session-telemetry`** —— seam 本体。`SessionTelemetrySink`（`emit`/`flush?`/`shutdown`）、服务注册形态的 `SessionTelemetryBackend` 与 `SessionTelemetryCoordinator` 共同拥有生命周期本地捕获：每个新的 Session 对象从 `firstLiveSeq` 之前开始，随后逐 append firehose 以零 I/O 深拷贝、脱敏并交接每个事件；重新收养同一对象时从模块作用域游标之后继续。无缓冲按需捕获使用同样的一事件一记录映射，直到可选的包含式边界。Ledger 身份包含 `session.id`、`session.format_version` 与 `event.seq`；实时捕获还会转发 `agent/error`，并创建 dispose（资源释放）时的 `shutdown` 记录。
 - **`session-telemetry/record` waterfall（瀑布式事件）** —— 相对分支版本的增量，也是该 seam 的脱敏扩展点。每条记录抵达任何后端前必经此处；seam 自身不带任何规则——最内层 `next()` 原样透传，部署方以监听器挂载自己的规则（通过变换 `next()` 的返回值堆叠），抛异常的规则将该记录 fail-closed 扣下。脱敏只作用于导出副本；canonical log 永不改写。
-- **`@deepseek-ai/dsh-session-telemetry-otel`** —— 参考后端：OTel JS SDK 日志流水线（`LoggerProvider` → `BatchLogRecordProcessor` → OTLP/HTTP exporter），经 `exporter`/`processor` passthrough 原样配置。`DISABLED` 是插件默认值，且不构造任何传输。`FEEDBACK_ONLY` 要求 `exporter.url`；[显式反馈策略](../architecture/2026-09-05-nonofficial-feedback-otel.zh.md)要求每次有界捕获都由新提交触发，适用于所有提供方。[无缓冲反馈回放](../../archived/simplification/2026-08-06-buffer-free-feedback-telemetry.md)避免在内存中创建会话前缀的第二份副本。
+- **`@deepseek-ai/dsh-session-telemetry-otel`** —— 参考后端：OTel JS SDK 日志流水线（`LoggerProvider` → `BatchLogRecordProcessor` → OTLP/HTTP exporter），经 `exporter`/`processor` passthrough 原样配置。`DISABLED` 是插件默认值，且不构造任何传输。`FEEDBACK_ONLY` 要求 `exporter.url`；[显式反馈策略](../architecture/2026-09-05-nonofficial-feedback-otel.zh.md)要求每次有界捕获都由新提交触发，适用于所有提供方。无缓冲反馈回放避免在内存中创建会话前缀的第二份副本。
 
 [Session 日志请求上限](../architecture/2026-09-25-session-log-otel-byte-limits.zh.md) 在 OTel Session 发送器中替代下述仅由 SDK 分批的规则；采集、脱敏和交接的理由仍然适用。
 

@@ -18,7 +18,7 @@ The inherited marker precedes synthetic closers. `inheritedEventCount` counts on
 
 V4 admits not-started fork results without changing released V0–V3 validators. Its codec and relationship validator use a private canonical interrupted-result view for this checked variant, then return the original fork ID and message. The V3-to-V4 migration preserves existing events. The `forked` turn-end reason is acknowledged with the finalized V4 header transition.
 
-This replaces the [completed-turn-only controller policy](../../archived/bug-fix/2026-09-11-session-controller-fork-turn-cut.md). Explicit cuts retain the requested event exactly; omitted cuts retain completed standalone work, including manual compaction replacements, until a core-owned turn or queued-input event begins. Plugins continue to own their brackets; the controller does not classify plugin events.
+This replaces the completed-turn-only controller policy. Explicit cuts retain the requested event exactly; omitted cuts retain completed standalone work, including manual compaction replacements, until a core-owned turn or queued-input event begins. Plugins continue to own their brackets; the controller does not classify plugin events.
 
 ## Alternatives considered
 

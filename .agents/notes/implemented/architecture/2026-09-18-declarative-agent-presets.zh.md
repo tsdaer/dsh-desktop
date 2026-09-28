@@ -32,7 +32,7 @@ Web 编辑器与 `agent_preset` 工具只接受子插件 YAML。保存写入当�
 
 同一进程可以运行能力不同的 Agent，同时共享各选定代际。退役代际在仍有引用时占用内存。Preset 不提供安全沙箱，用户覆盖会替换整个子插件列表，不会合并后续内置变更。
 
-原有目录与逐会话挂载决策保留为[历史背景](../../archived/architecture/2026-08-03-per-session-agent-presets.md)。Host 服务所有权继续由 [Host 平面说明](2026-08-10-host-plane-ownership-after-presets.zh.md)记录。
+原有目录与逐会话挂载决策保留为历史背景。Host 服务所有权继续由 [Host 平面说明](2026-08-10-host-plane-ownership-after-presets.zh.md)记录。
 
 ## Testing
 

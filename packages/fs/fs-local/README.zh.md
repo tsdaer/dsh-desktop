@@ -108,7 +108,7 @@ Chokidar 通过 OS 事件观察单个文件或目录的直接子项，不使用�
 - [fs-sandbox](../fs-sandbox/README.zh.md)——扩展本后端的沙箱强制后端。
 - [tool-fs](../tool-fs/README.zh.md)——消费 `ctx.fs` 的面向模型工具。
 - [fs-observation-policy](../fs-observation-policy/README.zh.md)——通过 `fs/*` 事件防护变更的策略插件。
-- [Windows DACL 保留笔记](../../../.agents/notes/archived/bug-fix/2026-07-19-windows-atomic-write-dacl-preservation.md)——原子替换为何复制目标的访问策略。
+- Windows DACL 保留笔记——原子替换为何复制目标的访问策略。
 
 -----
 

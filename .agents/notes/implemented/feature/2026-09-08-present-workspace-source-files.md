@@ -22,7 +22,7 @@ File cards use the same split-control pattern as the Session header. The card an
 
 ## Alternatives considered
 
-**Immutable attachment snapshots and editable temporary copies** preserve delivered versions after source edits or deletion, but make desktop edits diverge from workspace files and introduce retention work without a current product requirement. This decision supersedes the [snapshot-delivery design](../../archived/feature/2026-09-08-web-explicit-file-delivery.md). Neither a download endpoint nor a fallback copy remains; both require an explicit future product decision.
+**Immutable attachment snapshots and editable temporary copies** preserve delivered versions after source edits or deletion, but make desktop edits diverge from workspace files and introduce retention work without a current product requirement. This decision supersedes the snapshot-delivery design. Neither a download endpoint nor a fallback copy remains; both require an explicit future product decision.
 
 **Opening attachment-store files directly** lets editors mutate immutable objects. A future persistent delivery system needs an owned editing and retention policy, such as copy-on-write, before exposing saved versions to applications.
 

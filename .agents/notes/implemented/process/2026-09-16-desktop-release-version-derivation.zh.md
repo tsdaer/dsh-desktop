@@ -10,7 +10,7 @@ Status: implemented
 
 ## 决策
 
-[Desktop 发布规则](https://github.com/deepseek-ai/deepseek-harness/blob/master/apps/desktop/README.md#release-versions)在 production 中保留完整 dsh 基础版本，并从该基础版本派生带日期和序号的测试版本。派生出的版本[作为参数传给打包](2026-09-21-desktop-build-version-as-input.zh.md)，不写入清单；它从 dsh 基础版本派生，因此下一次测试发布不会追加第二个日期后缀。
+[Desktop 发布规则](https://github.com/deepseek-ai/deepseek-harness/blob/master/apps/desktop/README.md#release-versions)在 production 中保留完整 dsh 基础版本，并从该基础版本派生带日期和序号的测试版本。派生出的版本作为参数传给打包，不写入清单；它从 dsh 基础版本派生，因此下一次测试发布不会追加第二个日期后缀。
 
 固定 Nightly feed 是分发地址，与版本派生独立。现有客户端继续使用该地址，允许预发布更新并禁止降级。test 分发不发布无后缀基础版本。操作者分配序号前检查已有发布记录和对象。
 

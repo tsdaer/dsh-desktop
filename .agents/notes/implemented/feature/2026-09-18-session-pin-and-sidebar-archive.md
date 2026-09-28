@@ -76,4 +76,4 @@ Unit suites cover supplementation, complete-sequence dragging, Pin completion af
 
 ## Related
 
-- [Session archive (registry-global set)](../../archived/feature/2026-07-31-session-archive-global-set.md) — the frozen record of the archive set and its follow increment.
+- Session archive (registry-global set) — the frozen record of the archive set and its follow increment.

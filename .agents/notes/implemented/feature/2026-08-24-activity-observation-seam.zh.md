@@ -19,7 +19,7 @@ bash 之下的底座其实早有正确形态：`SubprocessOutputReader.readFrom(
 - **`@deepseek-ai/dsh-activity`（Service Definition）**——`ctx.activities` 上的抽象 `ActivityRegistry`：`open(spec) → ActivityHandle { append, updateDetail, end }`、有栅栏的 `get`/`list`、按绝对 UTF-8 字节 offset 的非消费 `read(id, from)`、owner 相对投递的 `onActivitiesChanged`（roster）与 `onOutput`（推进信号，只带 id）。`ActivityCorrelation { callId?, jobId? }` 把行关联到工具调用与 job。`pumpActivityOutput` 是 pull 型底座的共享泵。
 - **`@deepseek-ai/dsh-activity-local`（Service Provider）**——每个 activity 一个内存 chunk 环。offset 跨淘汰稳定（`outputEarliest` 指明最老保留字节；低于它的读取是 `lossy` 而非错误）；单个超上限 chunk 保留 UTF-8 安全尾部并带 `gapBefore`。配置 `retainBytes`（256 KiB）存活，结算时裁到 `settledRetainBytes`（16 KiB）。记录存续期长于生产者 fiber；owner 销毁强制终结并移除；`end` first-wins，end 后写入记日志后丢弃，生产者的收尾 flush 砸不掉自己的 teardown。
 - **`@deepseek-ai/dsh-api-activity-controller`**——wire 层，取 workspace-controller 的形态：`activity.control` 流出一份 roster baseline 加按 owner 会话的整桶替换帧（jobs 帧的自愈语义）；`activity.observe({ activityId, from? })` 流出一帧 `opened` 锚点、合并的 `output` 帧（`flushMs` 窗口、`maxFrameBytes` 软预算）、再在同一条流上发终态 `status` 后关闭——结算永远不会与仍开着的输出通道竞态。重连以上一帧的 `next` 续传。客户端半区安装 `ctx.activityFeed`（roster 镜像 + 按引用计数的观察流与有界渲染尾巴）。
-- **`@deepseek-ai/dsh-client-ui-activity`**——会话头部任务列表（[与 job 行合并](../../archived/feature/2026-08-25-unified-task-list.md)）；展开某行即把其观察流打开进 `TerminalBlock` 面板，收起即关——只有有人在看时输出才流动。`TerminalBlock` 本身获得实时渲染能力：running 且提供了 `output` 的块在 running 状态下显示文本，而非历史上的仅提示行画面。
+- **`@deepseek-ai/dsh-client-ui-activity`**——会话头部任务列表（与 job 行合并）；展开某行即把其观察流打开进 `TerminalBlock` 面板，收起即关——只有有人在看时输出才流动。`TerminalBlock` 本身获得实时渲染能力：running 且提供了 `output` 的块在 running 状态下显示文本，而非历史上的仅提示行画面。
 
 生产者一律经 `ctx.get('activities')` 尽力镜像，绝不声明 inject，一切观察失败只记日志并吞掉——该 seam 严格可选，永远不能破坏它所观察的工作：
 
@@ -50,4 +50,4 @@ bash 之下的底座其实早有正确形态：`SubprocessOutputReader.readFrom(
 
 ## 后果
 
-Web 客户端在零模型面改动下获得后台 bash/pwsh 实时输出与 workflow 叙述；任何插件对着一个可选服务用三个调用（`open`/`append`/`end`）即可接入。代价是多一个 seam 家族与每生产者一个接入点；最初的双头部列表重复已折并为[单一任务列表](../../archived/feature/2026-08-25-unified-task-list.md)。暂缓项记录在各包 README：前台流式（需 shell seam 的 run/observe 变体）、terminal `pty-send` 观察（需给 terminal 缓冲加非消费面）、人工 kill 控件（被 jobs `reported` 契约阻塞）、SDK/ACP 消费端、重启后的持久回放。
+Web 客户端在零模型面改动下获得后台 bash/pwsh 实时输出与 workflow 叙述；任何插件对着一个可选服务用三个调用（`open`/`append`/`end`）即可接入。代价是多一个 seam 家族与每生产者一个接入点；最初的双头部列表重复已折并为单一任务列表。暂缓项记录在各包 README：前台流式（需 shell seam 的 run/observe 变体）、terminal `pty-send` 观察（需给 terminal 缓冲加非消费面）、人工 kill 控件（被 jobs `reported` 契约阻塞）、SDK/ACP 消费端、重启后的持久回放。

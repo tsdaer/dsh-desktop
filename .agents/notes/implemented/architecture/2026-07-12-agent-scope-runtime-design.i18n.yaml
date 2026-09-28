@@ -30,8 +30,8 @@
   en: 3a05a7bfb2197f58
   zh: fbb599031788b70b
 /agent-note-agent-scope-runtime-design-and-correctness/scope-routing-one-opaque-key-selects-one-layer/registry-reads-overlay-one-exact-layer:
-  en: 28636ae6d55935d7
-  zh: 33a989f049de2f3e
+  en: 887af5a8f7a2714b
+  zh: 142c81a303fa998b
 /agent-note-agent-scope-runtime-design-and-correctness/scope-routing-one-opaque-key-selects-one-layer/fused-dispatch-helpers-prevent-subject-drift:
   en: 638e3711206e3c41
   zh: 61d370123d30c1ed
@@ -90,8 +90,8 @@
   en: b9216021f8f50bcc
   zh: fda52f9434cc8191
 /agent-note-agent-scope-runtime-design-and-correctness/subagents-publication-is-the-start-promise/the-service-contract-has-one-cancellation-channel:
-  en: 84a4be83b78c045b
-  zh: 043e14cf628413cd
+  en: 709df4c80883539d
+  zh: ae1fcbea730ef452
 /agent-note-agent-scope-runtime-design-and-correctness/subagents-publication-is-the-start-promise/in-process-providers-reuse-the-core-transaction:
   en: b5e0b3dcf0dff750
   zh: 63905010383781b9
@@ -120,8 +120,8 @@
   en: fabafbebc0ab4f95
   zh: 06d94a98ed5aa40c
 /agent-note-agent-scope-runtime-design-and-correctness/correctness-enforcement/generated-artifacts-keep-public-contracts-aligned:
-  en: d0ddc5f38289225d
-  zh: 781d910228d5e334
+  en: 8a91185eb7e12eb2
+  zh: 24d9d46896398f9a
 /agent-note-agent-scope-runtime-design-and-correctness/alternatives-considered:
   en: 5eef7873a795c8f0
   zh: 3e8ba109a6e29ba5

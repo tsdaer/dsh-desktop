@@ -6,7 +6,7 @@ English | [中文](2026-09-17-frame-shell-leading-window-chrome-seat.zh.md)
 
 ## Problem
 
-The [macOS hidden-titlebar work](../feature/2026-09-13-macos-hidden-titlebar-vibrancy.md) hid the collapsed sidebar column entirely on darwin and moved the reopen and New Session controls into a conversation-header slot (`conversation.session.header.leading`), shown via CSS while `data-sidebar-collapsed` was published. Only the Conversation had that seat: with any other main panel selected (the plugin manager, or any future global panel), a collapsed window kept the floating traffic lights over the panel's content with no reopen control anywhere on screen. Each new panel would have had to grow its own leading seat and repeat the same clearance geometry.
+The macOS hidden-titlebar work hid the collapsed sidebar column entirely on darwin and moved the reopen and New Session controls into a conversation-header slot (`conversation.session.header.leading`), shown via CSS while `data-sidebar-collapsed` was published. Only the Conversation had that seat: with any other main panel selected (the plugin manager, or any future global panel), a collapsed window kept the floating traffic lights over the panel's content with no reopen control anywhere on screen. Each new panel would have had to grow its own leading seat and repeat the same clearance geometry.
 
 ## Decision
 

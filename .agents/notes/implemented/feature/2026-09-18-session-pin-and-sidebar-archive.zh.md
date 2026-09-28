@@ -76,4 +76,4 @@ Workspace KV、Remote 值与 Client 快照都用会话 id 数组存储归档和�
 
 ## 相关
 
-- [Session 归档（注册表全局集合）](../../archived/feature/2026-07-31-session-archive-global-set.md) — 归档集合及其 follow 增量的冻结记录。
+- Session 归档（注册表全局集合） — 归档集合及其 follow 增量的冻结记录。

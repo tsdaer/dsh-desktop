@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/process/2026-06-11-api-extractor-reports.md
 /agent-note-api-extractor-reports:
-  en: 5bf55ca547e54ed9
-  zh: 62bc2de82f342803
+  en: 3d00c89f8e4b62fd
+  zh: b2827e16aa2d2df2
 /agent-note-api-extractor-reports/problem:
   en: 1155ed0bd1964b95
   zh: 4d00955e7602b8b4

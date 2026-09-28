@@ -6,14 +6,14 @@
   en: 06b99197145a4080
   zh: 698a61dcd2385985
 /agent-note-tool-output-spill-policy/problem:
-  en: 858cbb874e213697
-  zh: 1693b618886ac42d
+  en: 83f15f31030cbfa6
+  zh: 48c0e7b2f67be418
 /agent-note-tool-output-spill-policy/decision:
   en: 89536b0d2d7b4c92
   zh: 341240f445885549
 /agent-note-tool-output-spill-policy/decision/spill-seam:
-  en: 1e92bc9a0548def9
-  zh: c99cf6878981ba71
+  en: 67507841e28f9981
+  zh: fc127cc8980b75d8
 /agent-note-tool-output-spill-policy/decision/spill-policy:
   en: 3c49c0246188c513
   zh: 4b6749c30726903d
@@ -27,8 +27,8 @@
   en: f82b5399ecddd8a1
   zh: 9675b58631bb5c90
 /agent-note-tool-output-spill-policy/deferred:
-  en: 094f8c71672ea726
-  zh: 252dbe825d6e34ca
+  en: 340abbc45ffc5aa4
+  zh: 98a055e39ce08569
 /agent-note-tool-output-spill-policy/testing:
   en: c98759345e1aebfa
   zh: d1faeadb99bd748a

@@ -10,7 +10,7 @@ Desktop 通常运行本地 dsh server，无法依靠远程业务错误可靠触�
 
 ## 提案
 
-本文记录尚未完成的发布与后端工作；[已实施的客户端决策](../../implemented/feature/2026-09-11-desktop-mandatory-update-client.zh.md)和[桌面 README](../../../../apps/desktop/README.zh.md)负责当前行为。
+本文记录尚未完成的发布与后端工作；[桌面 README](../../../../apps/desktop/README.zh.md)负责当前行为。
 
 | 文档 | 负责内容 |
 |---|---|
@@ -20,7 +20,7 @@ Desktop 通常运行本地 dsh server，无法依靠远程业务错误可靠触�
 
 ### 发布与后端验收
 
-发布负责人须端到端验收真实签名 Windows x64 与 macOS x64/arm64 升级：发现、下载、哈希与签名检查、任务安全的关闭、安装、重启、新版本 Host 启动及 profile 校准。先发布不可变安装包和 blockmap，再发布可变 Nightly 清单。[打包决策](../../implemented/architecture/2026-08-25-electron-desktop-packaging-and-updates.zh.md)负责版本与产物规则。[接口提案](2026-09-08-desktop-mandatory-update-api.zh.md)负责策略字段；生产联调须验证游客访问、强制／无需强更响应、错误、平台选择、获准源站和速率限制。启用强更策略前先发布能解除要求的 updater 版本。
+发布负责人须端到端验收真实签名 Windows x64 与 macOS x64/arm64 升级：发现、下载、哈希与签名检查、任务安全的关闭、安装、重启、新版本 Host 启动及 profile 校准。先发布不可变安装包和 blockmap，再发布可变 Nightly 清单。[接口提案](2026-09-08-desktop-mandatory-update-api.zh.md)负责策略字段；生产联调须验证游客访问、强制／无需强更响应、错误、平台选择、获准源站和速率限制。启用强更策略前先发布能解除要求的 updater 版本。
 
 ### 未决产品选择
 

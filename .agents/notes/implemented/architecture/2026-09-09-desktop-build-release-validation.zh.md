@@ -12,7 +12,7 @@ Status: implemented
 
 打包验证器负责描述文件 schema、shell 版本、平台、架构、声明的 Host 协议版本，以及 Node/pnpm semver 验证。启动读取准备 profile 所需的字段，并保留共享包记录和 Host 入口检查。实际 Host ready 消息仍然验证其协议版本。
 
-本决策部分取代[内置运行时决策](2026-09-08-desktop-bundled-runtime-and-external-plugins.zh.md)中的启动发布兼容性检查。该记录继续负责包归属与分发的理由。
+本决策部分取代 Electron 时代内置运行时决策所拥有的启动发布兼容性检查。
 
 ## 考虑过的替代方案
 

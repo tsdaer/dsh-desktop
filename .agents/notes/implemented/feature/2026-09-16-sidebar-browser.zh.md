@@ -18,7 +18,7 @@ Status: implemented
 
 地址解析器接受 `http:` 与 `https:`，包括 loopback 目标；不带 scheme 的主机名补为 HTTPS。它拒绝内嵌凭据、应用自身 origin、畸形地址、`file:` URL，以及所有其他 scheme。本地文件继续由 Document Preview 负责。
 
-Web 使用 iframe 载体；Desktop 使用[保持页面实例的 webview 载体](2026-09-20-desktop-browser-webview.zh.md)。它的默认 Web 策略是 `sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-popups-to-escape-sandbox"`；frame 没有直接的下载或顶层导航 flag。popup 会脱离 sandbox，Web popup 会保留 opener，并可以通过该链导航顶层应用。same-origin 允许被访问的 origin 使用自己的 Cookie 与 Web storage；它不会让跨域目标与 DSH 变成同源。iframe 不发送 referrer，也不添加包自有的 Permissions Policy，因此浏览器默认策略与用户授权生效。最右侧 toolbar 开关会为当前 tab occurrence 移除 sandbox attribute；该模式不持久化，启用期间持续显示警告。未受 sandbox 约束的页面可以按浏览器 activation 规则导航顶层应用，并使用下载、模态对话框和输入锁定。本包不执行 Host 侧 URL probe 或代理。
+Web 使用 iframe 载体；Desktop 使用保持页面实例的 webview 载体。它的默认 Web 策略是 `sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-popups-to-escape-sandbox"`；frame 没有直接的下载或顶层导航 flag。popup 会脱离 sandbox，Web popup 会保留 opener，并可以通过该链导航顶层应用。same-origin 允许被访问的 origin 使用自己的 Cookie 与 Web storage；它不会让跨域目标与 DSH 变成同源。iframe 不发送 referrer，也不添加包自有的 Permissions Policy，因此浏览器默认策略与用户授权生效。最右侧 toolbar 开关会为当前 tab occurrence 移除 sandbox attribute；该模式不持久化，启用期间持续显示警告。未受 sandbox 约束的页面可以按浏览器 activation 规则导航顶层应用，并使用下载、模态对话框和输入锁定。本包不执行 Host 侧 URL probe 或代理。
 
 每个 tab 获得一个 `BrowserController`，负责地址校验与载体无关的命令。`BrowserFrame` 提供导航、可观察的地址/加载/history/错误状态和可选 sandbox 控制，`BrowserPresentation` 负责 DOM 挂载。`pages.ts` 把两个对象组装成 `BrowserPage`。`IframeImpl` 持有应用已知的 `BrowserNavigation`，`ElectronWebViewImpl` 则观察原生 history。Slot injection 通过 `useBrowserState` 提供按 key 索引的控制器状态和普通回调；React body 只持有草稿与内容容器，没有载体分支、控制器实例或可观察源。
 
@@ -45,7 +45,7 @@ Browser 状态只属于呈现层，不进入 Session log、模型请求、resour
 
 ## Electron carrier
 
-[Desktop webview 决策](2026-09-20-desktop-browser-webview.zh.md)负责原生页面生命周期、Workspace 存储共享、guest 策略与运行时验证缺口。本文的 iframe 行为仍具有独立价值；其跨域限制不描述 Desktop 载体。
+Desktop webview 决策负责原生页面生命周期、Workspace 存储共享、guest 策略与运行时验证缺口。本文的 iframe 行为仍具有独立价值；其跨域限制不描述 Desktop 载体。
 
 ## Alternatives considered
 

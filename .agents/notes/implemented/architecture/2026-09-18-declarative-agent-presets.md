@@ -32,7 +32,7 @@ Session data continues to record the preset identity. Restart resolves that iden
 
 One process can run Agents with different capabilities while sharing each selected revision. Retired revisions remain in memory while referenced. Presets do not provide a security sandbox, and a user override replaces the entire child list rather than merging future builtin changes.
 
-The former directory and per-session-mount decision is preserved as [historical context](../../archived/architecture/2026-08-03-per-session-agent-presets.md). Host service ownership remains documented in [the Host-plane note](2026-08-10-host-plane-ownership-after-presets.md).
+The former directory and per-session-mount decision is preserved as historical context. Host service ownership remains documented in [the Host-plane note](2026-08-10-host-plane-ownership-after-presets.md).
 
 ## Testing
 

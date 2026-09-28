@@ -30,8 +30,8 @@
   en: 7bc0fab85c7c91d0
   zh: 3eafcde6b1e3249c
 /agent-note-the-subprocess-sandbox-confinement-seam-native-runners-escalation-and-per-session-modes/decision/design-detail/the-bash-consumer:
-  en: f7f359c89a0e8fd6
-  zh: 07d0d551a35716e0
+  en: c394986949a32328
+  zh: 5d9267f3aba1a512
 /agent-note-the-subprocess-sandbox-confinement-seam-native-runners-escalation-and-per-session-modes/decision/design-detail/escalation-one-approved-wider-retry-after-a-denial:
   en: 035640e276225e97
   zh: 09fd95921529369b
@@ -48,8 +48,8 @@
   en: f28b530000b8495e
   zh: f256b8b32c4ce4ef
 /agent-note-the-subprocess-sandbox-confinement-seam-native-runners-escalation-and-per-session-modes/alternatives-considered:
-  en: eabe577b837f3de2
-  zh: 4ef0167c895766a6
+  en: a082f4567a42f3c9
+  zh: 4afee375adade79e
 /agent-note-the-subprocess-sandbox-confinement-seam-native-runners-escalation-and-per-session-modes/consequences:
   en: c0d8279a677a0ef1
   zh: 3518fc05f8700c0b

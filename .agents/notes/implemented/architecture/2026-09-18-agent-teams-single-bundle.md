@@ -14,7 +14,7 @@ Separate Agent Teams and Agent Teams Web switches require users to discover that
 
 The separate `@deepseek-ai/dsh-experimental-agent-team-web-profile` package is absent from the workspace and release family. The plugin page exposes one Team selection, disabled by default.
 
-This decision supersedes the separate Host/Web composition in the [package publication note](2026-08-18-experimental-agent-teams-packages.md) and the two Team selections in the [optional-bundle note](../process/2026-09-15-shipped-optional-bundles.md). Both remain active for publication, dependency isolation, promotion, and installation ownership. The [archived Web-controls note](../../archived/feature/2026-08-06-agent-teams-web.md) records the original split; its historical text remains frozen.
+This decision supersedes the separate Host/Web composition in the [package publication note](2026-08-18-experimental-agent-teams-packages.md) and the two Team selections in the [optional-bundle note](../process/2026-09-15-shipped-optional-bundles.md). Both remain active for publication, dependency isolation, promotion, and installation ownership. The archived Web-controls note records the original split; its historical text remains frozen.
 
 ## Alternatives considered
 

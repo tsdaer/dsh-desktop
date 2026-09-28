@@ -34,7 +34,7 @@ API Key 与账号记录独立保存。账号 token 没有主动刷新流程；�
 
 账号插件通过 settings.models.sign-in 提供选择、等待、失败和超时对话框。模型包保留凭证就绪检查和现有 API Key 编辑器；设置外壳协调显式重开，避免登录与 API Key 引导同时挂载冲突的对话框。
 
-Platform 内嵌通过私有 Node IPC 将授权从 Host 传给 Electron，再经沙箱 preload 一次性传给受信任的 Platform 主 frame。preload 在页面脚本执行前执行一次同步 IPC；主进程仅校验调用来源并返回已准备的内存数据。Platform 此后同步读取 token，无需就绪接口。初始化失败时保留内嵌模式，由 getter 抛错。账号 UI 投影仍不包含凭证。Platform 文档能够读取此凭证，因此其脚本安全也是账号保护的一部分；上下文隔离保护原生能力，不能隐藏有意返回给文档的 token。替换或移除授权会销毁文档并清理浏览器认证；[账号范围内的页面存储](2026-09-22-platform-browser-storage.zh.md)会保留。
+Platform 内嵌通过私有 Node IPC 将授权从 Host 传给 Electron，再经沙箱 preload 一次性传给受信任的 Platform 主 frame。preload 在页面脚本执行前执行一次同步 IPC；主进程仅校验调用来源并返回已准备的内存数据。Platform 此后同步读取 token，无需就绪接口。初始化失败时保留内嵌模式，由 getter 抛错。账号 UI 投影仍不包含凭证。Platform 文档能够读取此凭证，因此其脚本安全也是账号保护的一部分；上下文隔离保护原生能力，不能隐藏有意返回给文档的 token。替换或移除授权会销毁文档并清理浏览器认证；账号范围内的页面存储会保留。
 
 支持问卷仅通过显式预填字段接收已有的环境信息，URL 不包含账号 UID、token 或脱敏联系方式。
 
@@ -68,4 +68,4 @@ Host 将私有 Platform 会话绑定到账号提供者的生命周期。提供�
 
 ## 相关记录
 
-[凭证记录与流程](2026-08-13-credential-records-and-authorization-flows.zh.md)仍是通用凭证依据。[桌面外壳](2026-09-10-desktop-web-wrapper.zh.md)负责传输组合。
+[凭证记录与流程](2026-08-13-credential-records-and-authorization-flows.zh.md)仍是通用凭证依据。桌面外壳负责传输组合。

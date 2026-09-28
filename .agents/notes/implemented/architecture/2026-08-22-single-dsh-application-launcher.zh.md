@@ -20,7 +20,7 @@ Vendor CLI、仅用于构建和测试的可执行文件、进程内直接挂载�
 
 ### Profile 应用
 
-`@deepseek-ai/dsh-sdk-app` 与 `@deepseek-ai/dsh-acp-app` 在 `@deepseek-ai/dsh-base` 之上组合完整协议应用。SDK 组合包增加 JSON-RPC 服务器、应用自有帮助和 stdio 生命周期；ACP 组合包增加仅用于自动化的 ACP 服务器与相同的应用职责。两者都采用 base 层的模型、工具、持久化、settings、credentials、策略和环境行为。[独立 sdk-minimal profile](../../archived/architecture/2026-08-24-standalone-sdk-minimal-profile.md)复用 SDK 启动与 JSON-RPC 服务，但刻意拥有不含 `dsh-base` 的完整显式配置树。
+`@deepseek-ai/dsh-sdk-app` 与 `@deepseek-ai/dsh-acp-app` 在 `@deepseek-ai/dsh-base` 之上组合完整协议应用。SDK 组合包增加 JSON-RPC 服务器、应用自有帮助和 stdio 生命周期；ACP 组合包增加仅用于自动化的 ACP 服务器与相同的应用职责。两者都采用 base 层的模型、工具、持久化、settings、credentials、策略和环境行为。独立 sdk-minimal profile复用 SDK 启动与 JSON-RPC 服务，但刻意拥有不含 `dsh-base` 的完整显式配置树。
 
 Profile manifest 负责 patch 重载：
 
@@ -58,9 +58,9 @@ Python 运行时 wheel 将 [`python/sdk-runtime/runtime-bootstrap.mjs`](../../..
 
 [Profile 命令简写](../feature/2026-09-15-profile-command-shorthand.zh.md)取代本 Note 中仅为 Web 提供简写的机制；本 Note 继续负责应用组合与生命周期的所有权。
 
-本决策取代 [profile 插件组合包](2026-08-05-profile-plugin-bundles.zh.md)、[TypeScript SDK 客户端与 SDK subagent 后端](../../archived/feature/2026-07-27-typescript-sdk-and-sdk-subagent-backend.md)、[移除 SDK 项目工具链](../../archived/simplification/2026-08-11-remove-sdk-project-toolchain.md)和[单文件 Python SDK 运行时分发](2026-07-10-single-file-executable-sdk-runtime-distribution.zh.md)中的应用启动与包名事实。这些 Note 对 profile 分层、客户端／协议语义、已删除的项目工具链与原生打包仍分别具有独立权威。
+本决策取代 [profile 插件组合包](2026-08-05-profile-plugin-bundles.zh.md)、TypeScript SDK 客户端与 SDK subagent 后端、移除 SDK 项目工具链和[单文件 Python SDK 运行时分发](2026-07-10-single-file-executable-sdk-runtime-distribution.zh.md)中的应用启动与包名事实。这些 Note 对 profile 分层、客户端／协议语义、已删除的项目工具链与原生打包仍分别具有独立权威。
 
-[ACP 仅自动化协议](../simplification/2026-07-23-acp-automation-only-protocol.zh.md)继续负责 ACP 协议格式与交互范围。[添加包实操手册](../../../../docs/cookbook/adding-a-package.zh.md)负责基于角色的包名。[独立 sdk-minimal profile](../../archived/architecture/2026-08-24-standalone-sdk-minimal-profile.md)部分取代本 Note 的 base 优先规则与完整配置树替代方案，同时保留本 Note 对 launcher 所有权的决策。没有任何活跃 Note 被完全取代，也没有 Note 符合归档条件。
+[ACP 仅自动化协议](../simplification/2026-07-23-acp-automation-only-protocol.zh.md)继续负责 ACP 协议格式与交互范围。[添加包实操手册](../../../../docs/cookbook/adding-a-package.zh.md)负责基于角色的包名。独立 sdk-minimal profile部分取代本 Note 的 base 优先规则与完整配置树替代方案，同时保留本 Note 对 launcher 所有权的决策。没有任何活跃 Note 被完全取代，也没有 Note 符合归档条件。
 
 ## 考虑过的替代方案
 
@@ -68,7 +68,7 @@ Python 运行时 wheel 将 [`python/sdk-runtime/runtime-bootstrap.mjs`](../../..
 
 **保留转发兼容 bin。** 拒绝：转发可执行文件仍然形成另一个公开启动名称与兼容承诺。预发布仓库可以让调用方直接迁移到 profile。
 
-**把调用方提供的完整 Cordis 树放到 profile wrapper 后面。** 拒绝：这只集中 argv，没有集中应用组合。完整 profile 使用 `dsh-base` 加轻量应用组合包，使共享策略只有一个归属。只有当显式清单本身属于产品行为时，才允许仓库自有且有版本的独立组合包，具体见 [sdk-minimal](../../archived/architecture/2026-08-24-standalone-sdk-minimal-profile.md)。
+**把调用方提供的完整 Cordis 树放到 profile wrapper 后面。** 拒绝：这只集中 argv，没有集中应用组合。完整 profile 使用 `dsh-base` 加轻量应用组合包，使共享策略只有一个归属。只有当显式清单本身属于产品行为时，才允许仓库自有且有版本的独立组合包，具体见 sdk-minimal。
 
 **在 TypeScript 构造函数中接受内联插件或完整 `cordis.yml`。** 拒绝：SDK 会因此成为另一个包安装器和应用组合器。具名 profile 与 patch 文件已通过统一解析模型提供持久与逐次启动自定义。
 

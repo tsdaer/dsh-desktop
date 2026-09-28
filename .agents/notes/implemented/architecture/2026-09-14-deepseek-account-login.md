@@ -34,7 +34,7 @@ API keys and account grants remain separately stored. Account tokens have no pro
 
 The account plugin supplies choice, waiting, failure and timeout dialogs through settings.models.sign-in. The model package owns credential readiness and the existing API-key editor; the settings shell coordinates explicit reopening so login and API-key onboarding do not mount competing dialogs.
 
-Platform embedding transfers a grant from Host to Electron over private Node IPC and then once to the trusted Platform main frame through a sandboxed preload. Preload performs one synchronous IPC before page scripts execute; the main process only validates the sender and returns prepared memory. Platform reads the token synchronously thereafter without a readiness API. A failed initialization retains embedded mode and a throwing getter. Account UI projections remain credential-free. The Platform document can read this credential, so its script security is part of account protection; context isolation protects native capabilities, not a token intentionally returned to the document. Replacing or removing the grant destroys the document and clears browser authentication; [account-scoped page storage](2026-09-22-platform-browser-storage.md) survives.
+Platform embedding transfers a grant from Host to Electron over private Node IPC and then once to the trusted Platform main frame through a sandboxed preload. Preload performs one synchronous IPC before page scripts execute; the main process only validates the sender and returns prepared memory. Platform reads the token synchronously thereafter without a readiness API. A failed initialization retains embedded mode and a throwing getter. Account UI projections remain credential-free. The Platform document can read this credential, so its script security is part of account protection; context isolation protects native capabilities, not a token intentionally returned to the document. Replacing or removing the grant destroys the document and clears browser authentication; account-scoped page storage survives.
 
 Support questionnaires receive only available environment metadata through explicit prefill fields. Account UIDs, tokens and masked contact details stay out of questionnaire URLs.
 
@@ -68,4 +68,4 @@ Provider tests exercise real loopback callbacks, invalid state, delayed exchange
 
 ## Related
 
-[Credential records and flows](2026-08-13-credential-records-and-authorization-flows.md) remains the generic credential authority. [Desktop wrapper](2026-09-10-desktop-web-wrapper.md) owns the transport composition.
+[Credential records and flows](2026-08-13-credential-records-and-authorization-flows.md) remains the generic credential authority. Desktop wrapper owns the transport composition.

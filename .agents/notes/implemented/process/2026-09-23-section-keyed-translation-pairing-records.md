@@ -53,4 +53,4 @@ The replay uses each commit's content as it was, before the generators wrapped t
 
 ## Related
 
-The [bilingual pairing gate Agent Note](2026-07-02-bilingual-docs-and-pairing-gate.md) owns the three-file pair and its equal-authority rule; this note replaces its whole-file hash record. The [archived automatic pairing merges Agent Note](../../archived/process/2026-08-08-automatic-translation-pairing-merges.md) records the retired merge driver.
+The [bilingual pairing gate Agent Note](2026-07-02-bilingual-docs-and-pairing-gate.md) owns the three-file pair and its equal-authority rule; this note replaces its whole-file hash record. The archived automatic pairing merges Agent Note records the retired merge driver.

@@ -12,14 +12,14 @@
   en: a15c7c13f167e5ac
   zh: 63bcc2ef60c2f344
 /agent-note-provider-routed-llm-adapters-and-a-generic-pi-ai-backend/decision/provider-is-the-adapter-registration-key:
-  en: 4921a060c657b790
-  zh: 2f9632469c6f0b60
+  en: 424aa54f26a602f8
+  zh: aee82d0a965aed93
 /agent-note-provider-routed-llm-adapters-and-a-generic-pi-ai-backend/decision/explicit-pi-ai-provider-profiles:
   en: 5461685553dac663
   zh: e5c7e0ad7ac84e29
 /agent-note-provider-routed-llm-adapters-and-a-generic-pi-ai-backend/decision/recorded-assistant-route-and-replay-state:
-  en: 8439e90c9f6d7642
-  zh: daeda3ce5146c9f5
+  en: d10228a66bd8cf95
+  zh: 9515460d554891e7
 /agent-note-provider-routed-llm-adapters-and-a-generic-pi-ai-backend/decision/propagate-the-target-through-every-request-producer:
   en: ba1908bc1517ed23
   zh: 1c9353a422cf74e1

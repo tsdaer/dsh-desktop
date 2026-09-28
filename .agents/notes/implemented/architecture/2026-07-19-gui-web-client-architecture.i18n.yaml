@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-07-19-gui-web-client-architecture.md
 /agent-note-web-client-architecture-the-client-cordis-plugin-tree-the-slot-system-and-the-react-free-object-layer:
-  en: e940be9ef95509ff
-  zh: c06cea53bb49c718
+  en: d62285c573c4598b
+  zh: 2770cda03af45924
 /agent-note-web-client-architecture-the-client-cordis-plugin-tree-the-slot-system-and-the-react-free-object-layer/problem:
   en: c5a3dda6ccd57c9e
   zh: 122307b113bb1c09
@@ -18,11 +18,11 @@
   en: 1661f3dd74dc9df6
   zh: 3152467c7dd8e6ef
 /agent-note-web-client-architecture-the-client-cordis-plugin-tree-the-slot-system-and-the-react-free-object-layer/services-and-scope-addressing:
-  en: 9da9311f677c5da6
-  zh: 9cb16a92cee87055
+  en: dd83d49cc262da6e
+  zh: f04f76d0cad0e2fe
 /agent-note-web-client-architecture-the-client-cordis-plugin-tree-the-slot-system-and-the-react-free-object-layer/the-data-object-layer-packages-api-session-controller-src-client:
-  en: 909682e20c0d23a1
-  zh: ed1defbcf7745e8e
+  en: 3ffb2035fbf7d17f
+  zh: 495b6512b4228cd6
 /agent-note-web-client-architecture-the-client-cordis-plugin-tree-the-slot-system-and-the-react-free-object-layer/the-react-face-packages-client-ui-renderer:
   en: 0971d6196b5358fd
   zh: 26175d648feccfd9
@@ -36,5 +36,5 @@
   en: 56a9086da5783306
   zh: 8147576101d22aa0
 /agent-note-web-client-architecture-the-client-cordis-plugin-tree-the-slot-system-and-the-react-free-object-layer/alternatives-considered:
-  en: 8bedf2e688b14322
-  zh: 7cda12f7474832ee
+  en: 545ef91ce8bfdcc4
+  zh: 2849e6cd7cf1a393

@@ -20,7 +20,7 @@ Vendor CLIs, build-only and test-only executables, direct in-process plugin moun
 
 ### Profile applications
 
-`@deepseek-ai/dsh-sdk-app` and `@deepseek-ai/dsh-acp-app` compose the full protocol applications over `@deepseek-ai/dsh-base`. The SDK bundle adds the JSON-RPC server plus app-owned help and stdio lifetime; the ACP bundle adds the automation-only ACP server plus the same application responsibilities. Both adopt the base model, tools, persistence, settings, credentials, policy, and environment behavior. The [standalone sdk-minimal profile](../../archived/architecture/2026-08-24-standalone-sdk-minimal-profile.md) reuses SDK startup and JSON-RPC serving but deliberately owns a complete explicit tree without `dsh-base`.
+`@deepseek-ai/dsh-sdk-app` and `@deepseek-ai/dsh-acp-app` compose the full protocol applications over `@deepseek-ai/dsh-base`. The SDK bundle adds the JSON-RPC server plus app-owned help and stdio lifetime; the ACP bundle adds the automation-only ACP server plus the same application responsibilities. Both adopt the base model, tools, persistence, settings, credentials, policy, and environment behavior. The standalone sdk-minimal profile reuses SDK startup and JSON-RPC serving but deliberately owns a complete explicit tree without `dsh-base`.
 
 Profile manifests own patch reload:
 
@@ -58,9 +58,9 @@ The executable family is `deepseek-harness-sdk-runtime-<platform>-<arch>`. The S
 
 [Profile command shorthand](../feature/2026-09-15-profile-command-shorthand.md) supersedes this note's Web-only shorthand mechanism; this note retains authority over application composition and lifecycle ownership.
 
-This decision supersedes the application-launch and package-name facts in [profile plugin bundles](2026-08-05-profile-plugin-bundles.md), [TypeScript SDK client and subagent backend](../../archived/feature/2026-07-27-typescript-sdk-and-sdk-subagent-backend.md), [remove the SDK project toolchain](../../archived/simplification/2026-08-11-remove-sdk-project-toolchain.md), and [single-file Python SDK runtime distribution](2026-07-10-single-file-executable-sdk-runtime-distribution.md). Those notes retain independent authority for profile layering, client/wire semantics, deleted project tooling, and native packaging.
+This decision supersedes the application-launch and package-name facts in [profile plugin bundles](2026-08-05-profile-plugin-bundles.md), TypeScript SDK client and subagent backend, remove the SDK project toolchain, and [single-file Python SDK runtime distribution](2026-07-10-single-file-executable-sdk-runtime-distribution.md). Those notes retain independent authority for profile layering, client/wire semantics, deleted project tooling, and native packaging.
 
-The [ACP automation-only protocol](../simplification/2026-07-23-acp-automation-only-protocol.md) remains authoritative for ACP wire and interaction scope. The [adding-a-package cookbook](../../../../docs/cookbook/adding-a-package.md) owns role-based package names. The [standalone sdk-minimal profile](../../archived/architecture/2026-08-24-standalone-sdk-minimal-profile.md) partially supersedes this note's base-first rule and complete-tree alternative while retaining this note's launcher ownership. No active note is fully superseded or eligible for archival.
+The [ACP automation-only protocol](../simplification/2026-07-23-acp-automation-only-protocol.md) remains authoritative for ACP wire and interaction scope. The [adding-a-package cookbook](../../../../docs/cookbook/adding-a-package.md) owns role-based package names. The standalone sdk-minimal profile partially supersedes this note's base-first rule and complete-tree alternative while retaining this note's launcher ownership. No active note is fully superseded or eligible for archival.
 
 ## Alternatives considered
 
@@ -68,7 +68,7 @@ The [ACP automation-only protocol](../simplification/2026-07-23-acp-automation-o
 
 **Keep forwarding compatibility bins.** Rejected: a forwarding executable remains another public launch name and compatibility promise. The pre-release repository can move callers directly to profiles.
 
-**Put caller-supplied complete Cordis trees behind profile wrappers.** Rejected: that centralizes argv without centralizing application composition. Full profiles use `dsh-base` plus thin app bundles so shared policy has one owner. A repository-owned, versioned standalone bundle is allowed only when an explicit roster is the product behavior, as [sdk-minimal](../../archived/architecture/2026-08-24-standalone-sdk-minimal-profile.md) records.
+**Put caller-supplied complete Cordis trees behind profile wrappers.** Rejected: that centralizes argv without centralizing application composition. Full profiles use `dsh-base` plus thin app bundles so shared policy has one owner. A repository-owned, versioned standalone bundle is allowed only when an explicit roster is the product behavior, as sdk-minimal records.
 
 **Accept inline plugins or a complete `cordis.yml` in the TypeScript constructor.** Rejected: the SDK would become another package installer and application composer. Named profiles and patch files already provide persistent and per-launch customization through one resolution model.
 

@@ -53,8 +53,12 @@ for (const entry of readdirSync(archiveRoot, { withFileTypes: true })) {
     artifacts.set(rel, readFileSync(resolve(archiveRoot, rel)))
   }
 }
-for (const kind of AGENT_NOTE_CLASSES) {
-  if (!kinds.has(kind)) errors.push(`archived/${kind}/: required kind directory is missing`)
+// An emptied archive has no artifacts to classify, and git cannot commit the
+// empty kind directories, so the requirement applies only once content exists.
+if (artifacts.size > 0) {
+  for (const kind of AGENT_NOTE_CLASSES) {
+    if (!kinds.has(kind)) errors.push(`archived/${kind}/: required kind directory is missing`)
+  }
 }
 errors.push(...validateArchiveArtifacts(artifacts))
 

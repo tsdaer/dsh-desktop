@@ -8,7 +8,7 @@ English | [中文](2026-09-21-persistent-pwsh-keeps-controlled-prompt.zh.md)
 
 `dsh-tool-pwsh-persistent` initialized its shell with a `prompt` function of its own (`'__DSH_PERSISTENT_PWSH_PROMPT__ '`), overwriting the `prompt` that `dsh-terminal-bash` installs in its pwsh startup sequence. The backend's prompt readiness requires the printable tail after the OSC `133;D` marker to exactly equal the controlled `dsh> ` prompt ([design](../feature/2026-07-16-persistent-pty-sessions.md)), so after initialization no send could settle through it and every send paid the silence tier plus handoff grace. Measured on Windows through the real Loader composition with production defaults: 8493 ms for the first call (spawn, initialization, and command) and 3722/3832/3759 ms for the next three, against 1340/255/251/241 ms with the controlled prompt intact. The package tests masked it by configuring `idleSilenceMs: 300`.
 
-The [persistent bash tool fixed the identical defect](../../archived/bug-fix/2026-08-15-persistent-bash-keeps-controlled-prompt.md) by giving up its own prompt override; the pwsh twin kept it. The override served the same two consumers there: a viewport-suffix fallback detecting "shell at a prompt without the end marker", and cosmetic stripping of prompt text from partial output.
+The persistent bash tool fixed the identical defect by giving up its own prompt override; the pwsh twin kept it. The override served the same two consumers there: a viewport-suffix fallback detecting "shell at a prompt without the end marker", and cosmetic stripping of prompt text from partial output.
 
 ## Decision
 

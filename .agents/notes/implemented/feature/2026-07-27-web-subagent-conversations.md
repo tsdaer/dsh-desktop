@@ -57,7 +57,7 @@ The Session Controller owns catalog and history reads; `@deepseek-ai/dsh-subagen
 
 - `session.projections` takes `sessionId` and returns one live-preferred Session observation’s complete projection baseline without activating an Agent. The Client seeds the standard projection store; subagent consumers select `subagentCatalog`. Parent Agent availability comes from Session-list summaries and lifecycle events.
 - `session.page` and `session.follow` take the full mode-bearing address. They validate the child header, direct parent, descriptor identity, and mode at the observed cut, then return ordinary raw events, pagination, live reconciliation, and Host projection baselines without publishing an Agent.
-- `subagent.prompt` accepts only a `mode: 'continuable'` address, `delivery: 'queue' | 'steer'`, and upload-shaped `PromptContentPart[]`; the Host admits and persists image parts into durable references before delivery ([image delivery](../../archived/bug-fix/2026-08-27-steer-followup-image-delivery.md)). It requires the exact live parent, revalidates the catalog address, uses the continuation manager's shared human-delivery admission, and returns the accepted `MessageId`.
+- `subagent.prompt` accepts only a `mode: 'continuable'` address, `delivery: 'queue' | 'steer'`, and upload-shaped `PromptContentPart[]`; the Host admits and persists image parts into durable references before delivery (image delivery). It requires the exact live parent, revalidates the catalog address, uses the continuation manager's shared human-delivery admission, and returns the accepted `MessageId`.
 
 The gateway maps missing parents or catalog entries, not-resumable and unauthorized children, request cancellation, image admission and image-capability refusals (`subagent/attachment-invalid`), and temporarily unavailable continuation admission to typed RPC errors. It does not expose descriptor or provider details. A list/prompt race is normal: the prompt result, not the earlier availability or activity snapshot, is authoritative.
 
@@ -65,7 +65,7 @@ Viewing persisted history creates no Agent by itself. When a follow-up materiali
 
 The ordinary `session.page` and `session.follow` address is likewise observation-only for both ordinary and subagent sessions, but it does not carry the catalog address or grant continuation authority. Every ordinary route that needs an Agent resolves through the shared ownership fence before cold resume; `session.cancel` retains that fence. `session.updateQueue` has one target-local exception for a live child whose current projected identity is continuable and comes from its own non-seed suffix; one-shot, missing, unknown, corrupt, seed-only, or cold children remain fenced.
 
-The adapter stays behind the generated Remote namespace; `dsh-host-webserver` remains a carrier. Browser code imports the contract through the existing connection package and never reaches host `ctx`, preserving the [archived GUI RPC layering decision](../../archived/architecture/2026-07-19-gui-layering-and-rpc-protocol.md).
+The adapter stays behind the generated Remote namespace; `dsh-host-webserver` remains a carrier. Browser code imports the contract through the existing connection package and never reaches host `ctx`, preserving the archived GUI RPC layering decision.
 
 ## Client object layer and presentation
 

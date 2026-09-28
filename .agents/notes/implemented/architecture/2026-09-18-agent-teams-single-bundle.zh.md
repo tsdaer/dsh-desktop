@@ -14,7 +14,7 @@ Status: implemented
 
 独立的 `@deepseek-ai/dsh-experimental-agent-team-web-profile` 包不在 workspace 与发布系列中。插件页提供一个 Team 选项，默认关闭。
 
-本决策取代[包发布记录](2026-08-18-experimental-agent-teams-packages.zh.md)中的独立 Host/Web 组合方式，以及[可选组合包记录](../process/2026-09-15-shipped-optional-bundles.zh.md)中的两个 Team 选项。两条记录仍负责发布、依赖隔离、promotion 与安装方所有权。[已归档的 Web 控件记录](../../archived/feature/2026-08-06-agent-teams-web.md)记载原始拆分方式，其历史文本保持冻结。
+本决策取代[包发布记录](2026-08-18-experimental-agent-teams-packages.zh.md)中的独立 Host/Web 组合方式，以及[可选组合包记录](../process/2026-09-15-shipped-optional-bundles.zh.md)中的两个 Team 选项。两条记录仍负责发布、依赖隔离、promotion 与安装方所有权。已归档的 Web 控件记录记载原始拆分方式，其历史文本保持冻结。
 
 ## 曾考虑的替代方案
 

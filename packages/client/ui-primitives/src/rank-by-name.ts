@@ -4,7 +4,7 @@
  * candidate carries one, of its display label (a localized title). Prefix
  * hits rank first, then the strongest alignment score over either key, then
  * the source order of the input. Decision record:
- * .agents/notes/archived/feature/2026-08-04-web-slash-command-fuzzy-discovery.md
+ * the upstream deepseek-harness archive
  */
 
 /** One match with its stable source position. */

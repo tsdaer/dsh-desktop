@@ -55,11 +55,11 @@ root
             └─ models (order 10)         ui-settings-models 注册
 ```
 
-Section and item contributions use `ctx.slots.inject()` and do not depend on the client manifest's apply order; localized labels ride the label thunk from the [full-rollout note](../../archived/architecture/2026-07-30-client-locale-full-rollout.md). The SlotMap types split homes: trigger/header/close/section have their canonical home in the ui-settings contract (the consumers, general and models, both depend on the shell — no cycle); `settings.general.item`'s canonical home is the locale package — it is the lowest common dependency of all item registrants (a settings row always carries copy), while the declarer general's contract is unreachable from locale/ui-theme (it would form a cycle); ui-theme consumes it through a re-export outlet.
+Section and item contributions use `ctx.slots.inject()` and do not depend on the client manifest's apply order; localized labels ride the label thunk from the full-rollout note. The SlotMap types split homes: trigger/header/close/section have their canonical home in the ui-settings contract (the consumers, general and models, both depend on the shell — no cycle); `settings.general.item`'s canonical home is the locale package — it is the lowest common dependency of all item registrants (a settings row always carries copy), while the declarer general's contract is unreachable from locale/ui-theme (it would form a cycle); ui-theme consumes it through a re-export outlet.
 
 ### Slot declarations are first-class injectable waits
 
-`SlotRegistry.inject()` now waits on the typed ledger key directly; it does not bridge declarations into synthetic `slot:<name>` Cordis services. The callback follows declaration collapse and redeclaration while its controller remains owned by the contributing plugin fiber, and direct registration into an undeclared slot still fails loud. This removes the stale-disposer presence machine and the typo-prone parallel service namespace. The complete lifecycle and failure contract lives in the [slot declaration injection decision](../../archived/architecture/2026-08-05-slot-declaration-injection.md).
+`SlotRegistry.inject()` now waits on the typed ledger key directly; it does not bridge declarations into synthetic `slot:<name>` Cordis services. The callback follows declaration collapse and redeclaration while its controller remains owned by the contributing plugin fiber, and direct registration into an undeclared slot still fails loud. This removes the stale-disposer presence machine and the typo-prone parallel service namespace. The complete lifecycle and failure contract lives in the slot declaration injection decision.
 
 ### Service contracts
 

@@ -12,11 +12,11 @@ Status: implemented
 
 权威 Session 日志拥有反馈。Session 级备注使用 `feedback/record`；消息的实质编辑与删除使用 `feedback/message-put` 和 `feedback/message-delete`。三者都仅写日志。服务从与请求的 `sessionId` 匹配的事件中归约当前条目，因此继承的父级事件不会成为 fork 的当前反馈。删除会移除当前条目，但不会抹除日志中早先的评分或备注。
 
-live 消息反馈变更通过所属 Session 追加，并等待其持久化检查点；cold 变更在读取、比较、追加和 flush 期间持有持久化写句柄，不创建 Session 或 Agent。匹配版本的无变更操作不追加事件，但仍等待持久化。故障会原样传播，live flush 失败可能留下可观测的内存条目以供重试。逐条版本避免不同消息的编辑互相冲突；严格拒绝陈旧写入避免 ABA 覆盖，即使期望值已经匹配也不例外。目标校验把判断绑定到已发送的 assistant 消息，fork 保持独立判断。这些选择保留[已归档伴随记录决策](../../archived/architecture/2026-08-10-message-feedback-sidecar.md)记载的理由，但其存储与提交机制已被取代。
+live 消息反馈变更通过所属 Session 追加，并等待其持久化检查点；cold 变更在读取、比较、追加和 flush 期间持有持久化写句柄，不创建 Session 或 Agent。匹配版本的无变更操作不追加事件，但仍等待持久化。故障会原样传播，live flush 失败可能留下可观测的内存条目以供重试。逐条版本避免不同消息的编辑互相冲突；严格拒绝陈旧写入避免 ABA 覆盖，即使期望值已经匹配也不例外。目标校验把判断绑定到已发送的 assistant 消息，fork 保持独立判断。这些选择保留已归档伴随记录决策记载的理由，但其存储与提交机制已被取代。
 
 现有默认开启的 [session-log-deepseek 贡献](../../../../packages/session/session-log-deepseek/README.zh.md)会在后续符合条件的请求中，把反馈纳入普通 `dsh_session_log` 后缀。它使用现有的 DeepSeek 目标选择和接受水位。没有独立的 `dsh_feedback` 上传器、反馈触发的 LLM 请求或模型输入字段。[显式反馈 OTel 决策](2026-09-05-nonofficial-feedback-otel.zh.md)负责面向所有用户和提供方的独立反馈触发上传。
 
-命令用 Session 与匿名用户 id 确认记录，不依赖遥测，也不披露其策略。其追加仍不执行 flush。这取代[已归档共享披露记录](../../archived/feature/2026-08-07-feedback-acknowledgement-sharing-disclosure.md)中的命令文案决策。[遥测服务的策略 API](../../../../packages/session/session-telemetry/README.zh.md#the-sharing-disclosure) 仍可独立使用：后端披露策略，而不保证投递或保留，可选 OTel 包不拥有这套词汇。
+命令用 Session 与匿名用户 id 确认记录，不依赖遥测，也不披露其策略。其追加仍不执行 flush。这取代已归档共享披露记录中的命令文案决策。[遥测服务的策略 API](../../../../packages/session/session-telemetry/README.zh.md#the-sharing-disclosure) 仍可独立使用：后端披露策略，而不保证投递或保留，可选 OTel 包不拥有这套词汇。
 
 ## 考虑过的替代方案
 

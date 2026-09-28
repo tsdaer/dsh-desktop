@@ -12,7 +12,7 @@ PTC mode and its execution providers need one searchable name across package man
 
 The execution capability uses the `ptc-runtime` package family, `PtcRuntime` types, and `ctx.ptcRuntime`. The Node and private experimental Python providers share this vocabulary. Profile entry identifiers, internal bootstrap selectors, compiler references, package exports, and generated catalogs use the same names; no compatibility package or second service registration is supplied.
 
-The PTC names for runtime packages and SDK language types supersede the exceptions recorded in [the earlier naming decision](../../archived/architecture/2026-08-25-rename-code-mode-to-ptc.md), giving providers and callers one searchable vocabulary.
+The PTC names for runtime packages and SDK language types supersede the exceptions recorded in the earlier naming decision, giving providers and callers one searchable vocabulary.
 
 The model-facing `run_code` operation, its `code` source argument, and its stable failure identity keep their descriptive names. General source-code terminology, error codes, external project names and URLs, historical migration identifiers, and sealed Agent Notes retain their meanings and recorded spelling. The naming decision does not change program execution, sandbox authority, deadlines, bindings, or Session formats.
 

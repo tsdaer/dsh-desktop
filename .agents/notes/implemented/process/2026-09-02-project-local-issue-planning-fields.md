@@ -20,7 +20,7 @@ The pull-request policy workflow uses the repository `GITHUB_TOKEN` for REST Iss
 
 The Issue lifecycle workflow initializes `Start Date` only for `pull_request.opened`. It reads the pull request's live body, retains every same-repository reference that resolves to an Issue, converts `created_at` to a calendar date in the configured Project time zone, ensures the Issue is a Project item, and writes the date only when the current Project value is empty.
 
-The [organization-field implementation](../../archived/process/2026-08-31-pr-opened-issue-start-dates.md) records the superseded cross-Project ownership decision and its event-timing rationale. Event-directed Status transitions remain owned by [the lifecycle decision](2026-08-10-event-directed-pr-review-status.md).
+The organization-field implementation records the superseded cross-Project ownership decision and its event-timing rationale. Event-directed Status transitions remain owned by [the lifecycle decision](2026-08-10-event-directed-pr-review-status.md).
 
 ## Verification
 

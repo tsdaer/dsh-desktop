@@ -4,7 +4,7 @@ Status: implemented
 
 English | [中文](2026-06-21-bounded-llm-request-recovery.zh.md)
 
-The [per-provider request retry policy](../../archived/feature/2026-07-24-provider-retry-policies.md) extends this foundation with exact-provider configuration and an explicit unbounded mode. This note continues to own structured failure facts, the failed-attempt recovery boundary, normal mode's transient defaults, visible single attempts, and durable retry status. [Terminal LLM stream failures](2026-07-29-terminal-llm-stream-failures.md) supersedes its thrown-error identity and stream-sidecar mechanism.
+The per-provider request retry policy extends this foundation with exact-provider configuration and an explicit unbounded mode. This note continues to own structured failure facts, the failed-attempt recovery boundary, normal mode's transient defaults, visible single attempts, and durable retry status. [Terminal LLM stream failures](2026-07-29-terminal-llm-stream-failures.md) supersedes its thrown-error identity and stream-sidecar mechanism.
 
 ## Problem
 
@@ -46,7 +46,7 @@ The agent loop passes the terminal finish's `LlmFailure` to `agent/request-error
 
 Adapters extract structured facts before falling back to message inspection. They validate HTTP status, parse `Retry-After` seconds or dates into a positive finite millisecond delay, brand the provider request id when exposed, and distinguish their own timeout from the caller's abort. Provider-specific codes and messages may refine a mapping, but no recovery listener parses them.
 
-The shared transient-code set is intentionally small: adapter mappings for `RATE_LIMIT` and `SERVER`, explicit `TIMEOUT` and `TRANSPORT` codes for remote failures, and `EMPTY_RESPONSE` for a completed provider response with no content blocks. Both adapters classify the last case as an error finish; see [empty model responses are retryable](../../archived/bug-fix/2026-07-24-empty-model-response-is-retryable.md). Authentication, quota, invalid request, context overflow, protocol, abort, and unknown failures keep distinct stable codes and are not transient by default. Adding a code requires adapter fixtures and a documented policy decision; it does not require expanding a second failure-class enum.
+The shared transient-code set is intentionally small: adapter mappings for `RATE_LIMIT` and `SERVER`, explicit `TIMEOUT` and `TRANSPORT` codes for remote failures, and `EMPTY_RESPONSE` for a completed provider response with no content blocks. Both adapters classify the last case as an error finish; see empty model responses are retryable. Authentication, quota, invalid request, context overflow, protocol, abort, and unknown failures keep distinct stable codes and are not transient by default. Adding a code requires adapter fixtures and a documented policy decision; it does not require expanding a second failure-class enum.
 
 ### Put retry policy on the existing failed-step extension point
 
@@ -100,7 +100,7 @@ If recovery is exhausted, the final failure is stored once on `turn/end.reason` 
 - **Add response start, interrupted, discarded, failed, and committed events to `dsh-llm`** — rejected because the agent log already separates raw chunks, successful messages, and numbered attempts. A second state machine would duplicate ownership without enabling the bounded same-route retry.
 - **Add logical routes, capability matrices, and failover selection** — rejected because current requests already name provider and model explicitly, one adapter owns each provider, and no current consumer requires automatic fallback or can prove semantic compatibility.
 - **Put `retryable` or `failover` on `LlmFailure`** — rejected because adapters report facts while deployment policy decides action. The same 429 may be retried in an interactive bundle and rejected in a cost-capped batch.
-- **Retry forever while the caller remains active** — the [per-provider policy](../../archived/feature/2026-07-24-provider-retry-policies.md) supersedes this rejection for explicit `always` entries while retaining bounded normal mode as the default.
+- **Retry forever while the caller remains active** — the per-provider policy supersedes this rejection for explicit `always` entries while retaining bounded normal mode as the default.
 - **Log retry status only through the process logger** — rejected because process logs do not reconstruct session behavior and cannot drive replayed UI state.
 - **Keep only flat codes** — rejected because retry delay and provider request id are structured provider facts, and HTTP status is necessary for diagnosis when different wire failures share one stable code.
 
@@ -131,9 +131,9 @@ If recovery is exhausted, the final failure is stored once on `turn/end.reason` 
 
 ## Related
 
-- [Structured error taxonomy](../../archived/architecture/2026-06-11-structured-error-taxonomy.md) owns stable machine-routable codes and cause chaining.
+- Structured error taxonomy owns stable machine-routable codes and cause chaining.
 - [Reconstructable requests](../../implemented/architecture/2026-07-05-reconstructable-requests.md) makes provider/model and complete request inputs durable before dispatch.
 - [Timeout deadline library](../../implemented/architecture/2026-07-06-timeout-deadline-library.md) separates shared deadline classification from capability-owned termination.
 - [After-call compaction pressure and context-overflow recovery](../../implemented/architecture/2026-07-10-after-call-compaction-pressure-and-overflow-recovery.md) owns the current closed-step request-recovery extension point and bounded overflow retry.
 - [Provider-routed LLM adapters](../../implemented/architecture/2026-07-14-provider-routed-llm-adapters.md) owns explicit provider/model routing and the one-adapter-per-provider invariant.
-- [Terminal turn errors survive same-turn retry history](../../archived/bug-fix/2026-08-20-turn-error-survives-same-turn-retry-history.md) owns the removal of the Web retry-history suppression that hid exhausted recovery's terminal error row.
+- Terminal turn errors survive same-turn retry history owns the removal of the Web retry-history suppression that hid exhausted recovery's terminal error row.

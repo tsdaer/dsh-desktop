@@ -10,7 +10,7 @@ Desktop usually runs a local dsh server, so remote business errors cannot reliab
 
 ## Proposal
 
-This proposal records outstanding release and backend work; the [implemented client decision](../../implemented/feature/2026-09-11-desktop-mandatory-update-client.md) and [Desktop README](../../../../apps/desktop/README.md) own current behavior.
+This proposal records outstanding release and backend work; [Desktop README](../../../../apps/desktop/README.md) owns current behavior.
 
 | Document | Owns |
 |---|---|
@@ -20,7 +20,7 @@ This proposal records outstanding release and backend work; the [implemented cli
 
 ### Release and backend qualification
 
-Release owners must qualify signed Windows x64 and macOS x64/arm64 upgrades end to end: discovery, download, hash and signature checks, task-safe shutdown, installation, restart, new-version Host startup, and profile reconciliation. Publish immutable packages and blockmaps before the mutable Nightly feed. The [packaging decision](../../implemented/architecture/2026-08-25-electron-desktop-packaging-and-updates.md) owns version and artifact rules. The [API proposal](2026-09-08-desktop-mandatory-update-api.md) owns policy fields; production integration must verify guest access, force/no-force responses, errors, platform selection, approved origins, and rate limits. Publish a resolving updater release before enabling mandatory policy.
+Release owners must qualify signed Windows x64 and macOS x64/arm64 upgrades end to end: discovery, download, hash and signature checks, task-safe shutdown, installation, restart, new-version Host startup, and profile reconciliation. Publish immutable packages and blockmaps before the mutable Nightly feed. The [API proposal](2026-09-08-desktop-mandatory-update-api.md) owns policy fields; production integration must verify guest access, force/no-force responses, errors, platform selection, approved origins, and rate limits. Publish a resolving updater release before enabling mandatory policy.
 
 ### Open product choices
 

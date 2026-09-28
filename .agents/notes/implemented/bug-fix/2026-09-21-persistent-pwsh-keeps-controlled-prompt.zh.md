@@ -8,7 +8,7 @@ Status: implemented
 
 `dsh-tool-pwsh-persistent` 用自己安装的 `prompt` 函数（`'__DSH_PERSISTENT_PWSH_PROMPT__ '`）初始化其 shell，覆盖了 `dsh-terminal-bash` 在 pwsh 启动序列中安装的 `prompt`。后端的提示符就绪检测要求 OSC `133;D` 标记之后的可打印尾部与受控提示符 `dsh> ` 完全相等（[设计](../feature/2026-07-16-persistent-pty-sessions.zh.md)），因此初始化之后任何 send 都无法经由该路径结算，每次 send 都要支付静默层加交接宽限。在 Windows 上通过真实 Loader 组合以生产默认值实测：首次调用（spawn、初始化与命令）8493 毫秒，随后三次为 3722/3832/3759 毫秒；受控提示符完好时为 1340/255/251/241 毫秒。包测试把 `idleSilenceMs` 配成 300，掩盖了该问题。
 
-[持久 bash 工具已修复同一缺陷](../../archived/bug-fix/2026-08-15-persistent-bash-keeps-controlled-prompt.md)，方式是放弃自己的提示符覆盖；pwsh 孪生工具保留了它。该覆盖在两个工具中服务同样的两个消费点：用视口后缀检测「shell 已回到提示符但没有结束标记」的回退判定，以及从部分输出中剥离提示符文本的美化。
+持久 bash 工具已修复同一缺陷，方式是放弃自己的提示符覆盖；pwsh 孪生工具保留了它。该覆盖在两个工具中服务同样的两个消费点：用视口后缀检测「shell 已回到提示符但没有结束标记」的回退判定，以及从部分输出中剥离提示符文本的美化。
 
 ## Decision
 

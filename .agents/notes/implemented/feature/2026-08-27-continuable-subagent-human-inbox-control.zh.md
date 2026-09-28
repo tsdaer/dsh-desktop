@@ -24,7 +24,7 @@ Continuation manager 不保留第二套消息 reservation 状态。一个私有 
 
 QueueDock Steer 在 command 准入一个正在运行的排队 occurrence 后，采用 Agent 的 best-effort 投递。如果排队 occurrence 先被 claim，`queue-item-not-found` 表示其普通 Queue 投递已经开始。如果活跃取消在同步转移期间先发生，Agent steering 会把消息追加到 `nextTurn`、锁存唤醒，Session command 仍然成功。在该 fallback 情况下，选中消息会移到 Queue 剩余项之后。新组合的 Steer 使用同样的 fallback，错过最近步骤时仍保证可投递。
 
-本决策部分取代 [Web subagent 目录与人类 continuation](2026-07-27-web-subagent-conversations.zh.md)、[可继续 subagent](2026-07-28-continuable-subagent-conversations.zh.md)、[Steer Web 已排队消息](../../archived/feature/2026-07-30-web-queue-steer-action.md)和[用空草稿 Cmd/Ctrl+Enter steer 整个 Web queue](../../archived/feature/2026-08-06-web-queue-steer-all-gesture.md)中的人类控制排除项。活跃记录拥有目录鉴权与 Activation 生命周期；归档记录保留最初的 QueueDock Steer 与手势决策。
+本决策部分取代 [Web subagent 目录与人类 continuation](2026-07-27-web-subagent-conversations.zh.md)、[可继续 subagent](2026-07-28-continuable-subagent-conversations.zh.md)、Steer Web 已排队消息和用空草稿 Cmd/Ctrl+Enter steer 整个 Web queue中的人类控制排除项。活跃记录拥有目录鉴权与 Activation 生命周期；归档记录保留最初的 QueueDock Steer 与手势决策。
 
 ## 考虑过的替代方案
 

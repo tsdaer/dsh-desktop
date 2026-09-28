@@ -34,7 +34,7 @@ Delivery records 页用一个 info 按钮给出并复制记录的消息 id。该
 
 Schedule 客户端多出一份菜单实现：346 行组件、189 行 CSS、403 行测试，换来 `ui-primitives` 除时钟图标描边外回到 master。副本按详情实际使用裁剪，缺失的能力保持缺失：submenu、组件渲染行、钉住的 footer、多个 selectedId、fill 选中模式、dense 与 compact 间距、挂载时 autofocus、调用方提供锚点矩形、指针离开即关闭，以及 side 参数。日后某个 Schedule 菜单需要其中一项时，要么扩展副本，要么重新审视这个决定。
 
-复制是一次激活，而不是选中文本：tooltip 给出 id 但不接受指针，所以桌面端复制该 id 的手势是点击图标；这正是被撤掉的交互模式所具备、而当前形态放弃的能力。共享行为仍是共享的：定位、关闭、焦点交接、点名两个 owner 的 duplication gate 排除标记，以及 per-file 覆盖率都适用于这份副本。被拷贝的区域带 `jscpd:ignore-start` 与 `jscpd:ignore-end` 并点名两个 owner，遵循 [cross-package value dependencies note](../../archived/process/2026-08-23-client-cross-package-value-dependencies.md)；schedule 专有的 header、交接与 Tab 语义不在该区域内。
+复制是一次激活，而不是选中文本：tooltip 给出 id 但不接受指针，所以桌面端复制该 id 的手势是点击图标；这正是被撤掉的交互模式所具备、而当前形态放弃的能力。共享行为仍是共享的：定位、关闭、焦点交接、点名两个 owner 的 duplication gate 排除标记，以及 per-file 覆盖率都适用于这份副本。被拷贝的区域带 `jscpd:ignore-start` 与 `jscpd:ignore-end` 并点名两个 owner，遵循 cross-package value dependencies note；schedule 专有的 header、交接与 Tab 语义不在该区域内。
 
 副本用 `useAnchoredPosition` 定位列表，它对四条边都用同一个 12px margin，而共享菜单的顶边用的是 frame-top clearance helper。因此在 macOS 窗口顶部需要向上钳制的列表，可能比共享菜单原先的位置低约 12px；样式表仍为该列表自身的最大高度保留 clearance，常见情形不变。
 

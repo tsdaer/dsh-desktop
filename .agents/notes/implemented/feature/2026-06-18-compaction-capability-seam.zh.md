@@ -10,7 +10,7 @@ Status: implemented
 
 [会话接口面](../architecture/2026-06-18-session-surface.zh.md)正是为此而构建的基础设施：一份建立在事件日志之上的有序投影，带有专门设计的 `surfaceOp: { op: 'replace', startSeq, endSeq }` 操作，用于遮蔽一段条目并插入替换内容，`sourceEventSeqs` 列出每个来源事件，使回放可以验证替换是否引用了它移除的每个事件。剩下的是那个*决定压缩什么、并产出摘要*的插件。
 
-两股力量塑造了设计。第一，压缩策略与可复用的 token 测量独立变化：测量归 LLM（大语言模型）系列的 [`ctx.tokenMeter` 服务](../../archived/architecture/2026-07-15-replay-token-meter-service.md)所有，摘要生成则可以使用模型调用、模板或远程服务。第二，`SurfaceEventType` 封闭为产生消息的事件类型（`user/message`、`assistant/message`、`tool/result`）；只有这些类型可以携带 `surfaceOp`。因此一个专用的 `compaction/*` 事件**不能**出现在 surface 上，编译器与 Session 始终启用的 append/seed 边界都会拒绝在其上附加 `surfaceOp`。
+两股力量塑造了设计。第一，压缩策略与可复用的 token 测量独立变化：测量归 LLM（大语言模型）系列的 `ctx.tokenMeter` 服务所有，摘要生成则可以使用模型调用、模板或远程服务。第二，`SurfaceEventType` 封闭为产生消息的事件类型（`user/message`、`assistant/message`、`tool/result`）；只有这些类型可以携带 `surfaceOp`。因此一个专用的 `compaction/*` 事件**不能**出现在 surface 上，编译器与 Session 始终启用的 append/seed 边界都会拒绝在其上附加 `surfaceOp`。
 
 ## 决策
 
@@ -119,7 +119,7 @@ compaction/end      → log-only. Releases the lock (carries `error` on a recove
 ## 后果
 
 - **包**：`packages/compaction/compaction` 提供接口，`compaction-basic` 提供后端，`compaction-tool-result-pruner` 提供可选的确定性重写，`command-compact` 提供面向用户的 `/compact`。`packages/llm/token-meter` 独立拥有回放感知的测量。
-- **自动扩展点**：`agent/pre-step`（`@mode waterfall`）在请求派生前处理压力，`agent/request-error`（`@mode waterfall`）处理失败步骤关闭后的最终请求失败。pre-step 的 payload 携带已领取批次、轮次、步骤与 signal（参见 [payload-object 事件决策](../../archived/architecture/2026-08-06-agent-event-payload-objects.md)），不携带压缩专属的提示词/前缀 payload。
+- **自动扩展点**：`agent/pre-step`（`@mode waterfall`）在请求派生前处理压力，`agent/request-error`（`@mode waterfall`）处理失败步骤关闭后的最终请求失败。pre-step 的 payload 携带已领取批次、轮次、步骤与 signal（参见 payload-object 事件决策），不携带压缩专属的提示词/前缀 payload。
 - **`SessionEventMap`** 通过可合并扩展的声明合并获得 `compaction/start` / `compaction/summary` / `compaction/end`；`SurfaceEventType` **未被**触及。这些是会话事件，不是 cordis `Events`，因此事件分类门禁无需新增条目。
 - **`dsh-compaction`** 拥有 `COMPACT_CHECKPOINT_SOURCE`、`isCompactCheckpointSource(source)`、`toolPairingBalancedBefore(session, seq)` 与 `toolPairingBalancedAfter(session, seq)`。该标记用于跨后端实现识别替换摘要。带缓存的 surface 边缘检查会防止 `compactRegion` 和 `compactIfNeeded` 拆分工具调用/结果对，按 seq 校验当前成员关系，从每个切割点的一条平衡序列回答两侧边缘，并拒绝陈旧或缺失的 seq 与孤立结果。
 - **`dsh-session`** 通过唯一的 surface 管理器校验位置替换、引用的来源事件是否覆盖完整，以及仅内容的单节点 `tool/result` 重写。其不变式配套插件将新追加的工具结果视为执行，要求存在已打开的步骤与待处理调用，而压缩配套组件负责维护数字轮次 owner 与独立 `null` owner 事件对之间的关系。

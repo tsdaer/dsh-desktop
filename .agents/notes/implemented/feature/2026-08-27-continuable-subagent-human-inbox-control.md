@@ -24,7 +24,7 @@ The continuation manager keeps no second message-reservation state. One private 
 
 QueueDock Steer uses the Agent's best-effort delivery after the command admits a running queued occurrence. If the queued occurrence was claimed first, `queue-item-not-found` leaves its ordinary Queue delivery underway. If active cancellation wins during the synchronous transfer, Agent steering appends the message to `nextTurn`, latches a wake, and the Session command still succeeds. The selected message moves behind the remaining Queue in that fallback case. Newly composed Steer uses the same fallback and remains deliverable when it misses the nearest step.
 
-This decision partially supersedes the human-control exclusions in [Web subagent catalog and human continuation](2026-07-27-web-subagent-conversations.md), [Continuable subagents](2026-07-28-continuable-subagent-conversations.md), [Steer a queued Web message](../../archived/feature/2026-07-30-web-queue-steer-action.md), and [Steer the whole Web queue with an empty-draft Cmd/Ctrl+Enter](../../archived/feature/2026-08-06-web-queue-steer-all-gesture.md). The active records own catalog authorization and Activation lifecycle; the archived records preserve the original QueueDock Steer and gesture decisions.
+This decision partially supersedes the human-control exclusions in [Web subagent catalog and human continuation](2026-07-27-web-subagent-conversations.md), [Continuable subagents](2026-07-28-continuable-subagent-conversations.md), Steer a queued Web message, and Steer the whole Web queue with an empty-draft Cmd/Ctrl+Enter. The active records own catalog authorization and Activation lifecycle; the archived records preserve the original QueueDock Steer and gesture decisions.
 
 ## Alternatives considered
 

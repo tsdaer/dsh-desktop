@@ -15,8 +15,8 @@
   en: 3d09cd693966a674
   zh: 4cda02850961f8d0
 /agent-note-keyless-browser-e2e-lane-for-the-web-gui/decision/determinism-rules:
-  en: 41790d8d79b7ada3
-  zh: 1fc7e85a1accd806
+  en: bf63bdc351dad2a1
+  zh: 2abc86dd95d2e0cb
 /agent-note-keyless-browser-e2e-lane-for-the-web-gui/decision/expected-outputs:
   en: ca1ae9ccbeab8c01
   zh: 662cd5d98ee20ccc
@@ -24,11 +24,11 @@
   en: 54f10befeaaade72
   zh: 3a7726c1f4be51cc
 /agent-note-keyless-browser-e2e-lane-for-the-web-gui/decision/coverage-contract:
-  en: c529437d4fbaeeb3
-  zh: fe13551e56cba7df
+  en: f3ed6cd67a9338db
+  zh: b3241f861ffff5c3
 /agent-note-keyless-browser-e2e-lane-for-the-web-gui/decision/ci-stance:
-  en: 23b625d86ba7f5e2
-  zh: 88f33b233fca0a82
+  en: 2a136c9f16a4e5d6
+  zh: 602ca074c87bd18a
 /agent-note-keyless-browser-e2e-lane-for-the-web-gui/prior-art:
   en: 7472e212043721dd
   zh: 61dd9f5a8e12730b

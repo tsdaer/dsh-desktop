@@ -18,7 +18,7 @@ Fork 与崩溃恢复共用相同的工具配对算法。只有开放步骤会在
 
 V4 接受未启动的 fork 结果，不修改已发布的 V0–V3 校验器。其 codec 和关系校验器为这一经过校验的变体提供内部规范 interrupted-result 视图，再返回原始 fork ID 和消息。V3-to-V4 迁移保留已有事件。`forked` 轮次结束原因与已定稿的 V4 头版本变更一起记录兼容性确认。
 
-本决策取代[仅按已结束轮次截取的 Controller 策略](../../archived/bug-fix/2026-09-11-session-controller-fork-turn-cut.md)。显式切点精确保留所选事件；省略切点时保留已完成的独立操作，包括手动压缩的替换事件，直到 core 所属的新轮次或排队输入事件开始。插件继续负责自己的括号关系；Controller 不对插件事件分类。
+本决策取代仅按已结束轮次截取的 Controller 策略。显式切点精确保留所选事件；省略切点时保留已完成的独立操作，包括手动压缩的替换事件，直到 core 所属的新轮次或排队输入事件开始。插件继续负责自己的括号关系；Controller 不对插件事件分类。
 
 ## Alternatives considered
 

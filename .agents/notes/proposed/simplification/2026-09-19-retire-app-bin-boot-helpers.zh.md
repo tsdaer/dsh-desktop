@@ -10,7 +10,7 @@ Status: proposed
 
 在 packages、apps 和 scripts 中搜索精确符号，可找到八个 fixture（测试前置数据）驱动器中的十次 `resolveConfigPath` 调用，重放模式全部传入 `undefined`。唯一非单元测试的 `loadEnv` 调用方是 [Loader 冒烟 fixture](../../../../packages/test-support/loader-smoke/tests/fixtures/headless-driver.ts)。[快照启动器](../../../../packages/test-support/session-snapshot/src/launcher.ts) 单独拥有重放补丁选择。因此，旧辅助函数仅为 fixture 的需要保留了两个公共 API、生产中未使用的重放策略及专用测试。
 
-[共享 app-bin 胶水代码记录](../../archived/simplification/2026-07-04-share-app-bin-boot-glue.md) 解释了最初的共享可执行入口用途。当前[单一启动器决策](../../implemented/architecture/2026-08-22-single-dsh-application-launcher.zh.md) 已替代这些受支持入口。这属于部分取代：`boot` 和明确失败处理仍有归属，归档记录保持冻结。
+共享 app-bin 胶水代码记录 解释了最初的共享可执行入口用途。当前[单一启动器决策](../../implemented/architecture/2026-08-22-single-dsh-application-launcher.zh.md) 已替代这些受支持入口。这属于部分取代：`boot` 和明确失败处理仍有归属，归档记录保持冻结。
 
 ## 提案
 

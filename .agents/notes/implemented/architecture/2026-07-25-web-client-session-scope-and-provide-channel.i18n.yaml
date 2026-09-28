@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-07-25-web-client-session-scope-and-provide-channel.md
 /agent-note-web-client-agent-scope-parity-model-and-the-provisioning-channel-agents-scope-blank-reuse-provide:
-  en: 64d8701a9f2574bd
-  zh: 938991d424943547
+  en: 99d3627c431056b0
+  zh: c37da51998759339
 /agent-note-web-client-agent-scope-parity-model-and-the-provisioning-channel-agents-scope-blank-reuse-provide/problem:
   en: 1738c071cb9824bc
   zh: 7af7770739d5430a
@@ -24,8 +24,8 @@
   en: ee88908c085b80c5
   zh: 5ddb65bbac371f02
 /agent-note-web-client-agent-scope-parity-model-and-the-provisioning-channel-agents-scope-blank-reuse-provide/decision/connectworkspace-the-sole-entry-point-of-new-session:
-  en: 833df42c5a87afbd
-  zh: 82d789a99fd2b968
+  en: 8d2c0a6d0ff49457
+  zh: 9c2ebb0e50737022
 /agent-note-web-client-agent-scope-parity-model-and-the-provisioning-channel-agents-scope-blank-reuse-provide/decision/per-session-provisioning-the-uisession-provide-standard-kit-channel:
   en: 3c739c21ea490f09
   zh: 5508153f313a86d9
@@ -33,8 +33,8 @@
   en: 2073e96f851d1e6e
   zh: f0433bf5dfd0a23d
 /agent-note-web-client-agent-scope-parity-model-and-the-provisioning-channel-agents-scope-blank-reuse-provide/decision/host-wire-smalls:
-  en: 5d1339b5a243812a
-  zh: a4be4d3c30056f42
+  en: 11f1386078fbc45e
+  zh: 793ce460cd3e67c7
 /agent-note-web-client-agent-scope-parity-model-and-the-provisioning-channel-agents-scope-blank-reuse-provide/alternatives-considered:
   en: 2a69d71f4bdf0f76
   zh: dd768c273728d354

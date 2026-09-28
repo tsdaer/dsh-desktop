@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-06-21-subagent-capability-seam.md
 /agent-note-subagent-capability-seam:
-  en: 3c051f92759dd9c4
-  zh: fceee1b8289f2779
+  en: e3d2b7bc2f21ce31
+  zh: 70bd67f1aa13d25d
 /agent-note-subagent-capability-seam/problem:
   en: 5c81597e6dc16c39
   zh: c30c6b5dce12bfae
@@ -39,8 +39,8 @@
   en: 3dab95ec93f918df
   zh: 4c3c7d4e8357bf63
 /agent-note-subagent-capability-seam/testing:
-  en: 324951447c43d01a
-  zh: b04388c4665302d2
+  en: f0012e821720d1f9
+  zh: 277800afff74822f
 /agent-note-subagent-capability-seam/consequences:
   en: c60d3fb1012f52b4
   zh: f46ab4b214941622

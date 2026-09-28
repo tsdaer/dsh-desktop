@@ -9,8 +9,8 @@
   en: d1738d268738633e
   zh: ce62a5b0ff65ce8c
 /agent-note-acp-snapshot-tests-record-once-replay-deterministic/decision:
-  en: a9e85418ad5d2bbd
-  zh: 8e86b30a2a5bd049
+  en: b352981173301151
+  zh: f464ea9c9021afad
 /agent-note-acp-snapshot-tests-record-once-replay-deterministic/decision/the-fixture-projects-the-persisted-session-jsonl:
   en: bdd1333366edfc30
   zh: ed8a0fbab516a62b
@@ -24,11 +24,11 @@
   en: 9ecd0c3efce1b2a1
   zh: 51612956e0c4fc85
 /agent-note-acp-snapshot-tests-record-once-replay-deterministic/decision/recording-harvests-the-log-keyless-replay-needs-a-providerless-config:
-  en: 17239981275e59c8
-  zh: 8f7fc2d9e6abd3ee
+  en: 4bcc01b6d84db8db
+  zh: 786b5b0365866399
 /agent-note-acp-snapshot-tests-record-once-replay-deterministic/decision/two-outputs-normalize-then-compare:
-  en: ee891a839a0c05e9
-  zh: 677259307e4357fa
+  en: f516a4346df8956e
+  zh: 62e676d9d843b23b
 /agent-note-acp-snapshot-tests-record-once-replay-deterministic/decision/isolation-normalization-now-sandbox-later:
   en: ce58ef2e3180d0d3
   zh: 1e9354614e4d7219
