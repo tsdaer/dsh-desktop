@@ -153,6 +153,16 @@ function expiredCookie(name: string): string {
   return `${name}=; Max-Age=0; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Strict`
 }
 
+/**
+ * The single-use launch token is removed while application transport
+ * parameters survive the exchange: a bare exchange lands on the relative
+ * document, and a parameter-carrying one keeps its original path and query.
+ */
+function redirectLocation(url: URL): string {
+  url.searchParams.delete(TOKEN_QUERY)
+  return url.search === '' ? './' : `${url.pathname}${url.search}`
+}
+
 function signature(secret: Buffer, body: string): Buffer {
   return createHmac('sha256', secret).update(body).digest()
 }
@@ -285,7 +295,7 @@ export class BrowserAuth {
         const name = cookieName(authority)
         res.writeHead(303, {
           'cache-control': 'no-store',
-          'location': './',
+          'location': redirectLocation(url),
           'referrer-policy': 'no-referrer',
           'set-cookie': [
             sessionCookie(name, value, expiresAt, Math.floor(this.maxAgeMilliseconds / 1000)),
@@ -298,7 +308,7 @@ export class BrowserAuth {
       if (req.method === 'GET' && url.pathname === '/' && this.isAuthenticated(req)) {
         res.writeHead(303, {
           'cache-control': 'no-store',
-          'location': './',
+          'location': redirectLocation(url),
           'referrer-policy': 'no-referrer',
         })
         res.end()

@@ -114,7 +114,7 @@ describe('BrowserAuth', () => {
       `/?token=${launchToken}&dsh_token=desktop-secret`,
       '127.0.0.1:3080',
     ), desktopLogin.value)).toBe(false)
-    expect(desktopLogin.state.headers?.location).toBe('./')
+    expect(desktopLogin.state.headers?.location).toBe('/?dsh_token=desktop-secret')
     expect(first.isAuthenticated(request('/', '127.0.0.1:3080', { cookie: login.cookie }))).toBe(true)
     expect(first.isAuthenticated({
       headers: new Headers({ host: '127.0.0.1:3080', cookie: login.cookie }),
@@ -143,7 +143,7 @@ describe('BrowserAuth', () => {
       status: 303,
       headers: {
         'cache-control': 'no-store',
-        'location': './',
+        'location': '/?dsh_token=desktop-secret',
         'referrer-policy': 'no-referrer',
       },
     })

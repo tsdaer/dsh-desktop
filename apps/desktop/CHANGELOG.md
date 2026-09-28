@@ -6,7 +6,7 @@ All notable changes to dsh-desktop are documented in this file. The format follo
 
 ### Fixed
 
-- The web replay lane boots again after the upstream browser-auth rework: the token-exchange redirect follows upstream's mount-preserving relative form, which the replay scaffold and the connection specs assert. The previous redirect kept the fork-era absolute form, so the assembled-profile replay failed before its first scenario.
+- The web replay lane boots again after the upstream browser-auth rework: the token-exchange redirect lands a bare exchange on the relative document, which the replay scaffold now asserts, while still preserving the desktop's bridge token across parameter-carrying exchanges. The upstream merge had adopted the scaffold's relative expectation against the fork's absolute redirect, so the assembled-profile replay failed before its first scenario.
 - Release builds no longer fail on a clean checkout: the root workspace build chained the retired Electron desktop bundling step, which ran before the web frontend was built and aborted the step that bakes the packaged runtime. The workspace build now stops at the library passes, and the installers are packaged by the dedicated target-specific desktop bundle step as before.
 
 ## [0.5.16] - 2026-09-28
