@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-23-desktop-deb-installed-runtime-smoke.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-23-desktop-deb-installed-runtime-smoke.md
-2026-08-23-desktop-deb-installed-runtime-smoke.md: 38954134a647c16ae39de9ca0711736b3bbcb915
-2026-08-23-desktop-deb-installed-runtime-smoke.zh.md: 5ea2fabfd1e421cd0809b80938f201a9876f189a
+/agent-note-desktop-deb-installed-runtime-smoke:
+  en: 0f199ddea0110ac8
+  zh: f6b47d9e8a386603
+/agent-note-desktop-deb-installed-runtime-smoke/problem:
+  en: 208680a6789bb49f
+  zh: 02f72fee7562c014
+/agent-note-desktop-deb-installed-runtime-smoke/decision:
+  en: d521e6953da24674
+  zh: 1de96de022be5414
+/agent-note-desktop-deb-installed-runtime-smoke/testing:
+  en: bad6c417ed9bfe60
+  zh: 7b9d1ccf30ae6790
+/agent-note-desktop-deb-installed-runtime-smoke/consequences:
+  en: bf0c4ed288ad5cf6
+  zh: 406e46c7eb358ed8
+/agent-note-desktop-deb-installed-runtime-smoke/related:
+  en: 3d1a8b8115888122
+  zh: a19fa42189076ca6
+/agent-note-desktop-deb-installed-runtime-smoke/alternatives-considered:
+  en: 23da106a0a1e1767
+  zh: 72aa08b2192a2b63

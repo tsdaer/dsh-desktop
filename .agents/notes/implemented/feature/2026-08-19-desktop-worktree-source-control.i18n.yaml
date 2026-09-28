@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-19-desktop-worktree-source-control.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-19-desktop-worktree-source-control.md
-2026-08-19-desktop-worktree-source-control.md: 867b57b833ad25307938a8b23de0155168f6f1fe
-2026-08-19-desktop-worktree-source-control.zh.md: 57555430b5ea9ff807d3580310f1f3052d93cf2d
+/agent-note-desktop-worktree-source-control:
+  en: 07b94cfba1713ef7
+  zh: b5835b2b32131889
+/agent-note-desktop-worktree-source-control/problem:
+  en: 72cfc4694289fb96
+  zh: 77a28955b652dd15
+/agent-note-desktop-worktree-source-control/decision:
+  en: 991bde98df7ec10a
+  zh: 054322791024689f
+/agent-note-desktop-worktree-source-control/alternatives-considered:
+  en: dfd0a1478d8deabe
+  zh: fe0bbb73e72cf6dc
+/agent-note-desktop-worktree-source-control/consequences:
+  en: 1d357ec32e4558b9
+  zh: 0d93003b866d563f
+/agent-note-desktop-worktree-source-control/testing:
+  en: 31f5fbb70f73bb6e
+  zh: d06dda4c8f50dead

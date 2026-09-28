@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-20-webview-cookie-accumulation.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-20-webview-cookie-accumulation.md
-2026-09-20-webview-cookie-accumulation.md: 703c322ea7bddd6739ade86061682fad07fbad8e
-2026-09-20-webview-cookie-accumulation.zh.md: 5c1ac3be844af0cccf75152ff650fbe3e41e18d4
+/agent-note-browser-session-cookie-names-one-slot-per-host:
+  en: 0aa9118eae0add65
+  zh: e9f9a74cd99e8a76
+/agent-note-browser-session-cookie-names-one-slot-per-host/problem:
+  en: bce89ee1974129cc
+  zh: 0bd4ec5c8822ac02
+/agent-note-browser-session-cookie-names-one-slot-per-host/decision:
+  en: fcc97d0ec3dbf5be
+  zh: afdc0174883dc7f8
+/agent-note-browser-session-cookie-names-one-slot-per-host/alternatives-considered:
+  en: 1e9e0bb865318f16
+  zh: 0c3e15689d926167
+/agent-note-browser-session-cookie-names-one-slot-per-host/consequences:
+  en: e497ae48944265c1
+  zh: 834279968a51b561
+/agent-note-browser-session-cookie-names-one-slot-per-host/verification:
+  en: 6ac2585130a9b590
+  zh: 1306c0a6d5ea2eca

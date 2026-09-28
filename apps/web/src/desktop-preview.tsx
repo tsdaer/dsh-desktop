@@ -1,10 +1,10 @@
 import { createRoot } from 'react-dom/client'
 import {
   CodeBlock,
-  IconCloseOutline16,
-  IconCodeOutline16,
-  IconLoadingOutline16,
-  IconWarningOutline16,
+  IconCloseOutlineRegular,
+  IconCodeOutlineRegular,
+  IconLoadingOutlineRegular,
+  IconWarningOutlineRegular,
   MarkdownText,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { useEffect, useMemo, useState } from 'react'
@@ -285,7 +285,7 @@ function PreviewApp(): ReactElement {
     <main data-desktop-file-preview="">
       <header data-preview-header="">
         <div data-preview-heading="">
-          <span data-preview-file-icon="" aria-hidden="true"><IconCodeOutline16 size={18} /></span>
+          <span data-preview-file-icon="" aria-hidden="true"><IconCodeOutlineRegular size={18} /></span>
           <span data-preview-title-group="">
             <strong title={'error' in request ? '' : request.path}>{title}</strong>
             {'error' in request ? null : <span data-preview-path="" title={request.path}>{request.path}</span>}
@@ -294,20 +294,20 @@ function PreviewApp(): ReactElement {
         <div data-preview-actions="">
           {kind === undefined ? null : <span data-preview-kind="">{kind}</span>}
           <button data-preview-close="" type="button" onClick={close} aria-label={copy.close} title={copy.close}>
-            <IconCloseOutline16 />
+            <IconCloseOutlineRegular />
           </button>
         </div>
       </header>
       <section data-preview-viewport="">
         {state.status === 'loading' ? (
           <div data-preview-state="loading" role="status">
-            <span data-preview-state-icon=""><IconLoadingOutline16 size={20} /></span>
+            <span data-preview-state-icon=""><IconLoadingOutlineRegular size={20} /></span>
             <p>{copy.loading}</p>
           </div>
         ) : null}
         {state.status === 'error' ? (
           <div data-preview-state="error" role="alert">
-            <span data-preview-state-icon=""><IconWarningOutline16 size={20} /></span>
+            <span data-preview-state-icon=""><IconWarningOutlineRegular size={20} /></span>
             <p>{state.message}</p>
           </div>
         ) : null}

@@ -1,6 +1,46 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for desktop-worktree-preview-interaction-progress.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/desktop-worktree-preview-interaction-progress.md
-desktop-worktree-preview-interaction-progress.md: bef6298b326955fd90dac9013bc1a9e4eb309bec
-desktop-worktree-preview-interaction-progress.zh.md: e9add701bca66ac3d987ea3c71b5bf120e98c2c2
+/desktop-worktree-preview-and-interaction-development-progress:
+  en: 6b8ded3b131c8680
+  zh: 9fc8ef377cbe3e81
+/desktop-worktree-preview-and-interaction-development-progress/summary:
+  en: 4f6819d8489be701
+  zh: ea086e86b9b9241d
+/desktop-worktree-preview-and-interaction-development-progress/table-of-contents:
+  en: eda61acaa2389e16
+  zh: eda61acaa2389e16
+/desktop-worktree-preview-and-interaction-development-progress/overall-status:
+  en: 1f120758b81c1778
+  zh: 2f8764161f192263
+/desktop-worktree-preview-and-interaction-development-progress/completed-slices:
+  en: 1b5cbbae5ef7b154
+  zh: 1b5cbbae5ef7b154
+/desktop-worktree-preview-and-interaction-development-progress/completed-slices/workspace-paths-and-explorer-presentation:
+  en: 9dac8609a4772bff
+  zh: 70f6d5b204f8a408
+/desktop-worktree-preview-and-interaction-development-progress/completed-slices/preview-projection-and-rendering:
+  en: a578def7a6a793b0
+  zh: 2be9c5e24d366fc7
+/desktop-worktree-preview-and-interaction-development-progress/completed-slices/dedicated-preview-windows:
+  en: 6debba9814b516ec
+  zh: 2d831ea551af536f
+/desktop-worktree-preview-and-interaction-development-progress/completed-slices/safe-external-links:
+  en: 3ac6209f81c24c67
+  zh: f9a4aaa72d66fdbb
+/desktop-worktree-preview-and-interaction-development-progress/completed-slices/lexical-aware-context-menus:
+  en: a520e721baea586c
+  zh: aa407ea856753e04
+/desktop-worktree-preview-and-interaction-development-progress/verification-evidence:
+  en: f87584c4c08e20ce
+  zh: 83f713efb6cb07b1
+/desktop-worktree-preview-and-interaction-development-progress/open-blockers:
+  en: bc9db4fbfdfb704a
+  zh: ec4e7e6a77329dcd
+/desktop-worktree-preview-and-interaction-development-progress/next-steps:
+  en: 652ba89e5e1bc817
+  zh: ce1777e91620743e
+/desktop-worktree-preview-and-interaction-development-progress/ownership:
+  en: bc5363f6651c359f
+  zh: b4fbfd940a1e7f27

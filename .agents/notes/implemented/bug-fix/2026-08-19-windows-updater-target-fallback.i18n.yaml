@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-19-windows-updater-target-fallback.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-19-windows-updater-target-fallback.md
-2026-08-19-windows-updater-target-fallback.md: c0b4bd24e399bb8816956481fd5c5163120df967
-2026-08-19-windows-updater-target-fallback.zh.md: 56b0f12d739bf1c4a3af3b066074e59f2d302cea
+/agent-note-static-windows-updater-manifests-include-an-architecture-fallback:
+  en: c45c98a0463ac6c9
+  zh: 7d7d094c9a8da9d3
+/agent-note-static-windows-updater-manifests-include-an-architecture-fallback/problem:
+  en: 93eb15ad56888603
+  zh: 13da66152357808b
+/agent-note-static-windows-updater-manifests-include-an-architecture-fallback/decision:
+  en: 79744a2069ff5fd2
+  zh: c91f4bf835442fb5
+/agent-note-static-windows-updater-manifests-include-an-architecture-fallback/alternatives-considered:
+  en: b3ea8e6c1cfeae31
+  zh: 646a55e56b06147d
+/agent-note-static-windows-updater-manifests-include-an-architecture-fallback/consequences:
+  en: f542a181ea40d2f3
+  zh: b34ed0aa65f10560
+/agent-note-static-windows-updater-manifests-include-an-architecture-fallback/testing:
+  en: b0258788ed86e970
+  zh: 871470dce96a3194

@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-22-desktop-target-aware-bundles.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-22-desktop-target-aware-bundles.md
-2026-08-22-desktop-target-aware-bundles.md: 795f0f790597a29037cf9d813d08f06db830cf4a
-2026-08-22-desktop-target-aware-bundles.zh.md: e1f70506d42219c826d4c1f5f580d96f3073b786
+/agent-note-desktop-target-aware-bundle-configuration-and-updater-inventory:
+  en: b544d1dc1b431ebe
+  zh: fe9f063eae7cd1ef
+/agent-note-desktop-target-aware-bundle-configuration-and-updater-inventory/problem:
+  en: 182b06262948596b
+  zh: a39f18b46953cc99
+/agent-note-desktop-target-aware-bundle-configuration-and-updater-inventory/decision:
+  en: 0d421194b0dbe60b
+  zh: c008e47cee7b21f3
+/agent-note-desktop-target-aware-bundle-configuration-and-updater-inventory/testing:
+  en: 93641fc2c76b2873
+  zh: 62dd468962621628
+/agent-note-desktop-target-aware-bundle-configuration-and-updater-inventory/consequences:
+  en: 9344176fdc1c8f7f
+  zh: dfe3435ccf738fc0
+/agent-note-desktop-target-aware-bundle-configuration-and-updater-inventory/alternatives-considered:
+  en: 0a7edc2396da25ad
+  zh: 770b31abb5b271c3

@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-23-desktop-windows-installed-update-workflow.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-08-23-desktop-windows-installed-update-workflow.md
-2026-08-23-desktop-windows-installed-update-workflow.md: 60e5f7599a1b19ceace5976c5937892252663927
-2026-08-23-desktop-windows-installed-update-workflow.zh.md: 0f34b9d9d2b59233542deb6d7662d8a1fe6546a6
+/agent-note-desktop-windows-installed-update-acceptance-workflow:
+  en: d2f29ae023de3b0f
+  zh: ef1785c05aa3ce11
+/agent-note-desktop-windows-installed-update-acceptance-workflow/problem:
+  en: 073bfd34a3372085
+  zh: c94b3685e9261d24
+/agent-note-desktop-windows-installed-update-acceptance-workflow/decision:
+  en: 07f18c84ef888159
+  zh: fb4f23fd9245dfab
+/agent-note-desktop-windows-installed-update-acceptance-workflow/alternatives-considered:
+  en: c47c840e157866ca
+  zh: b52490aa45029f79
+/agent-note-desktop-windows-installed-update-acceptance-workflow/consequences:
+  en: e98c25a4b45ff307
+  zh: defff30db4f0de45
+/agent-note-desktop-windows-installed-update-acceptance-workflow/testing:
+  en: bf06266b01b9a46f
+  zh: a4f000d6d6b853cd

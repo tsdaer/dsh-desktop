@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-19-desktop-signed-updater.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-19-desktop-signed-updater.md
-2026-08-19-desktop-signed-updater.md: d901bcc6ebdc32de2d5595c40186119742359037
-2026-08-19-desktop-signed-updater.zh.md: c450000a1f0f1a17370ce0bb5c28217216049a06
+/agent-note-desktop-signed-updater:
+  en: b49cc2265c368546
+  zh: 4d485c0fca4073a9
+/agent-note-desktop-signed-updater/problem:
+  en: 15273670073b7326
+  zh: 93d47fc7417fb440
+/agent-note-desktop-signed-updater/decision:
+  en: 7f9799a3ee4514a0
+  zh: 27be295ff661cfac
+/agent-note-desktop-signed-updater/testing:
+  en: 6b6185bb4058919b
+  zh: 10de16618ce8f0fd
+/agent-note-desktop-signed-updater/alternatives-considered:
+  en: e264e054dfb085f2
+  zh: 42232ad2eafa1ee3
+/agent-note-desktop-signed-updater/consequences:
+  en: fbb5304e2c3695b2
+  zh: 7ba9a03186fe3dc5

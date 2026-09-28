@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-22-desktop-native-window-chrome.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-22-desktop-native-window-chrome.md
-2026-08-22-desktop-native-window-chrome.md: 8c1758083f502f1431485b78d86beaac8f4fe210
-2026-08-22-desktop-native-window-chrome.zh.md: d7dc1ec463d8be73f6ca4c148f71cb7719ccd9ee
+/agent-note-desktop-native-window-chrome:
+  en: 3b40054a6ff6985f
+  zh: 9d4bacf66dc6b0c7
+/agent-note-desktop-native-window-chrome/problem:
+  en: ad35d1ba18a2a1dd
+  zh: 4137e33bb00075b8
+/agent-note-desktop-native-window-chrome/decision:
+  en: b7bf4340fe1fd84d
+  zh: 5a4010775e1d5b72
+/agent-note-desktop-native-window-chrome/alternatives-considered:
+  en: f202d87360bd8308
+  zh: c0c745da3228ff42
+/agent-note-desktop-native-window-chrome/consequences:
+  en: aeaaec8995f65a43
+  zh: 5836835bcba072f3
+/agent-note-desktop-native-window-chrome/testing:
+  en: 12382261364a4bf2
+  zh: 32cae27d1a6f6fe4

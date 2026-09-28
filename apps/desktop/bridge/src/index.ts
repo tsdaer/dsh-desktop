@@ -146,44 +146,9 @@ function validateExplorerConfig(config: Config): void {
 /** Cap on the JSON request body (small; settings only). */
 const MAX_BODY_BYTES = 64 * 1024
 
-/**
- * Resolve the effective settings: the durable settings section layered over
- * the plugin config (schema defaults < entry config < user document). Read
- * per request so settings-page saves take effect immediately.
- */
-function effectiveConfig(ctx: Context, config: Config): Config {
-  const settings = ctx.get('settings')
-  const section = settings?.get(BRIDGE_SETTINGS_NS) as Partial<Config> | undefined
-  return {
-    closeToTray: section?.closeToTray ?? config.closeToTray,
-    debugMode: section?.debugMode ?? config.debugMode,
-    logoMotion: section?.logoMotion ?? config.logoMotion,
-    wslEnabled: section?.wslEnabled ?? config.wslEnabled,
-    wslDistribution: section?.wslDistribution ?? config.wslDistribution,
-    explorerMaxEntries: config.explorerMaxEntries,
-    explorerMaxBytes: config.explorerMaxBytes,
-    explorerTimeoutMs: config.explorerTimeoutMs,
-    fileMaxBytes: config.fileMaxBytes,
-    fileTimeoutMs: config.fileTimeoutMs,
-    searchMaxMatches: config.searchMaxMatches,
-    searchMaxBytes: config.searchMaxBytes,
-    searchMaxRawBytes: config.searchMaxRawBytes,
-    searchMaxFileBytes: config.searchMaxFileBytes,
-    searchGraceMs: config.searchGraceMs,
-    searchTimeoutMs: config.searchTimeoutMs,
-    sourceControlMaxEntries: config.sourceControlMaxEntries,
-    sourceControlMaxBytes: config.sourceControlMaxBytes,
-    sourceControlGraceMs: config.sourceControlGraceMs,
-    sourceControlTimeoutMs: config.sourceControlTimeoutMs,
-    sourceControlMaxDiffBytes: config.sourceControlMaxDiffBytes,
-  }
-}
 
 export function apply(ctx: Context, config: Config): void {
   validateExplorerConfig(config)
-  ctx.inject(['settings'], (settingsCtx) => {
-    settingsCtx.settings.register(BRIDGE_SETTINGS_NS, Config)
-  })
   ctx.webServer.register({
     kind: 'prefix',
     path: '/dsh-bridge',
@@ -192,7 +157,10 @@ export function apply(ctx: Context, config: Config): void {
 }
 
 async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, config: Config): Promise<void> {
-  const effective = effectiveConfig(ctx, config)
+  // The Loader hands apply() the layered config (schema defaults < entry
+  // config < settings write-back) and re-runs apply on updates, so the
+  // captured config is the effective one for this handler generation.
+  const effective = config
   const pathname = (req.url ?? '').split('?')[0] ?? ''
   if (pathname === '/dsh-bridge/policy') {
     if (req.method !== 'POST') {

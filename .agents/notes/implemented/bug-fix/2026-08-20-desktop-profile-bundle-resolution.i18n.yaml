@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-20-desktop-profile-bundle-resolution.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-20-desktop-profile-bundle-resolution.md
-2026-08-20-desktop-profile-bundle-resolution.md: 31d69f502a189258d7403ae268a0e6b8e9ba4838
-2026-08-20-desktop-profile-bundle-resolution.zh.md: e4242b36e8a051949d7eea0b4c82dfc2ebc2af17
+/agent-note-packaged-desktop-preserves-profile-owned-bundles:
+  en: b93ce29b95daca9b
+  zh: 0c8248c62e762438
+/agent-note-packaged-desktop-preserves-profile-owned-bundles/problem:
+  en: 4a8ca28454c6e0dc
+  zh: dfbea228788e8922
+/agent-note-packaged-desktop-preserves-profile-owned-bundles/decision:
+  en: 556a83e9536f5718
+  zh: e89faa7da634db9c
+/agent-note-packaged-desktop-preserves-profile-owned-bundles/alternatives-considered:
+  en: de0388f0bbe869b9
+  zh: 0e8508146f4a9643
+/agent-note-packaged-desktop-preserves-profile-owned-bundles/consequences:
+  en: 18400958a6b63ebd
+  zh: a02cd8e988dd683b
+/agent-note-packaged-desktop-preserves-profile-owned-bundles/verification:
+  en: cd2933b86cc5ad5e
+  zh: a7068e4c1f3d8dc4

@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-25-desktop-packaged-bridge-install.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-25-desktop-packaged-bridge-install.md
-2026-08-25-desktop-packaged-bridge-install.md: 597c2c4a62341c49c8ae859fd7b6d8f15ea511b8
-2026-08-25-desktop-packaged-bridge-install.zh.md: 993e9b30cffd5c54f297d215790f5d585ec04287
+/agent-note-packaged-desktop-boots-install-the-profile-bridge:
+  en: 333bc066099a29e5
+  zh: 9500a99019561499
+/agent-note-packaged-desktop-boots-install-the-profile-bridge/problem:
+  en: fffc2cd11dd48954
+  zh: 72675d851d14bb56
+/agent-note-packaged-desktop-boots-install-the-profile-bridge/decision:
+  en: 897c12465feb840c
+  zh: 26ad88c049c6d478
+/agent-note-packaged-desktop-boots-install-the-profile-bridge/testing:
+  en: ab32ff6f831299f0
+  zh: d5e1cb2826221699
+/agent-note-packaged-desktop-boots-install-the-profile-bridge/consequences:
+  en: b5f6782d848999ef
+  zh: 285ba00c06156195
+/agent-note-packaged-desktop-boots-install-the-profile-bridge/alternatives-considered:
+  en: 2a68fc93f91fd6cf
+  zh: f6cb1d9a0ac53dfd

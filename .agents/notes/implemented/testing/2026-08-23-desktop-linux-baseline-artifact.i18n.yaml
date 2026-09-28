@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-23-desktop-linux-baseline-artifact.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-08-23-desktop-linux-baseline-artifact.md
-2026-08-23-desktop-linux-baseline-artifact.md: 610ac6c561bc9ca2bbe32ba8e19c7ce1eb1747d1
-2026-08-23-desktop-linux-baseline-artifact.zh.md: 63e8b19f466cdde58c14aa1469f94e1058b1b430
+/agent-note-desktop-linux-baseline-artifact:
+  en: fc4e17a8e74c4fcc
+  zh: f9db16adb8163706
+/agent-note-desktop-linux-baseline-artifact/problem:
+  en: 8aea3f472e6acee8
+  zh: 3abf34522ca943c0
+/agent-note-desktop-linux-baseline-artifact/decision:
+  en: deb9b96c2ec831a5
+  zh: c32d54294aa80ceb
+/agent-note-desktop-linux-baseline-artifact/testing:
+  en: c79f8ee3ec6c02f3
+  zh: adf43c0892f982af
+/agent-note-desktop-linux-baseline-artifact/consequences:
+  en: b9835a9d2124260b
+  zh: 9ea6233c883db5ff
+/agent-note-desktop-linux-baseline-artifact/alternatives-considered:
+  en: 9008e908728c1ba5
+  zh: 0817d98d811cf8fa

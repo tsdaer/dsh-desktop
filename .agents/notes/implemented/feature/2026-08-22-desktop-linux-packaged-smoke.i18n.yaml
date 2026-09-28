@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-22-desktop-linux-packaged-smoke.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-22-desktop-linux-packaged-smoke.md
-2026-08-22-desktop-linux-packaged-smoke.md: c31c4b6fb68e60336e693c9ada4c853169c737d3
-2026-08-22-desktop-linux-packaged-smoke.zh.md: 9e2d36e1919e6ad2bcdae4ddb48ae1158bbb67f1
+/agent-note-desktop-linux-packaged-startup-smoke:
+  en: 559d2efd71c1b8f5
+  zh: 768f5759ef46baa7
+/agent-note-desktop-linux-packaged-startup-smoke/problem:
+  en: 357422dc526da9c2
+  zh: 01567248b2d7a5c3
+/agent-note-desktop-linux-packaged-startup-smoke/decision:
+  en: 2794ed8678a6da77
+  zh: 82de1c5c8689132b
+/agent-note-desktop-linux-packaged-startup-smoke/testing:
+  en: 2dbd000ff995d0a2
+  zh: 620ca2a55612423b
+/agent-note-desktop-linux-packaged-startup-smoke/consequences:
+  en: 55738c4c8dc5079b
+  zh: 117afd3a6c178126
+/agent-note-desktop-linux-packaged-startup-smoke/related:
+  en: 8ed5f96e27f976d1
+  zh: 001f8039aa7eda77
+/agent-note-desktop-linux-packaged-startup-smoke/alternatives-considered:
+  en: 899ccd8686df4abf
+  zh: f158ab534945aea7

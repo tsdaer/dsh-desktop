@@ -23,12 +23,12 @@
 | [`packages/client/ui-conversation/src/client/skeleton/HeroShell.module.css`](../packages/client/ui-conversation/src/client/skeleton/HeroShell.module.css) | 新增由桌面端可选开关驱动的 `html[data-dsh-logo-motion]` 悬停规则，浏览器用户仍遵循系统减少动效偏好（[note](../.agents/notes/implemented/feature/2026-08-20-desktop-logo-motion-opt-in.zh.md)） |
 | [`packages/host/webserver/src/index.ts`](../packages/host/webserver/src/index.ts) | 可选 `token` 配置：已注册路由与 upgrade 需要 `Authorization: Bearer`（WebSocket 用 `dsh_token` 查询参数），静态 dist fallback 保持开放；缺省时纯 loopback 姿态不变（[note](../.agents/notes/implemented/feature/2026-08-22-desktop-loopback-token.zh.md)） |
 | [`packages/client/connection/src/client/rpc.ts`](../packages/client/connection/src/client/rpc.ts) | 从页面 URL 读取一次 `?dsh_token`，附加到每个通用 RPC fetch 作为 `Authorization: Bearer` header；无该查询参数的普通浏览器保持不变（[note](../.agents/notes/implemented/feature/2026-08-22-desktop-loopback-token.zh.md)）。上游在 browser-auth 重构中删除了旧的 `web-api-client.ts` bearer 路径；桌面的 bridge 路由保留在 `apps/desktop/bridge-client/src/client/bridge-fetch.ts` 中的自有 bearer 拾取 |
-
 | [`apps/web/src/main.ts`](../apps/web/src/main.ts)、[`apps/web/src/desktop-preview.tsx`](../apps/web/src/desktop-preview.tsx) | 将 `?dsh_preview=1` 路由到只读工作树预览挂载，普通页面继续沿用上游桌面启动路径（[note](../.agents/notes/implemented/feature/2026-08-22-desktop-file-viewer.zh.md)） |
 | [`packages/api/session-controller/src/agent.ts`](../packages/api/session-controller/src/agent.ts) | 在会话激活失败中加入插件不兼容提示，让读取已移除服务的已安装插件在错误里被点名 |
 | [`packages/llm/llm/src/index.ts`](../packages/llm/llm/src/index.ts)、[`packages/llm/llm/src/types.ts`](../packages/llm/llm/src/types.ts)、[`packages/llm/llm-deepseek/src/adapter.ts`](../packages/llm/llm-deepseek/src/adapter.ts) | 新增桌面标题栏使用的 account-summary 能力与 DeepSeek `/user/balance` 覆盖（[note](../.agents/notes/implemented/feature/2026-08-16-desktop-titlebar-version-and-balance.zh.md)） |
 | [`packages/client/connection/src/browser-auth.ts`](../packages/client/connection/src/browser-auth.ts)、[`packages/client/connection/src/rpc.ts`](../packages/client/connection/src/rpc.ts)、[`packages/client/connection/src/client/loopback-token.ts`](../packages/client/connection/src/client/loopback-token.ts) | 在 index 重定向中保留 `dsh_token` 并在 client 中读取，使桌面桥接认证在登录后仍有效（[note](../.agents/notes/implemented/architecture/2026-08-24-browser-token-authentication.zh.md)）。会话 cookie 名称只哈希 hostname，token 交换使被取代的 `dsh-auth-*` cookie 过期，随机端口的桌面启动不再每次累积一条持久 cookie 直到请求头超出服务器上限（[note](../.agents/notes/implemented/bug-fix/2026-09-20-webview-cookie-accumulation.zh.md)） |
 | [`packages/shell/bash-wsl`](../packages/shell/bash-wsl)、[`packages/shell/tool-bash-wsl`](../packages/shell/tool-bash-wsl) | 新增 WSL Bash 执行器与其模型可见工具，由桌面 WSL 设置启用（[note](../.agents/notes/implemented/feature/2026-08-22-desktop-cross-platform-shell-runtime.zh.md)） |
+| [`packages/bundle/web-app/presets/standard.patch.yml`](../packages/bundle/web-app/presets/standard.patch.yml)、[`apps/cli/tests/web-agent-presets.e2e.ts`](../apps/cli/tests/web-agent-presets.e2e.ts) | 在上游的声明式 standard 预设中加入带条件的 `tool-bash-wsl` 行，并把仅限 Windows 的目录证据保留在 presets e2e 套件中，两者均从被移除的文件式预设移植（[note](../.agents/notes/implemented/feature/2026-08-22-desktop-cross-platform-shell-runtime.zh.md)） |
 
 ## 仓库脚本
 
@@ -39,8 +39,8 @@
 | [`scripts/gen-cordis-catalog.ts`](../scripts/gen-cordis-catalog.ts) | 将生成的 Cordis 区域规范为 LF，为双语配对提供相同的跨主机保证（[note](../.agents/notes/implemented/process/2026-08-08-native-windows-pull-request-ci.zh.md)） |
 | [`scripts/gen-tool-catalog.ts`](../scripts/gen-tool-catalog.ts) | 把本 fork 的 `bash-wsl` 工具加入待编目集合，使生成的 [`docs/tool-catalog.md`](tool-catalog.zh.md) 与英文版带有该行与章节 |
 | [`scripts/desktop-release-workflow.spec.ts`](../scripts/desktop-release-workflow.spec.ts) | 新增，用于固定本 fork 自有的发布工作流 |
+| [`scripts/verify-concrete-terms.ts`](../scripts/verify-concrete-terms.ts)、[`scripts/translation-pairing.ts`](../scripts/translation-pairing.ts) | 把本 fork 录制的 Web 快照 fixture 豁免出禁用词扫描（JSONL 携带会话格式自身的字段名），并把桌面构建产物目录排除出双语配对语料，两者均来自上游 0.1.7 的门禁重构 |
 
-| [`scripts/gen-third-party-notices.ts`](../scripts/gen-third-party-notices.ts)、[`scripts/gen-third-party-notices.spec.ts`](../scripts/gen-third-party-notices.spec.ts) | 去掉上游的 `apps/desktop/scripts/primary-runtime-lock.json` 导入与 Desktop 捆绑 Python 发行版章节，因为 Tauri 外壳不分发该载荷 |
 
 ## 构建与 CI 配置
 

@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-17-desktop-drops-tray-open-with.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-17-desktop-drops-tray-open-with.md
-2026-08-17-desktop-drops-tray-open-with.md: 96cd9b10c5c11934862eb884abec3d05a225d9f5
-2026-08-17-desktop-drops-tray-open-with.zh.md: 7cbb4c7a96a37a6333571bdeddd9a9e919f48548
+/agent-note-desktop-drops-put-real-paths-in-the-composer-tray-close-behavior-and-the-explorer-open-with-entry:
+  en: 7a9c75940f1cb045
+  zh: 9e31cdc1c2c70aa4
+/agent-note-desktop-drops-put-real-paths-in-the-composer-tray-close-behavior-and-the-explorer-open-with-entry/problem:
+  en: 8e7d9d5bedd94023
+  zh: ec1d6301d97fd032
+/agent-note-desktop-drops-put-real-paths-in-the-composer-tray-close-behavior-and-the-explorer-open-with-entry/decision:
+  en: f478a6fed2aae2af
+  zh: 5d8ff790763eda50
+/agent-note-desktop-drops-put-real-paths-in-the-composer-tray-close-behavior-and-the-explorer-open-with-entry/alternatives-considered:
+  en: ae8684067f539ad0
+  zh: 4ca2915418b62c5b
+/agent-note-desktop-drops-put-real-paths-in-the-composer-tray-close-behavior-and-the-explorer-open-with-entry/consequences:
+  en: aba5e91ff5415cd1
+  zh: 19717dbac5ff42c6
+/agent-note-desktop-drops-put-real-paths-in-the-composer-tray-close-behavior-and-the-explorer-open-with-entry/verification:
+  en: 6cf892aad06a205a
+  zh: fcf9b61a6075812e

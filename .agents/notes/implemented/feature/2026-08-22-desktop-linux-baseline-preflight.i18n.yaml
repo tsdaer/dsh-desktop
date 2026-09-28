@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-22-desktop-linux-baseline-preflight.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-22-desktop-linux-baseline-preflight.md
-2026-08-22-desktop-linux-baseline-preflight.md: 94b4375e372aaade38629c53540cc928c80efa1f
-2026-08-22-desktop-linux-baseline-preflight.zh.md: 99a73db251ccbaae17a23c2bfa277ceffe0e14bd
+/agent-note-desktop-linux-baseline-preflight:
+  en: c7986a8f98419f8d
+  zh: 8546537ea63363bd
+/agent-note-desktop-linux-baseline-preflight/problem:
+  en: 03156d958c45a90b
+  zh: 7b4592d013a0693b
+/agent-note-desktop-linux-baseline-preflight/decision:
+  en: 611cd0df5165b9b5
+  zh: 0a49e1e4c8251d86
+/agent-note-desktop-linux-baseline-preflight/testing:
+  en: 75b500f201ea1169
+  zh: 4d6d310564588a8b
+/agent-note-desktop-linux-baseline-preflight/consequences:
+  en: 180f425ff4bcad00
+  zh: 529b3d431cd99b9b
+/agent-note-desktop-linux-baseline-preflight/alternatives-considered:
+  en: d39ddf31527ea167
+  zh: 6234d65f663b1a38

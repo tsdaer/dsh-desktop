@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-23-desktop-bridge-pnpm-workspace-build.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-23-desktop-bridge-pnpm-workspace-build.md
-2026-08-23-desktop-bridge-pnpm-workspace-build.md: 5dd36371a44ec57c2a78e41d860e3526f7f93d6a
-2026-08-23-desktop-bridge-pnpm-workspace-build.zh.md: 68b552acbdf28aa2ddb09109c134dfc8ccd5e7cc
+/agent-note-desktop-bridge-builds-use-pnpm-workspace-dependencies:
+  en: 413b9809dada38fc
+  zh: c122a12de70e0da7
+/agent-note-desktop-bridge-builds-use-pnpm-workspace-dependencies/problem:
+  en: 26da7d25384652b6
+  zh: 3bd3f5ba5504f73a
+/agent-note-desktop-bridge-builds-use-pnpm-workspace-dependencies/decision:
+  en: 56ce51eff1a96272
+  zh: a682b9e504aeaf3c
+/agent-note-desktop-bridge-builds-use-pnpm-workspace-dependencies/testing:
+  en: 9ba6a4f9c4acab8b
+  zh: a10fd5cee4f5f47a
+/agent-note-desktop-bridge-builds-use-pnpm-workspace-dependencies/consequences:
+  en: 21b63030607517e1
+  zh: 228f5b3c3eb5dec6
+/agent-note-desktop-bridge-builds-use-pnpm-workspace-dependencies/alternatives-considered:
+  en: 03b6fe1949cb51e4
+  zh: ff2be4c2ac60195b

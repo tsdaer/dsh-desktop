@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-22-desktop-update-fixture-server.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-08-22-desktop-update-fixture-server.md
-2026-08-22-desktop-update-fixture-server.md: c8ab31657c1d8af7bae0798d3b3264fda7ff2c6f
-2026-08-22-desktop-update-fixture-server.zh.md: 4453a9c6c45db5a2976364493051dfa4d52bc57d
+/agent-note-desktop-update-fixture-server:
+  en: a26923de55ea14f5
+  zh: 3874072056517ddb
+/agent-note-desktop-update-fixture-server/problem:
+  en: e7cd70001259660b
+  zh: ddb83a9375d06a50
+/agent-note-desktop-update-fixture-server/decision:
+  en: b1a627bb101de12a
+  zh: 5fe35af95c1af75a
+/agent-note-desktop-update-fixture-server/alternatives-considered:
+  en: 4d56d86c2798c528
+  zh: 85074360f74ebe21
+/agent-note-desktop-update-fixture-server/consequences:
+  en: d11d1bdbca5722f0
+  zh: f7d5ec167aa99ad1
+/agent-note-desktop-update-fixture-server/testing:
+  en: bcee84f6dcfa4f8a
+  zh: a5c7fe0e610b616a

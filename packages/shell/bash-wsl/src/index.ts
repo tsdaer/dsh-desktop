@@ -106,6 +106,7 @@ export class WslBashExecutor {
       command: request.command,
       workdir: request.workdir ?? this.config.cwd ?? process.cwd(),
       timeoutMs,
+      onExpiry: request.onExpiry ?? 'kill',
       stdoutMaxBytes,
       ...request.signal ? { signal: request.signal } : {},
       ...request.stdin !== undefined ? { stdin: request.stdin } : {},
@@ -221,6 +222,7 @@ export class WslBashExecutor {
       get exitCode() { return exitCode },
       get signal() { return signal },
       done: running.done.then(() => undefined),
+      observed: { stdout: collected.stdout, stderr: collected.stderr },
       readOutput: () => {
         const delta = lastDelta
         lastDelta = ''

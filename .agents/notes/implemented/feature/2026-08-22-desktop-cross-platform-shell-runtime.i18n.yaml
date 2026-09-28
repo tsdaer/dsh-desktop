@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-22-desktop-cross-platform-shell-runtime.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-22-desktop-cross-platform-shell-runtime.md
-2026-08-22-desktop-cross-platform-shell-runtime.md: e269939a38dff0112e0820362269721afd99756b
-2026-08-22-desktop-cross-platform-shell-runtime.zh.md: 83c750ecae83140390f090131381007b33307497
+/agent-note-desktop-cross-platform-shell-runtime-wiring:
+  en: 47eb2d1e7bc2d24d
+  zh: 71dcf89ec5adf2e5
+/agent-note-desktop-cross-platform-shell-runtime-wiring/problem:
+  en: 50294ce420044101
+  zh: 838c71bace6c6d2f
+/agent-note-desktop-cross-platform-shell-runtime-wiring/decision:
+  en: 5560e4d5b3294aaa
+  zh: 6dfaa6bc126379dc
+/agent-note-desktop-cross-platform-shell-runtime-wiring/testing:
+  en: 89d8edf4245cc07d
+  zh: 5c1394b62b80869b
+/agent-note-desktop-cross-platform-shell-runtime-wiring/related:
+  en: de6fe9a1aadcfd78
+  zh: 2874c69565116a6f
+/agent-note-desktop-cross-platform-shell-runtime-wiring/alternatives-considered:
+  en: 0829c141dbf3705c
+  zh: d3acd85b141ba330
+/agent-note-desktop-cross-platform-shell-runtime-wiring/consequences:
+  en: fcee02ea6768fafd
+  zh: f163e68025d57066

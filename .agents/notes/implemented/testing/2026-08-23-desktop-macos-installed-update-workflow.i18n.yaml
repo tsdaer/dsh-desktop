@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-23-desktop-macos-installed-update-workflow.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-08-23-desktop-macos-installed-update-workflow.md
-2026-08-23-desktop-macos-installed-update-workflow.md: 8b66021f01f59ed8e8b3485b5564b8993d422cfa
-2026-08-23-desktop-macos-installed-update-workflow.zh.md: 18f9b9cc8d0e8e663cd911f30266e202fca9cda1
+/agent-note-desktop-macos-installed-update-acceptance-workflow:
+  en: 0aeb6f4bac00e65a
+  zh: edd2a41c19d25943
+/agent-note-desktop-macos-installed-update-acceptance-workflow/problem:
+  en: 33dc01fd24604fe7
+  zh: d8cbbe025dcb4be2
+/agent-note-desktop-macos-installed-update-acceptance-workflow/decision:
+  en: 109e7d577613cd23
+  zh: 398d12dc0e093fb2
+/agent-note-desktop-macos-installed-update-acceptance-workflow/testing:
+  en: 5a4c1e024817a0ad
+  zh: a1ad0ab4a9dbce06
+/agent-note-desktop-macos-installed-update-acceptance-workflow/alternatives-considered:
+  en: 30717a2692dcb069
+  zh: 1060612a4f14f7cc
+/agent-note-desktop-macos-installed-update-acceptance-workflow/consequences:
+  en: 751c2c396ff1218a
+  zh: 21f8b8700fbb659d

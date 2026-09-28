@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-23-desktop-installed-update-workflow.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-08-23-desktop-installed-update-workflow.md
-2026-08-23-desktop-installed-update-workflow.md: 0e03a3e7dd04136d83718160dfab3c174f8387aa
-2026-08-23-desktop-installed-update-workflow.zh.md: f014eb8864c9c7bc9c5cc7bebdca0833f7ef41f2
+/agent-note-desktop-linux-installed-update-workflow:
+  en: 1f9ee4f467f1ecce
+  zh: 28cae74100fc3765
+/agent-note-desktop-linux-installed-update-workflow/problem:
+  en: fa83e199373e9565
+  zh: 88296b9676114417
+/agent-note-desktop-linux-installed-update-workflow/decision:
+  en: 6b028a0ea7c21da8
+  zh: 8ee0236dca82d5fa
+/agent-note-desktop-linux-installed-update-workflow/alternatives-considered:
+  en: 119c39f1ba66bc4f
+  zh: 75fcb93347ac6e5a
+/agent-note-desktop-linux-installed-update-workflow/consequences:
+  en: 534e90f0fa76f508
+  zh: 4a6e20bcb4794147
+/agent-note-desktop-linux-installed-update-workflow/testing:
+  en: 324c8316f672e91b
+  zh: 25b41c49e12cb060

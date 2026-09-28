@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-22-desktop-file-viewer.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-22-desktop-file-viewer.md
-2026-08-22-desktop-file-viewer.md: d0a1ca9adf4a1cbe7b0d39e3cf0b982487254010
-2026-08-22-desktop-file-viewer.zh.md: f09794b56c9c744aa90cba3c062094b094e750c0
+/agent-note-desktop-in-app-file-viewer:
+  en: a4479801c9f206f2
+  zh: e2f94ddb717d27fb
+/agent-note-desktop-in-app-file-viewer/problem:
+  en: d52ea8c01703e25f
+  zh: 2832d1806ca519e0
+/agent-note-desktop-in-app-file-viewer/decision:
+  en: 5566a7c396266a53
+  zh: bdd86d7e77f49fa7
+/agent-note-desktop-in-app-file-viewer/alternatives-considered:
+  en: 8dda081bc5a2bc66
+  zh: 938575238c69a141
+/agent-note-desktop-in-app-file-viewer/consequences:
+  en: 41ed50548e0104cc
+  zh: 36948a5d516b43e9
+/agent-note-desktop-in-app-file-viewer/testing:
+  en: d9f0cf0472671f1b
+  zh: 893b5e682c099821

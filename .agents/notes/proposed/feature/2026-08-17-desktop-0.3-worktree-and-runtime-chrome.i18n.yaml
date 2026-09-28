@@ -1,6 +1,64 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-17-desktop-0.3-worktree-and-runtime-chrome.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-08-17-desktop-0.3-worktree-and-runtime-chrome.md
-2026-08-17-desktop-0.3-worktree-and-runtime-chrome.md: 140d6b4f0fc04b17640509830a0ca6d1f83e3b69
-2026-08-17-desktop-0.3-worktree-and-runtime-chrome.zh.md: 2afd07e0a4c33c4ac7d4bd06ca4a98602cc7026a
+/agent-note-desktop-0-3-worktree-and-runtime-chrome:
+  en: 16e22be954f1110b
+  zh: 751358aa7f393ad3
+/agent-note-desktop-0-3-worktree-and-runtime-chrome/problem:
+  en: ea311afd2b285402
+  zh: 422d27139e5e2b49
+/agent-note-desktop-0-3-worktree-and-runtime-chrome/proposal:
+  en: bc3cb178cf12fbe2
+  zh: 363f608d782af48f
+/agent-note-desktop-0-3-worktree-and-runtime-chrome/current-progress:
+  en: 152eb1bf8a290ba2
+  zh: 0b8cb44e268e8222
+/agent-note-desktop-0-3-worktree-and-runtime-chrome/worktree-mode:
+  en: 8ab5a722ecdad65e
+  zh: 057b72e8cf1b62e8
+/agent-note-desktop-0-3-worktree-and-runtime-chrome/message-copy:
+  en: 51ec558a55e28510
+  zh: 9e212e184afee641
+/agent-note-desktop-0-3-worktree-and-runtime-chrome/api-balance-and-runtime-load:
+  en: b4d1088df9107152
+  zh: 05384c2a0d130b2c
+/agent-note-desktop-0-3-worktree-and-runtime-chrome/icon-and-splash:
+  en: 19a0a1629099c7d9
+  zh: d9d8491967c32ce9
+/agent-note-desktop-0-3-worktree-and-runtime-chrome/signed-automatic-updates:
+  en: 038d3720cdd67eb5
+  zh: 524da2e87f8a33c8
+/agent-note-desktop-0-3-worktree-and-runtime-chrome/delivery-plan:
+  en: b6e9840c76c57e7e
+  zh: 6cc648c87d408241
+/agent-note-desktop-0-3-worktree-and-runtime-chrome/delivery-plan/p0-post-merge-baseline-and-roadmap-reconciliation:
+  en: cbadeb67fadc8348
+  zh: cf394e3f98c66245
+/agent-note-desktop-0-3-worktree-and-runtime-chrome/delivery-plan/p1-worktree-ownership-and-host-contracts:
+  en: a054c101dc80a371
+  zh: 596ed86b8aba1743
+/agent-note-desktop-0-3-worktree-and-runtime-chrome/delivery-plan/p2-read-only-worktree-views:
+  en: d3fa6a8335d58d6c
+  zh: 7bcb5cfc11cc0035
+/agent-note-desktop-0-3-worktree-and-runtime-chrome/delivery-plan/p3-runtime-chrome-and-artwork:
+  en: 23354395776f7cec
+  zh: c00323750866f7d8
+/agent-note-desktop-0-3-worktree-and-runtime-chrome/delivery-plan/p4-signed-updater-and-release-workflow:
+  en: 4bb229e3efdb09e5
+  zh: d92290097c856d8d
+/agent-note-desktop-0-3-worktree-and-runtime-chrome/delivery-plan/p5-release-hardening:
+  en: d360ad7a2a5ac725
+  zh: c46719b5cdc4c13c
+/agent-note-desktop-0-3-worktree-and-runtime-chrome/delivery-plan/review-sequence:
+  en: 9d990129e2206ab5
+  zh: 00ebda33e70faacb
+/agent-note-desktop-0-3-worktree-and-runtime-chrome/alternatives-considered:
+  en: ec5d0aa04d18a6fb
+  zh: 446b595542d58f03
+/agent-note-desktop-0-3-worktree-and-runtime-chrome/acceptance-criteria:
+  en: eb093cf6206a4f93
+  zh: d5dbe7dd5fd8a937
+/agent-note-desktop-0-3-worktree-and-runtime-chrome/risks:
+  en: 88fb5e4aabd455a8
+  zh: 759b1c90e8a0e607

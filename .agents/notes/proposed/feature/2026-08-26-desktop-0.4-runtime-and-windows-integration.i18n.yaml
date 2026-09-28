@@ -1,6 +1,55 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-26-desktop-0.4-runtime-and-windows-integration.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-08-26-desktop-0.4-runtime-and-windows-integration.md
-2026-08-26-desktop-0.4-runtime-and-windows-integration.md: 4c0828b746112fbca9a70ccdb3f9a120dac35f96
-2026-08-26-desktop-0.4-runtime-and-windows-integration.zh.md: 82b57d387767bdb3baad0012a12a0defb1ffdefd
+/agent-note-desktop-0-4-runtime-and-windows-integration:
+  en: e7c304870873df6f
+  zh: e02e6b416aeb6072
+/agent-note-desktop-0-4-runtime-and-windows-integration/problem:
+  en: 2ea11c5e8adf24a6
+  zh: 24071bb909f90c3b
+/agent-note-desktop-0-4-runtime-and-windows-integration/proposal:
+  en: 6f11a3542e5c21bc
+  zh: e40f5f952dc9e5d5
+/agent-note-desktop-0-4-runtime-and-windows-integration/p1-own-the-desktop-runtime-tree:
+  en: fe437b496d320656
+  zh: 91bdc3c5d739a257
+/agent-note-desktop-0-4-runtime-and-windows-integration/p2-bind-balance-chrome-to-the-selected-provider:
+  en: f0ed04586c30b659
+  zh: a5246acd34186854
+/agent-note-desktop-0-4-runtime-and-windows-integration/p3-desktop-context-menu:
+  en: 288d24c8aaa8046a
+  zh: 6b8b6fb831426bce
+/agent-note-desktop-0-4-runtime-and-windows-integration/p4-opt-in-wsl-2-bash-on-windows:
+  en: df9f25478faea420
+  zh: 49c63a67bbc6209b
+/agent-note-desktop-0-4-runtime-and-windows-integration/delivery-sequence:
+  en: eba53f953c765075
+  zh: c8ca1f4f81db35a1
+/agent-note-desktop-0-4-runtime-and-windows-integration/p1-implementation-status-2026-08-26:
+  en: 6fe739312294ab50
+  zh: 433c83f07f93d9d3
+/agent-note-desktop-0-4-runtime-and-windows-integration/p2-implementation-status-2026-08-26:
+  en: e520f74f95f87ef8
+  zh: 871d125a76e6201f
+/agent-note-desktop-0-4-runtime-and-windows-integration/p3-implementation-status-2026-08-26:
+  en: 36034df020c8585f
+  zh: 497d533cf6d58801
+/agent-note-desktop-0-4-runtime-and-windows-integration/p4a-implementation-status-2026-08-26:
+  en: a17a1555cbfad78b
+  zh: 85b370169934c047
+/agent-note-desktop-0-4-runtime-and-windows-integration/p4b-design-decision-filesystem-and-sandbox-semantics:
+  en: 0573facb2f3094ea
+  zh: 7ceb55cb85893b43
+/agent-note-desktop-0-4-runtime-and-windows-integration/p4b-implementation-status-2026-08-26:
+  en: 1b8642ea91006f73
+  zh: 6b5e2cc33a63b8e9
+/agent-note-desktop-0-4-runtime-and-windows-integration/alternatives-considered:
+  en: 97d4ddb9f60f561f
+  zh: 3868895f04c1dd70
+/agent-note-desktop-0-4-runtime-and-windows-integration/acceptance-criteria:
+  en: 2d6d24547e479e80
+  zh: 34fbd9fded6b4c0b
+/agent-note-desktop-0-4-runtime-and-windows-integration/risks:
+  en: 2a4e28747040b058
+  zh: ec44659f1c3f1fc4

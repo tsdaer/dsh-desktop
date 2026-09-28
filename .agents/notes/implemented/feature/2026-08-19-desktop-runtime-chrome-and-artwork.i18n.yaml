@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-19-desktop-runtime-chrome-and-artwork.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-19-desktop-runtime-chrome-and-artwork.md
-2026-08-19-desktop-runtime-chrome-and-artwork.md: 8518f12d198344be2da7b5450845da8eb00badd3
-2026-08-19-desktop-runtime-chrome-and-artwork.zh.md: 66381e6c0ce2d051a490cffb02114cb2385cd737
+/agent-note-desktop-runtime-chrome-and-artwork:
+  en: 78194efeb18569d9
+  zh: 43c20c30386709a2
+/agent-note-desktop-runtime-chrome-and-artwork/problem:
+  en: 62ea08aac25b0bc2
+  zh: a0449f05aa59983e
+/agent-note-desktop-runtime-chrome-and-artwork/decision:
+  en: 4ca864ac64d8eb01
+  zh: 21278caa7ac8f586
+/agent-note-desktop-runtime-chrome-and-artwork/testing:
+  en: 10af474f6726e9b4
+  zh: ed7b4e328fd1ded9
+/agent-note-desktop-runtime-chrome-and-artwork/alternatives-considered:
+  en: 41844cae168657ba
+  zh: 7b3f822f45f8715c
+/agent-note-desktop-runtime-chrome-and-artwork/consequences:
+  en: 9a3de1edfd25d414
+  zh: 9e285a1b4378b210

@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-23-desktop-packaged-smoke-inherited-stdio.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-23-desktop-packaged-smoke-inherited-stdio.md
-2026-08-23-desktop-packaged-smoke-inherited-stdio.md: 3337d94907261cf59efdbe64df6af31adc2d9f20
-2026-08-23-desktop-packaged-smoke-inherited-stdio.zh.md: 3aefbbf7ebf02ecb229eeda7fae678820e5ade67
+/agent-note-desktop-packaged-smoke-supports-inherited-stdio:
+  en: 988a4ffb032201c6
+  zh: f9997f241acb1e38
+/agent-note-desktop-packaged-smoke-supports-inherited-stdio/problem:
+  en: b0185ab6c638f159
+  zh: 031e245dd3e50c47
+/agent-note-desktop-packaged-smoke-supports-inherited-stdio/decision:
+  en: 61567c89c4a66233
+  zh: a221b70bb29d8af0
+/agent-note-desktop-packaged-smoke-supports-inherited-stdio/testing:
+  en: 0ea2d53a637c6c84
+  zh: ffcb7cc13530c85f
+/agent-note-desktop-packaged-smoke-supports-inherited-stdio/consequences:
+  en: ec4658002ab730fa
+  zh: 1d227bf60b1ae55b
+/agent-note-desktop-packaged-smoke-supports-inherited-stdio/related:
+  en: 2b22bec0aac4a3a4
+  zh: 750bba560c212bd1
+/agent-note-desktop-packaged-smoke-supports-inherited-stdio/alternatives-considered:
+  en: d57a20157d278c68
+  zh: 4b89344f40b687e1

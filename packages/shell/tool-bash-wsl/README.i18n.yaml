@@ -1,6 +1,67 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/shell/tool-bash-wsl/README.md
-README.md: 17ef608fc775590926c4cf5f295a1782b623c35c
-README.zh.md: 70e78f6bdc3377059bbcce607910469a637575a3
+/:
+  en: d9c0fb5cdd6a4b32
+  zh: c4e0dccd4919a89b
+/deepseek-ai-dsh-tool-bash-wsl:
+  en: a12d76a792f22db0
+  zh: 2142dcc7937c56e6
+/deepseek-ai-dsh-tool-bash-wsl/summary:
+  en: a876c2cb8763fb8b
+  zh: 154714ff2f59cb61
+/deepseek-ai-dsh-tool-bash-wsl/table-of-contents:
+  en: c5bedb05f1761fa2
+  zh: f68ae109dd0fb784
+/deepseek-ai-dsh-tool-bash-wsl/behavior:
+  en: 01e6360248e529c3
+  zh: feff4becce99b19d
+/deepseek-ai-dsh-tool-bash-wsl/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-tool-bash-wsl/model-experience/system-prompt:
+  en: cf78b9dd5596495f
+  zh: 24ba47a0c5e02586
+/deepseek-ai-dsh-tool-bash-wsl/model-experience/system-prompt/what-the-model-sees:
+  en: 0d4486ec6364168d
+  zh: de9f8dd2f1d56f6f
+/deepseek-ai-dsh-tool-bash-wsl/model-experience/system-prompt/what-the-model-sees/bash-guidance:
+  en: 2d65d6ca9b82df1d
+  zh: 016a14eee33eba62
+/deepseek-ai-dsh-tool-bash-wsl/model-experience/system-prompt/token-effect:
+  en: 991d82d8f59942da
+  zh: 28527e9483d842f8
+/deepseek-ai-dsh-tool-bash-wsl/model-experience/system-prompt/kv-cache-effect:
+  en: 3959f5f66ff2f4be
+  zh: ce424ed0932869f7
+/deepseek-ai-dsh-tool-bash-wsl/model-experience/tool-schemas:
+  en: 3039bc5e7a796b21
+  zh: 6b7a9eaf69c9ea53
+/deepseek-ai-dsh-tool-bash-wsl/model-experience/tool-schemas/what-the-model-sees:
+  en: 608f88e1e6412974
+  zh: 1217f556c66f9aea
+/deepseek-ai-dsh-tool-bash-wsl/model-experience/tool-schemas/token-effect:
+  en: 97cce067584eadff
+  zh: 1633bbeba6390062
+/deepseek-ai-dsh-tool-bash-wsl/model-experience/tool-schemas/kv-cache-effect:
+  en: a69e8f54561f1da3
+  zh: e6c70b780ee5c1e1
+/deepseek-ai-dsh-tool-bash-wsl/model-experience/foreground-result:
+  en: d83f1f25a3719c54
+  zh: 445ca808e28dc936
+/deepseek-ai-dsh-tool-bash-wsl/model-experience/foreground-result/what-the-model-sees:
+  en: a653d0f36c620bdc
+  zh: ef1e257e7259be8b
+/deepseek-ai-dsh-tool-bash-wsl/model-experience/foreground-result/token-effect:
+  en: d3aac9464b5db5b6
+  zh: 18945fbbe772d365
+/deepseek-ai-dsh-tool-bash-wsl/model-experience/foreground-result/kv-cache-effect:
+  en: 5593c670388f43f5
+  zh: deb35cd8ab0c6af3
+/deepseek-ai-dsh-tool-bash-wsl/known-limitations-and-deferred-work:
+  en: 99829f55c5c9a3ca
+  zh: 3296ac92b759c18e
+/deepseek-ai-dsh-tool-bash-wsl/known-limitations-and-deferred-work/dev-note:
+  en: 1854365c74d94ed6
+  zh: 8f1eef68c7fdc294

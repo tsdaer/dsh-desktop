@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-16-desktop-cos-upload-transport.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-16-desktop-cos-upload-transport.md
-2026-09-16-desktop-cos-upload-transport.md: 505da20445b8b1fa952273a5f05799d0a3ea1998
-2026-09-16-desktop-cos-upload-transport.zh.md: aa892d6336f40fcedaa814e59be7a8dd30facefc
+/agent-note-upload-desktop-releases-through-the-tencent-cos-sdk:
+  en: acead237faaa9390
+  zh: ca5d23451f3b4577
+/agent-note-upload-desktop-releases-through-the-tencent-cos-sdk/problem:
+  en: 74f8515cdbb2a0aa
+  zh: a00d1b08db6d6158
+/agent-note-upload-desktop-releases-through-the-tencent-cos-sdk/decision:
+  en: 06ad71a4be674725
+  zh: bcd5ad6ee4b4f258
+/agent-note-upload-desktop-releases-through-the-tencent-cos-sdk/testing:
+  en: b88155645321fcc3
+  zh: 442dcee1a5594550
+/agent-note-upload-desktop-releases-through-the-tencent-cos-sdk/alternatives-considered:
+  en: faae1f132d6cd404
+  zh: 1683143fbe6b07ce
+/agent-note-upload-desktop-releases-through-the-tencent-cos-sdk/consequences:
+  en: 4576c1bc247c262e
+  zh: 3673479d97e678eb

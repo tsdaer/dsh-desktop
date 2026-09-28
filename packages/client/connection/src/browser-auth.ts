@@ -153,6 +153,12 @@ function expiredCookie(name: string): string {
   return `${name}=; Max-Age=0; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Strict`
 }
 
+/** The single-use launch token is removed while application transport parameters survive the exchange. */
+function redirectLocation(url: URL): string {
+  url.searchParams.delete(TOKEN_QUERY)
+  return `${url.pathname}${url.search}`
+}
+
 function signature(secret: Buffer, body: string): Buffer {
   return createHmac('sha256', secret).update(body).digest()
 }
@@ -247,23 +253,21 @@ export class BrowserAuth {
   }
 
   /**
-   * Add this process's launch token to the ordinary application root URL.
-   * @param baseUrl - canonical browser origin without credentials.
-   * @returns root URL carrying the process token as its sole authentication input.
+   * Add this process's launch token to the caller's application URL.
+   * @param baseUrl - clean browser URL whose authority and mount are preserved.
+   * @returns the same URL carrying the process token as its sole authentication input.
    */
   authenticatedUrl(baseUrl: string): string {
     const url = new URL(baseUrl)
-    url.pathname = '/'
-    url.search = ''
-    url.hash = ''
     url.searchParams.set(TOKEN_QUERY, this.launchToken)
     return url.href
   }
 
   /**
    * Authenticate an index request. A valid root query token mints the cookie
-   * and redirects to clean `/`; a valid cookie lets the caller serve the
-   * index; every other request receives the same minimal 401 response.
+   * and redirects to the same document without the single-use token; a valid
+   * cookie lets the caller serve the index; every other request receives the
+   * same minimal 401 response.
    * @param req - incoming root or configured-index request.
    * @param res - response owned when this method returns false.
    * @returns true only when the caller may serve index.html.
@@ -278,13 +282,13 @@ export class BrowserAuth {
         && authority !== undefined && tokenMatches(tokens.join(''), this.launchToken)) {
         const issuedAt = Date.now()
         const expiresAt = issuedAt + this.maxAgeMilliseconds
-        const name = cookieName(authority)
         const value = encodeCookie({
           version: COOKIE_PAYLOAD_VERSION,
           authority,
           issuedAt,
           expiresAt,
         }, this.secret)
+        const name = cookieName(authority)
         res.writeHead(303, {
           'cache-control': 'no-store',
           'location': redirectLocation(url),
@@ -343,10 +347,4 @@ export class BrowserAuth {
       ? undefined
       : 'dsh web authentication required; reopen the URL printed by dsh web.\n')
   }
-}
-
-/** The single-use launch token is removed while application transport parameters survive the exchange. */
-function redirectLocation(url: URL): string {
-  url.searchParams.delete(TOKEN_QUERY)
-  return `${url.pathname}${url.search}`
 }

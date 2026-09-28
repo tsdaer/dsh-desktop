@@ -21,6 +21,7 @@ export default defineConfig({
       // The bridge packages are not workspace members, so the shared baseline
       // import resolves to source instead of a node_modules symlink.
       { find: '@deepseek-ai/dsh-client-ui-primitives', replacement: resolve(import.meta.dirname, '../../../packages/client/ui-primitives/src/index.ts') },
+      { find: '@deepseek-ai/dsh-client-store', replacement: resolve(import.meta.dirname, '../../../packages/client/store/src/index.ts') },
     ],
   },
   test: {

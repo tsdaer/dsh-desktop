@@ -1,6 +1,52 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-21-desktop-post-0.3-plan.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-08-21-desktop-post-0.3-plan.md
-2026-08-21-desktop-post-0.3-plan.md: 7fe97b7b458785f1b2c890f75a8e1a5bab146253
-2026-08-21-desktop-post-0.3-plan.zh.md: 23e37e758f075f2a37d11c6e0de950190fb52787
+/agent-note-desktop-development-plan-after-0-3:
+  en: ef98581901a2bc9b
+  zh: 46328b81182aa912
+/agent-note-desktop-development-plan-after-0-3/problem:
+  en: 8df891daa80a678e
+  zh: 9f19a957a0752b42
+/agent-note-desktop-development-plan-after-0-3/proposal:
+  en: 0afb2d80b1d49706
+  zh: 9e76189b6460324a
+/agent-note-desktop-development-plan-after-0-3/proposal/phase-order:
+  en: 2b94340d3c6f964b
+  zh: 957eb4a3dd96cfe1
+/agent-note-desktop-development-plan-after-0-3/proposal/phase-1-close-the-0-3-tail:
+  en: 70e374991052551f
+  zh: 7f6e48c0ff9e1110
+/agent-note-desktop-development-plan-after-0-3/proposal/phase-2-repeatable-evidence-environment:
+  en: aa4c17878726404d
+  zh: 70b0a9f3201d7a84
+/agent-note-desktop-development-plan-after-0-3/proposal/phase-3-source-control-writes:
+  en: 21c197d1aff9d1e9
+  zh: 881d8ced7f6dc856
+/agent-note-desktop-development-plan-after-0-3/proposal/phase-4-in-app-file-viewing:
+  en: 2ae8cbe2ec969d8a
+  zh: 46fb5d1f9f53124d
+/agent-note-desktop-development-plan-after-0-3/proposal/phase-5-native-chrome-and-loopback-posture:
+  en: 8c0c0d751723ebe6
+  zh: 34757cdcb68eee2d
+/agent-note-desktop-development-plan-after-0-3/proposal/phase-6-a-second-platform:
+  en: cc81d72c66dbe91c
+  zh: d24c01e74d988cf6
+/agent-note-desktop-development-plan-after-0-3/proposal/phase-7-dormant-capability-payload-decision:
+  en: ddd3c6638f840c6a
+  zh: 9fdfda14b9204a99
+/agent-note-desktop-development-plan-after-0-3/proposal/environment-facts-an-agent-should-not-rediscover:
+  en: 49bbc5c39af2cfab
+  zh: f6ff2808cdc41a65
+/agent-note-desktop-development-plan-after-0-3/proposal/standing-constraints-for-every-phase:
+  en: 570dd7ed259938fd
+  zh: b31a933c34931324
+/agent-note-desktop-development-plan-after-0-3/alternatives-considered:
+  en: 06ad1d7b3a9ff538
+  zh: 4a2d83618bf55174
+/agent-note-desktop-development-plan-after-0-3/acceptance-criteria:
+  en: d7119c377b7570ec
+  zh: 59260db397ba9fd4
+/agent-note-desktop-development-plan-after-0-3/risks:
+  en: c9b5d246e6e40d69
+  zh: 360b89ec0d6b350b

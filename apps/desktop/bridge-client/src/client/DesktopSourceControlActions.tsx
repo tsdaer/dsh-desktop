@@ -310,13 +310,15 @@ export function SourceControlCommitBar({ stagedCount, actions, t }: {
 
 /** Localized chrome for the shared DiffBlock presentation (desktop UI is Chinese). */
 const DIFF_BLOCK_LABELS: DiffBlockLabels = {
+  codeLabel: '代码',
+  wrapLabel: '换行',
+  unwrapLabel: '取消换行',
   copy: '复制',
   copied: '已复制',
   collapseAria: '折叠差异',
   expandAria: hidden => `展开差异（隐藏 ${String(hidden)} 行）`,
   collapse: '折叠',
   expand: hidden => `展开剩余 ${String(hidden)} 行`,
-  files: count => count === 1 ? '1 个文件' : `${String(count)} 个文件`,
 }
 
 /** Diff panel rendered through the shared DiffBlock presentation. */

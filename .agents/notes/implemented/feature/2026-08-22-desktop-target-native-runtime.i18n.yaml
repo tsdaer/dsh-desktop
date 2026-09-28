@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-22-desktop-target-native-runtime.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-22-desktop-target-native-runtime.md
-2026-08-22-desktop-target-native-runtime.md: e8e5b666191443154ac152110650042b00371f8b
-2026-08-22-desktop-target-native-runtime.zh.md: 4360433927aef06f7fda7cd99f5b282db98a04f2
+/agent-note-desktop-target-native-runtime-validation:
+  en: 03f3a87efd358409
+  zh: e169e803949aeea2
+/agent-note-desktop-target-native-runtime-validation/problem:
+  en: 85a5f89d5d4e7d09
+  zh: 8cc5f0ed581acd9b
+/agent-note-desktop-target-native-runtime-validation/decision:
+  en: aff7aff14d3c767e
+  zh: 496152214e68e00e
+/agent-note-desktop-target-native-runtime-validation/testing:
+  en: 413afe00b6a9ea26
+  zh: 5498cdb2d24b2b31
+/agent-note-desktop-target-native-runtime-validation/consequences:
+  en: 5c6abb4ab44501f1
+  zh: 340c1f23ed74d7b5
+/agent-note-desktop-target-native-runtime-validation/related:
+  en: 29ce471ded37d857
+  zh: c81b7dbef69be58d
+/agent-note-desktop-target-native-runtime-validation/alternatives-considered:
+  en: e0bbca61c23b713e
+  zh: 0ba73566a7ded0e0

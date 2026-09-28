@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-22-desktop-loopback-token.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-22-desktop-loopback-token.md
-2026-08-22-desktop-loopback-token.md: a21aeb253c8c87765260ee685242f1816c093d7d
-2026-08-22-desktop-loopback-token.zh.md: f5023b42b917a3e7d424bcaa95ccb2ccc7561237
+/agent-note-desktop-loopback-token:
+  en: 407e86925a0fe85d
+  zh: 2979169c3bb421d9
+/agent-note-desktop-loopback-token/problem:
+  en: a05fd43c768d7d08
+  zh: b76cdf39687cad48
+/agent-note-desktop-loopback-token/decision:
+  en: 8ed3238db2b6bee4
+  zh: c0ba9a02bbf04d7f
+/agent-note-desktop-loopback-token/alternatives-considered:
+  en: 042dfb5c10c0e3c6
+  zh: 3304759ca4a84a5a
+/agent-note-desktop-loopback-token/consequences:
+  en: 7bc1f89955696395
+  zh: 57f22732a3315b22
+/agent-note-desktop-loopback-token/testing:
+  en: a1f7624f42e8b9a1
+  zh: 7c9b43258f303c12

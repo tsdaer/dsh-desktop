@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-22-desktop-portable-node-sidecar.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-22-desktop-portable-node-sidecar.md
-2026-08-22-desktop-portable-node-sidecar.md: c1c844af7a28e8292e20e6443138f18fd831e7ae
-2026-08-22-desktop-portable-node-sidecar.zh.md: bb2262e7e0b48045ca1521c86b4f324e74a49b2b
+/agent-note-desktop-portable-node-sidecar-acquisition:
+  en: 570182c6b3123586
+  zh: 488e6f095a3c84da
+/agent-note-desktop-portable-node-sidecar-acquisition/problem:
+  en: 36017a76bf25fcce
+  zh: b73bf1ac6e861f33
+/agent-note-desktop-portable-node-sidecar-acquisition/decision:
+  en: a2eb2f0ab6220cca
+  zh: c19f149575b627d6
+/agent-note-desktop-portable-node-sidecar-acquisition/testing:
+  en: 4c22b71517fe0aad
+  zh: b24caf67099b608b
+/agent-note-desktop-portable-node-sidecar-acquisition/alternatives-considered:
+  en: 86cb7cd9dbb4fe45
+  zh: f9461b7f35ee4b17
+/agent-note-desktop-portable-node-sidecar-acquisition/consequences:
+  en: 4614b3d2c2ccbeed
+  zh: ca146e2583ec6a00

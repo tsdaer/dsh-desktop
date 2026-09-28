@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-21-desktop-evidence-server.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-21-desktop-evidence-server.md
-2026-08-21-desktop-evidence-server.md: d54454f759cc7c431944691e386f58729cd79f82
-2026-08-21-desktop-evidence-server.zh.md: 01d5c90701ca7c223ebcfb3338b928258283cd21
+/agent-note-desktop-repeatable-evidence-server:
+  en: 18de378828bab570
+  zh: bf46dc5efbfda259
+/agent-note-desktop-repeatable-evidence-server/problem:
+  en: acba4f45d2c9d53d
+  zh: b663e20897ccd4aa
+/agent-note-desktop-repeatable-evidence-server/decision:
+  en: a578f1d71e0a0de4
+  zh: f072901a76b4c7c2
+/agent-note-desktop-repeatable-evidence-server/alternatives-considered:
+  en: fecae86d7e790287
+  zh: 42440194f661f9a3
+/agent-note-desktop-repeatable-evidence-server/consequences:
+  en: 01f9dfd6616dd79d
+  zh: 0b2a0e9044145b84
+/agent-note-desktop-repeatable-evidence-server/testing:
+  en: 03bd3c2f30ec1ca0
+  zh: 83890a40c69b53bb

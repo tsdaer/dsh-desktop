@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-25-desktop-upgrade-profile-repair.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-25-desktop-upgrade-profile-repair.md
-2026-08-25-desktop-upgrade-profile-repair.md: 951f8e4991a46148a5417725432306cf000ac6ed
-2026-08-25-desktop-upgrade-profile-repair.zh.md: a5915a631b940c220f8a9b7d713a5ff88cd853d1
+/agent-note-desktop-upgrades-repair-stale-profile-bridge-state:
+  en: ea862b542753e9c4
+  zh: 22d326ae28de552f
+/agent-note-desktop-upgrades-repair-stale-profile-bridge-state/problem:
+  en: 48bc14ef3b2ac7b5
+  zh: 9416ea0be605c433
+/agent-note-desktop-upgrades-repair-stale-profile-bridge-state/decision:
+  en: 4d16900fb14541a3
+  zh: 15ce577701e4ec14
+/agent-note-desktop-upgrades-repair-stale-profile-bridge-state/testing:
+  en: 14b7c0c0353d7141
+  zh: 9fe07a1c8b71a78f
+/agent-note-desktop-upgrades-repair-stale-profile-bridge-state/consequences:
+  en: 90ff00a139d4bc6b
+  zh: d5960b1140e026ad
+/agent-note-desktop-upgrades-repair-stale-profile-bridge-state/alternatives-considered:
+  en: b64e1d048cae34e5
+  zh: 027c75501c4ba67b

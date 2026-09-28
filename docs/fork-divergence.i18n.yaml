@@ -1,6 +1,28 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for fork-divergence.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/fork-divergence.md
-fork-divergence.md: 429fcc40801d8cb28ada3e12ee73fc8186b7f065
-fork-divergence.zh.md: 06dce2d7626dea573344a47245e696ec702d3f03
+/fork-divergence-from-upstream:
+  en: cfa9ed758d548f81
+  zh: b560189d5af5e892
+/fork-divergence-from-upstream/what-counts-and-what-must-be-recorded:
+  en: a1478e1d57d564e1
+  zh: 335f21b241f6e49a
+/fork-divergence-from-upstream/shared-source:
+  en: 40836956abc98fd1
+  zh: 95d1a0f3c9ba17be
+/fork-divergence-from-upstream/repository-scripts:
+  en: e44c0f4b37fa1e3e
+  zh: 3336f62eef5faeb6
+/fork-divergence-from-upstream/build-and-ci-configuration:
+  en: 201d0cd84ea18e0e
+  zh: 769dc04ca67a0bcc
+/fork-divergence-from-upstream/removed-upstream-automation:
+  en: 220c48d2f6aab927
+  zh: 8a282f3b20d47f09
+/fork-divergence-from-upstream/documentation-and-conventions:
+  en: aa7d57326e7649e0
+  zh: 74842439482aeaf2
+/fork-divergence-from-upstream/generated-files:
+  en: a106a75e8c6314e2
+  zh: 030690bd58a4a77b

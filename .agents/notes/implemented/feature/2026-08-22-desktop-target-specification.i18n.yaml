@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-22-desktop-target-specification.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-22-desktop-target-specification.md
-2026-08-22-desktop-target-specification.md: b19a91b1d0b15caf6742814e2ef48b50bd2f19bf
-2026-08-22-desktop-target-specification.zh.md: f7a5e1e9dba4659bfeccd5dc85fafedfa84a15d9
+/agent-note-desktop-target-specification:
+  en: 7c719e1302b74660
+  zh: 323380a22959a8ff
+/agent-note-desktop-target-specification/problem:
+  en: 82a290f4cf3b2c89
+  zh: efe97e7a378c6e9c
+/agent-note-desktop-target-specification/decision:
+  en: 16bab08bbceb75de
+  zh: 8fd2b5fa4b0c798f
+/agent-note-desktop-target-specification/testing:
+  en: aed5aa2f72055afa
+  zh: 0638d1b2a17f6385
+/agent-note-desktop-target-specification/alternatives-considered:
+  en: 3343df2ff9680e39
+  zh: 3579c1516f54e531
+/agent-note-desktop-target-specification/consequences:
+  en: 4a6bbe122a0c3f7c
+  zh: 976c17ac7c95977d

@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-15-desktop-startup-splashscreen.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-15-desktop-startup-splashscreen.md
-2026-08-15-desktop-startup-splashscreen.md: 75f63efd449a7da2e60deeb47167f4b7a930be66
-2026-08-15-desktop-startup-splashscreen.zh.md: 0ad77a3a89cafeb80495e52f98defb702ce7b193
+/agent-note-startup-splashscreen-for-dsh-desktop:
+  en: 5231df37ee470c6a
+  zh: a28847414015689b
+/agent-note-startup-splashscreen-for-dsh-desktop/problem:
+  en: 4805be2b04d92afa
+  zh: 27f1efa66a481a2c
+/agent-note-startup-splashscreen-for-dsh-desktop/decision:
+  en: 29cd9624d4052b2c
+  zh: 66815c1b0491a003
+/agent-note-startup-splashscreen-for-dsh-desktop/consequences:
+  en: 8bef30cd1ce73207
+  zh: 78bbc47dc52318cb
+/agent-note-startup-splashscreen-for-dsh-desktop/alternatives-considered:
+  en: 751efb5cf5e2d171
+  zh: 2cf04afdf69b88de

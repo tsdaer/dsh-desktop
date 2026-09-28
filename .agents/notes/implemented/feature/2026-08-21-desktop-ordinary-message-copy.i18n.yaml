@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-21-desktop-ordinary-message-copy.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-21-desktop-ordinary-message-copy.md
-2026-08-21-desktop-ordinary-message-copy.md: 447b252c4c847ba51a27db233b5a4f8a4134979b
-2026-08-21-desktop-ordinary-message-copy.zh.md: 2d6f16d5bfc486d5f0cb82a036d0f964953a42e6
+/agent-note-desktop-ordinary-message-copy-coverage:
+  en: d9aa89ae7802fe2c
+  zh: 0be00de6e1979829
+/agent-note-desktop-ordinary-message-copy-coverage/problem:
+  en: 2f37395c56c3c792
+  zh: d8ee7628fbc8ac60
+/agent-note-desktop-ordinary-message-copy-coverage/decision:
+  en: 76790b027f46b21d
+  zh: e8b58fd3a1c0a7c5
+/agent-note-desktop-ordinary-message-copy-coverage/alternatives-considered:
+  en: 581830eb156c543a
+  zh: f86c02943aba1575
+/agent-note-desktop-ordinary-message-copy-coverage/consequences:
+  en: 0ba60efe4d7a422b
+  zh: 075cfb9c5d19af54
+/agent-note-desktop-ordinary-message-copy-coverage/testing:
+  en: c2fe4e739db26e90
+  zh: 0f6355bb3a1aa0fe

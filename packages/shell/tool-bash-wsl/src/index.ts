@@ -13,7 +13,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { WslBashExecutor } from '@deepseek-ai/dsh-bash-wsl'
-import type { Config as LocalConfig } from '@deepseek-ai/dsh-bash-local'
+import type { Config as WslExecutorConfig } from '@deepseek-ai/dsh-bash-wsl'
 import { defineTool, TOOL_ABORTED } from '@deepseek-ai/dsh-tools'
 import type { GenericCallView, TerminalCallView, ToolResult, ToolResultView } from '@deepseek-ai/dsh-tools'
 import { HarnessError } from '@deepseek-ai/dsh-llm'
@@ -36,7 +36,7 @@ export interface Config {
   /** Whether to expose run_in_background (default true). */
   enableRunInBackground?: boolean
   /** The local executor's knobs, passed to WslBashExecutor. */
-  executor?: LocalConfig
+  executor?: WslExecutorConfig
 }
 
 export const Config: z<Config> = z.object({
@@ -244,7 +244,7 @@ export function apply(ctx: Context, config: Config = {} as Config): void {
   if (!enabled) return
   const backgroundEnabled = config.enableRunInBackground ?? true
   // so a composition that omits them still runs.
-  const executorConfig: LocalConfig = {
+  const executorConfig: WslExecutorConfig = {
     timeoutMs: 120_000,
     maxTimeoutMs: 600_000,
     maxOutputBytes: 64_000,
@@ -321,7 +321,7 @@ export function apply(ctx: Context, config: Config = {} as Config): void {
         const id = jobs.start({
           kind: 'bash',
           label: args.command,
-          ...exec.agent ? { owner: exec.agent } : {},
+          ...exec.agent ? { owner: exec.agent.id } : {},
           run: () => {
             const proc = executor.start(executor.resolve(request as never))
             return {

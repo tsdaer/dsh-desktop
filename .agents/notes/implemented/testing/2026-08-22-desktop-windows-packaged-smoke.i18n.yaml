@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-22-desktop-windows-packaged-smoke.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-08-22-desktop-windows-packaged-smoke.md
-2026-08-22-desktop-windows-packaged-smoke.md: 014aa50e11e60bb555c7df971531f6ff50511131
-2026-08-22-desktop-windows-packaged-smoke.zh.md: 5f06e480e5094a83daa3db2e3df1a11fc7b2265a
+/agent-note-desktop-windows-installed-package-smoke:
+  en: 0c10a19b0f44510a
+  zh: f27a2b614eab580a
+/agent-note-desktop-windows-installed-package-smoke/problem:
+  en: da87e67e03045357
+  zh: 439d7c0a69226777
+/agent-note-desktop-windows-installed-package-smoke/decision:
+  en: bf1a647bc988937a
+  zh: 51b7221400311478
+/agent-note-desktop-windows-installed-package-smoke/testing:
+  en: 547b186f6947dd5e
+  zh: c9ed6a9b6c7745d3
+/agent-note-desktop-windows-installed-package-smoke/consequences:
+  en: 672136a81bad3740
+  zh: 18b6ba20538099f0
+/agent-note-desktop-windows-installed-package-smoke/alternatives-considered:
+  en: dd3ff010180e1aaf
+  zh: 4bd39cecd37313de

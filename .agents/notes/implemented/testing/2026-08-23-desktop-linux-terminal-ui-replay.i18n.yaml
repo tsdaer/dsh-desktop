@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-23-desktop-linux-terminal-ui-replay.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-08-23-desktop-linux-terminal-ui-replay.md
-2026-08-23-desktop-linux-terminal-ui-replay.md: 4159934a1c1d9fe26344629d32330adbd2b9cfe1
-2026-08-23-desktop-linux-terminal-ui-replay.zh.md: a84b16382d08afe3034e72d45494b167444d2042
+/agent-note-desktop-linux-terminal-ui-replay-evidence:
+  en: 8b88cfc06a156056
+  zh: 412b3d8384ab9581
+/agent-note-desktop-linux-terminal-ui-replay-evidence/problem:
+  en: 788f37512f799ca7
+  zh: b21b3b63a1b5b2c7
+/agent-note-desktop-linux-terminal-ui-replay-evidence/decision:
+  en: 698d2446cdad2637
+  zh: e81e248fbc9d272f
+/agent-note-desktop-linux-terminal-ui-replay-evidence/alternatives-considered:
+  en: 880cb427fe3c1fcd
+  zh: 488eb99e20ffe294
+/agent-note-desktop-linux-terminal-ui-replay-evidence/consequences:
+  en: a798b676eea8ef7d
+  zh: a0825cb7c251028f
+/agent-note-desktop-linux-terminal-ui-replay-evidence/testing:
+  en: cf3e616eed91425e
+  zh: 5b50da709b0420d4

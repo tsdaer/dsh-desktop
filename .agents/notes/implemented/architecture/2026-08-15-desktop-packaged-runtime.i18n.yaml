@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-15-desktop-packaged-runtime.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-15-desktop-packaged-runtime.md
-2026-08-15-desktop-packaged-runtime.md: c43ede479accaa478e74e6d2ca23e9f6c55bc71d
-2026-08-15-desktop-packaged-runtime.zh.md: c484ad8ae19b3ba9f2253501a5782af120140875
+/agent-note-closed-packaged-runtime-for-dsh-desktop:
+  en: 7f4ca7818bf7386a
+  zh: a01b0b8df8d6ed5b
+/agent-note-closed-packaged-runtime-for-dsh-desktop/problem:
+  en: 3fe84cecbf530a52
+  zh: 533c84c9cbcc0f63
+/agent-note-closed-packaged-runtime-for-dsh-desktop/decision:
+  en: 4cf12848efcb4d57
+  zh: e4800da0e00114ee
+/agent-note-closed-packaged-runtime-for-dsh-desktop/alternatives-considered:
+  en: 081394ffd97d72d3
+  zh: 9d8e1eeff49f8a39
+/agent-note-closed-packaged-runtime-for-dsh-desktop/consequences:
+  en: f7ee20d224612270
+  zh: 55cad0703920f4d7

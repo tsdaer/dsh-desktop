@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-22-desktop-update-smoke-endpoint-injection.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-08-22-desktop-update-smoke-endpoint-injection.md
-2026-08-22-desktop-update-smoke-endpoint-injection.md: db2f279d0a4b4877981d18b75c41b1229e5140e6
-2026-08-22-desktop-update-smoke-endpoint-injection.zh.md: 442c8259dada762ace3a649061508c07b1fead1c
+/agent-note-desktop-update-smoke-endpoint-injection:
+  en: 9673fb9224f0d5f7
+  zh: 0287a596b182441c
+/agent-note-desktop-update-smoke-endpoint-injection/problem:
+  en: 142236cfabe20eca
+  zh: 68d5fa82b3ffc169
+/agent-note-desktop-update-smoke-endpoint-injection/decision:
+  en: c85099e8d4c37f4c
+  zh: 55f0c520119cdc00
+/agent-note-desktop-update-smoke-endpoint-injection/alternatives-considered:
+  en: 7e092bca4c3b4fa7
+  zh: 4e4ba1a26895d4de
+/agent-note-desktop-update-smoke-endpoint-injection/consequences:
+  en: 6169dbb3f20383c2
+  zh: 5d7936b3768862cb
+/agent-note-desktop-update-smoke-endpoint-injection/testing:
+  en: 03ea471e0dd20f1e
+  zh: 3f1aba78b3e0de0b
+/agent-note-desktop-update-smoke-endpoint-injection/related:
+  en: 529f9f749868116e
+  zh: caa04b3f87e31eab

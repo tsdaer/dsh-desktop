@@ -32,7 +32,7 @@ Desktop 更新交互依赖清单解析、网络失败、下载完整性和平台
 
 真实的[强更窗口](../feature/2026-09-11-desktop-mandatory-update-client.zh.md)、沙箱预加载和页面按钮处理会对接策略服务器与 updater。停滞的策略请求达到真实截止时间后不会清除阻塞。所属测试目录内的 DOM 预期输出约束中文文案和操作。截图失败单独记录；缺少截图不能证明视觉验收通过。
 
-[工作区浏览器场景](../../../../apps/web/tests/desktop-updates.e2e.ts) 使用生产展示函数检查两种语言下构建后的侧栏组合。页面私有的载体提供更新状态并记录操作；Host、客户端插件、样式和连接保持真实。slot 位置与点击保护的证据因此与 Electron IPC、任务授权和安装证据分开。截图和结果文件使用每次调用独有的忽略目录，不替代发布验收。
+[工作区浏览器场景](https://github.com/deepseek-ai/deepseek-harness/blob/master/apps/web/tests/desktop-updates.e2e.ts) 使用生产展示函数检查两种语言下构建后的侧栏组合。页面私有的载体提供更新状态并记录操作；Host、客户端插件、样式和连接保持真实。slot 位置与点击保护的证据因此与 Electron IPC、任务授权和安装证据分开。截图和结果文件使用每次调用独有的忽略目录，不替代发布验收。
 
 [Host 验证运行器](https://github.com/deepseek-ai/deepseek-harness/blob/master/apps/desktop/scripts/test-host-updates.ts) 在私有 profile 中加载构建后的 Host 和 standard agent 预设。真实任务注册表、排队消息、等待答复的工具提问／审批和 Node job 提供任务探测与准入锁定证据，不替换 Host 组合。脚本化模型输出和暂停的人工答复器控制等待点；取消和进程退出确立完成状态。这些证据不包含开发启动器的依赖投影、Electron 安装确认和任务停止失败。并发调用各自拥有独立的 home、项目和会话目录。
 

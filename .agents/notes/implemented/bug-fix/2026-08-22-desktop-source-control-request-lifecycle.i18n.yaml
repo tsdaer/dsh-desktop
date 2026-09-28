@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-22-desktop-source-control-request-lifecycle.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-22-desktop-source-control-request-lifecycle.md
-2026-08-22-desktop-source-control-request-lifecycle.md: bb365ec288a0e03594a9b431ac64b2ffb4c72581
-2026-08-22-desktop-source-control-request-lifecycle.zh.md: 1a4e7145c6b83de3cc1c6a0b10b91c2e1233273a
+/agent-note-desktop-source-control-request-lifecycle:
+  en: d6db36fc6992cf84
+  zh: 3d52647891fb2123
+/agent-note-desktop-source-control-request-lifecycle/problem:
+  en: 136fa4a012782bfd
+  zh: 51a638e87127e846
+/agent-note-desktop-source-control-request-lifecycle/decision:
+  en: 9d501521b9b7b994
+  zh: e4ab4ec840b68171
+/agent-note-desktop-source-control-request-lifecycle/alternatives-considered:
+  en: 5cf9b6b9dbda54f0
+  zh: eab0631b00fca0ab
+/agent-note-desktop-source-control-request-lifecycle/consequences:
+  en: 0e5fc860a3863036
+  zh: f4500dfde3cf3460
+/agent-note-desktop-source-control-request-lifecycle/testing:
+  en: 3c6920636d1a3045
+  zh: 30c3718c4e59a565

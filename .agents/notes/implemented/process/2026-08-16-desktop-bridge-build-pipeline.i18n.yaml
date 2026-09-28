@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-16-desktop-bridge-build-pipeline.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-16-desktop-bridge-build-pipeline.md
-2026-08-16-desktop-bridge-build-pipeline.md: d240ef81afa63d0d36cca38abff1399dea559f05
-2026-08-16-desktop-bridge-build-pipeline.zh.md: 0ae244a0e596157445e8009d84bdc0a7f302835a
+/agent-note-build-the-desktop-bridge-packages-before-every-pack-bake:
+  en: d4b38b03b801c2a3
+  zh: a1ac74f38df4c7f1
+/agent-note-build-the-desktop-bridge-packages-before-every-pack-bake/problem:
+  en: bf9598a33725ea12
+  zh: 9e525c98a09a4ffa
+/agent-note-build-the-desktop-bridge-packages-before-every-pack-bake/decision:
+  en: dfc77b5106317f23
+  zh: fb9acec87790a021
+/agent-note-build-the-desktop-bridge-packages-before-every-pack-bake/alternatives-considered:
+  en: 11d3c8e932489bfc
+  zh: 8ef112b89e2e1ccc
+/agent-note-build-the-desktop-bridge-packages-before-every-pack-bake/consequences:
+  en: 8b448f3ee91ff6fc
+  zh: e57fd211cec3dc7f
+/agent-note-build-the-desktop-bridge-packages-before-every-pack-bake/verification:
+  en: 58b92d498156315f
+  zh: edf5ee42ca1d5596

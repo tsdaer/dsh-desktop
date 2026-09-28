@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-23-desktop-macos-app-bundle-inventory.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-23-desktop-macos-app-bundle-inventory.md
-2026-08-23-desktop-macos-app-bundle-inventory.md: 6d40fc2d9e4f7683c4865080bab127c77a1a7911
-2026-08-23-desktop-macos-app-bundle-inventory.zh.md: 07c6e8e5c42f59b09b68b5dbfe280bc520fe7e17
+/agent-note-desktop-release-inventory-accepts-the-macos-app-bundle:
+  en: e11aeee030d90fb5
+  zh: c9b79f73ee43ac2e
+/agent-note-desktop-release-inventory-accepts-the-macos-app-bundle/problem:
+  en: fc6ce3c8f403019a
+  zh: 725defcb94cdd81e
+/agent-note-desktop-release-inventory-accepts-the-macos-app-bundle/decision:
+  en: d7df6c05c5a66eb8
+  zh: dd570d3288265867
+/agent-note-desktop-release-inventory-accepts-the-macos-app-bundle/testing:
+  en: b7ecaee32bb17202
+  zh: 611bc67e058fcf82
+/agent-note-desktop-release-inventory-accepts-the-macos-app-bundle/consequences:
+  en: 743e9e5e3eab196a
+  zh: ddf140af071f2a0e
+/agent-note-desktop-release-inventory-accepts-the-macos-app-bundle/alternatives-considered:
+  en: ada71dc3866e851f
+  zh: ebfc9600e79436f8

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { IconBrowseOutline16, IconFolderClose16, IconFolderOpen16, IconWarningOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconBrowseOutlineRegular, IconFolderCloseRegular, IconFolderOpenRegular, IconWarningOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import css from './DesktopWorkspaceWorkbench.module.css'
 import {
   SourceControlActionButtons,
@@ -226,10 +226,10 @@ export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions
     const draggable = entry.outsideRoot !== true && (entry.type === 'directory' || entry.type === 'file')
     const className = `${css.explorerRow}${entry.outsideRoot === true ? ` ${css.explorerOutside}` : ''}${directory ? ` ${css.explorerRowButton}` : ''}`
     const icon = entry.outsideRoot === true || entry.type === 'other'
-      ? <IconWarningOutline16 size={16} />
+      ? <IconWarningOutlineRegular size={16} />
       : directory
-        ? row.expanded ? <IconFolderOpen16 size={16} /> : <IconFolderClose16 size={16} />
-        : <IconBrowseOutline16 size={16} />
+        ? row.expanded ? <IconFolderOpenRegular size={16} /> : <IconFolderCloseRegular size={16} />
+        : <IconBrowseOutlineRegular size={16} />
     const content = (
       <>
         <span className={css.explorerIcon} aria-hidden="true">{icon}</span>

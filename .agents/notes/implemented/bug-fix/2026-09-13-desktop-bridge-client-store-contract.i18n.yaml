@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-13-desktop-bridge-client-store-contract.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-13-desktop-bridge-client-store-contract.md
-2026-09-13-desktop-bridge-client-store-contract.md: 025bbb9d5c592a3d6b9a8813e832b0276afea863
-2026-09-13-desktop-bridge-client-store-contract.zh.md: b1faae9978cfda3ad953b20ebae2e145a781641b
+/agent-note-desktop-bridge-client-reads-retired-client-store-fields:
+  en: 13110bb1ac033fc0
+  zh: c98134265e27ba00
+/agent-note-desktop-bridge-client-reads-retired-client-store-fields/problem:
+  en: 54a1352404342fee
+  zh: 0f2351c5320ef8db
+/agent-note-desktop-bridge-client-reads-retired-client-store-fields/decision:
+  en: 206e73e680064daa
+  zh: d02285843405f25c
+/agent-note-desktop-bridge-client-reads-retired-client-store-fields/alternatives-considered:
+  en: a00ded83aaa88a78
+  zh: 103d1eca6f4b2c26
+/agent-note-desktop-bridge-client-reads-retired-client-store-fields/consequences:
+  en: d10838126d4bd53d
+  zh: 54d1153fa3738301

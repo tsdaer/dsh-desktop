@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-10-event-directed-pr-review-status.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-10-event-directed-pr-review-status.md
-2026-08-10-event-directed-pr-review-status.md: a7c02d9db38cc25f0c8e2b7b579ab43c4b59f865
-2026-08-10-event-directed-pr-review-status.zh.md: 36370d9042f7bae7df1c8c9af9521ce58f206d00
+/agent-note-event-directed-pr-review-status-commands:
+  en: 936b85c184551acf
+  zh: faf32b3209539114
+/agent-note-event-directed-pr-review-status-commands/problem:
+  en: 3e00a9cb6c0e53ec
+  zh: 1bd27ceea8a424ce
+/agent-note-event-directed-pr-review-status-commands/decision:
+  en: 33c900e310ce7f9a
+  zh: 68cfde1631114a13
+/agent-note-event-directed-pr-review-status-commands/verification:
+  en: 223115bad2ead167
+  zh: 251ef453e947b7cd
+/agent-note-event-directed-pr-review-status-commands/alternatives-considered:
+  en: 8b5ec4d7fc09a9ab
+  zh: d72ebe462bb2e9d2
+/agent-note-event-directed-pr-review-status-commands/consequences:
+  en: e3d39dca9122531b
+  zh: 262098573f196b93

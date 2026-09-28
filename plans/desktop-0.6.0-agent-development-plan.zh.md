@@ -7,7 +7,6 @@
 - 调查日期：2026-08-30；范围调整日期：2026-08-31。
 - 调查分支：`feat/tauri-shell`。
 - 桌面版本基线：`apps/desktop/package.json` 的 `0.5.7`。
-- 调查提交：`ad17aa1e38`（已合并上游 master）。
 - 目标版本：`0.6.0`。
 - 配套进度台账：[desktop-0.6.0-agent-development-progress.zh.md](desktop-0.6.0-agent-development-progress.zh.md)。
 

@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-22-desktop-macos-release-signing.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-22-desktop-macos-release-signing.md
-2026-08-22-desktop-macos-release-signing.md: b352b32b0fe1da936e9b847cf6c05a59fd5a0fc5
-2026-08-22-desktop-macos-release-signing.zh.md: 186818232915aa98daac8f3570739b09ff405a15
+/agent-note-desktop-macos-release-signing-lane:
+  en: f9856ea281c42518
+  zh: ec2f03c4b9a5df7c
+/agent-note-desktop-macos-release-signing-lane/problem:
+  en: 68ed6bd3cb691643
+  zh: 9537210b4d47ac04
+/agent-note-desktop-macos-release-signing-lane/decision:
+  en: d12e65377e337838
+  zh: 1d1eb66c15cc372c
+/agent-note-desktop-macos-release-signing-lane/testing:
+  en: f9571a7a6ff312b3
+  zh: 0b3f8fcc8c404552
+/agent-note-desktop-macos-release-signing-lane/consequences:
+  en: 249e0208e31343b2
+  zh: 0dd098176ef62c32
+/agent-note-desktop-macos-release-signing-lane/alternatives-considered:
+  en: bbd65c195d6dbe4a
+  zh: 69c552393ba70a6f
+/agent-note-desktop-macos-release-signing-lane/related:
+  en: 8dbab25b75ee35a7
+  zh: dce0462f506e5742

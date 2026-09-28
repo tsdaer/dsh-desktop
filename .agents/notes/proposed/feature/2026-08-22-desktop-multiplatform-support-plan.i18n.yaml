@@ -1,6 +1,58 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-22-desktop-multiplatform-support-plan.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-08-22-desktop-multiplatform-support-plan.md
-2026-08-22-desktop-multiplatform-support-plan.md: 331e204f6ca563c630cc3de74c27ea78032f9eac
-2026-08-22-desktop-multiplatform-support-plan.zh.md: 4d9745bcdbc5acd6fd6d10efc3f95063f611c776
+/agent-note-desktop-multi-platform-implementation-plan:
+  en: 6564e1e6f6edb636
+  zh: 91de31d6713adcdc
+/agent-note-desktop-multi-platform-implementation-plan/problem:
+  en: 2daab7ce934ac58f
+  zh: 4fef5118fed08074
+/agent-note-desktop-multi-platform-implementation-plan/proposal:
+  en: 986dd8097aac4d3d
+  zh: 986dd8097aac4d3d
+/agent-note-desktop-multi-platform-implementation-plan/proposal/scope-and-release-order:
+  en: 24362beb779e14c4
+  zh: 4dd0c06cd5795224
+/agent-note-desktop-multi-platform-implementation-plan/required-implementation-sequence:
+  en: 7d15610b43dedcf1
+  zh: a92cccb5b1037cf0
+/agent-note-desktop-multi-platform-implementation-plan/required-implementation-sequence/1-record-the-target-model-and-make-platform-selection-explicit:
+  en: b49669f231ffbc63
+  zh: d677045b887171ba
+/agent-note-desktop-multi-platform-implementation-plan/required-implementation-sequence/2-make-node-sidecar-acquisition-portable-and-reproducible:
+  en: f1e431b20be096aa
+  zh: beb16aa97e8eb07b
+/agent-note-desktop-multi-platform-implementation-plan/required-implementation-sequence/3-bake-one-runtime-for-one-target:
+  en: f134144eba2d3652
+  zh: 890c8f600f3970e4
+/agent-note-desktop-multi-platform-implementation-plan/required-implementation-sequence/4-split-portable-shell-behavior-from-os-integrations:
+  en: b648108c240c1689
+  zh: cd5465b5d0b3b237
+/agent-note-desktop-multi-platform-implementation-plan/required-implementation-sequence/5-make-tauri-configuration-and-local-commands-target-aware:
+  en: 4d4a76996fe8823b
+  zh: 1018bd3a8b6d191b
+/agent-note-desktop-multi-platform-implementation-plan/required-implementation-sequence/6-build-a-target-native-release-matrix-without-weakening-tag-validation:
+  en: 8c71e571373cbdb7
+  zh: 959f6650594378d0
+/agent-note-desktop-multi-platform-implementation-plan/required-implementation-sequence/7-define-updater-manifests-per-platform:
+  en: 869fcd43287bf2d6
+  zh: 1a81e61ec38355e0
+/agent-note-desktop-multi-platform-implementation-plan/required-implementation-sequence/8-verify-product-behavior-and-document-support:
+  en: 2e67db89c860e325
+  zh: abddc001d058d237
+/agent-note-desktop-multi-platform-implementation-plan/current-progress:
+  en: de61282775975d69
+  zh: c9c95690b1f7d954
+/agent-note-desktop-multi-platform-implementation-plan/pull-request-partition:
+  en: c3e232d927b2ad03
+  zh: f1a58bdbca25e650
+/agent-note-desktop-multi-platform-implementation-plan/acceptance-criteria:
+  en: 1f23dd769441b796
+  zh: 5e6d37f246c3d8fc
+/agent-note-desktop-multi-platform-implementation-plan/alternatives-considered:
+  en: 137e356d151ecdd5
+  zh: 98e6ed14d328aa45
+/agent-note-desktop-multi-platform-implementation-plan/risks:
+  en: 003da3836d831202
+  zh: 89d52b4216dbef23

@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-23-desktop-update-workflow-argv-offset.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-23-desktop-update-workflow-argv-offset.md
-2026-08-23-desktop-update-workflow-argv-offset.md: bd53002623eee5d8a461ad2866ff7301af468fc0
-2026-08-23-desktop-update-workflow-argv-offset.zh.md: ac75dc0bf7d064c9df229a651a6086a788038492
+/agent-note-desktop-update-workflow-version-argument-offset:
+  en: efd768000e2fe963
+  zh: 4b47482464ccce01
+/agent-note-desktop-update-workflow-version-argument-offset/problem:
+  en: 0a4410e84843ef2a
+  zh: 3e916c441a8a31c4
+/agent-note-desktop-update-workflow-version-argument-offset/decision:
+  en: e00cb3e8c1294033
+  zh: b1ab97fee5795997
+/agent-note-desktop-update-workflow-version-argument-offset/alternatives-considered:
+  en: e1a2c8d652a866f3
+  zh: 705a87e338459432
+/agent-note-desktop-update-workflow-version-argument-offset/consequences:
+  en: f823c4f6a20710b5
+  zh: 9ce7a41e4671f317
+/agent-note-desktop-update-workflow-version-argument-offset/testing:
+  en: 1f6c47584efa6803
+  zh: 41e8c9812fc30e32

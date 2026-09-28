@@ -1,6 +1,70 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for desktop-worktree-preview-interaction-plan.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/desktop-worktree-preview-interaction-plan.md
-desktop-worktree-preview-interaction-plan.md: bf2b7c7dc575aa872f08967a826d92ea3174e485
-desktop-worktree-preview-interaction-plan.zh.md: 1019b182d4316f707fd584b131cf7987f799abcf
+/desktop-worktree-preview-and-interaction-development-plan:
+  en: 9de03869ff08cec9
+  zh: 2334ec20fa77c61f
+/desktop-worktree-preview-and-interaction-development-plan/summary:
+  en: 19930e965f1c45d8
+  zh: 7ec19339001cbca0
+/desktop-worktree-preview-and-interaction-development-plan/table-of-contents:
+  en: 67dcdc4fc2e64b65
+  zh: 49e0519716e3b723
+/desktop-worktree-preview-and-interaction-development-plan/current-baseline:
+  en: 3ad99734f32fe311
+  zh: 16d981385f4302a7
+/desktop-worktree-preview-and-interaction-development-plan/required-behavior:
+  en: 03062b3ccc9d1b6b
+  zh: 6b670d598040be29
+/desktop-worktree-preview-and-interaction-development-plan/required-behavior/path-insertion:
+  en: b5dd0a43b53de8d1
+  zh: 2c5df663ce455da8
+/desktop-worktree-preview-and-interaction-development-plan/required-behavior/explorer-entry-icons:
+  en: a3d5b9dcf8e3cc69
+  zh: ac5e737d8eec4e41
+/desktop-worktree-preview-and-interaction-development-plan/required-behavior/dedicated-file-preview-window:
+  en: dd6cb7ce4feffd97
+  zh: 15b283963351e913
+/desktop-worktree-preview-and-interaction-development-plan/required-behavior/context-menu-and-links:
+  en: dd66ae375d9a4b46
+  zh: 6626cf32576367af
+/desktop-worktree-preview-and-interaction-development-plan/architecture-and-ownership:
+  en: 6397b2f5c1a940cc
+  zh: a31fa808a3bcdc95
+/desktop-worktree-preview-and-interaction-development-plan/delivery-plan:
+  en: b6e9840c76c57e7e
+  zh: 6cc648c87d408241
+/desktop-worktree-preview-and-interaction-development-plan/delivery-plan/phase-0-reproduce-and-freeze-the-baseline:
+  en: 8693ea68f5d0c163
+  zh: b685ad7f9cd35a91
+/desktop-worktree-preview-and-interaction-development-plan/delivery-plan/phase-1-path-text-and-explorer-icons:
+  en: 933dd162b0be5536
+  zh: 187b33a8870aa3c4
+/desktop-worktree-preview-and-interaction-development-plan/delivery-plan/phase-2-preview-renderer-and-dedicated-window:
+  en: d6cbdc9b663aebec
+  zh: 29d3a9d100e59a57
+/desktop-worktree-preview-and-interaction-development-plan/delivery-plan/phase-3-external-links:
+  en: f8b106d62f4d43b7
+  zh: f5c73dca1df61a15
+/desktop-worktree-preview-and-interaction-development-plan/delivery-plan/phase-4-context-menu-repair:
+  en: 4fc5f3e5819aef7b
+  zh: b0cd2dfe59220b57
+/desktop-worktree-preview-and-interaction-development-plan/delivery-plan/phase-5-integration-and-evidence:
+  en: dcd1a62d31aeb92c
+  zh: 4c91ddb35a28cdb2
+/desktop-worktree-preview-and-interaction-development-plan/verification-matrix:
+  en: 33f1f29e6523667d
+  zh: b53f4442be7bc0f9
+/desktop-worktree-preview-and-interaction-development-plan/acceptance-criteria:
+  en: af087d4795d61ef2
+  zh: 971e0b8a27a16151
+/desktop-worktree-preview-and-interaction-development-plan/risks-and-decisions:
+  en: 30f04cf48ff71c90
+  zh: 09b86f6b094a9890
+/desktop-worktree-preview-and-interaction-development-plan/agent-handoff-checklist:
+  en: d7a084760fd5a20d
+  zh: 32b000dd9c50dc2d
+/desktop-worktree-preview-and-interaction-development-plan/dev-note:
+  en: 0ccbc0dc1e22929e
+  zh: 78cf4953de78d848

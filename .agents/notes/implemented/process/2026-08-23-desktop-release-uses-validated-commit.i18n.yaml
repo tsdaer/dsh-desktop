@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-23-desktop-release-uses-validated-commit.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-23-desktop-release-uses-validated-commit.md
-2026-08-23-desktop-release-uses-validated-commit.md: eb8711e7a584ee5c92ff450aaf8e922cf24917fd
-2026-08-23-desktop-release-uses-validated-commit.zh.md: caa5a237435bba112cd833bd8959801e66058a7f
+/agent-note-desktop-release-jobs-use-the-validated-commit:
+  en: 2e30ff4af3fd64e4
+  zh: e3c060d0a8b7065b
+/agent-note-desktop-release-jobs-use-the-validated-commit/problem:
+  en: 95e5b33d931982e2
+  zh: c832ad67ed42c971
+/agent-note-desktop-release-jobs-use-the-validated-commit/decision:
+  en: 2da7e16c12d34738
+  zh: f573195d8279baba
+/agent-note-desktop-release-jobs-use-the-validated-commit/testing:
+  en: 5dd88373de29c2c7
+  zh: d8027aebb04c354b
+/agent-note-desktop-release-jobs-use-the-validated-commit/consequences:
+  en: be00be4e5922f20b
+  zh: 4e6b2d8865d25c93
+/agent-note-desktop-release-jobs-use-the-validated-commit/alternatives-considered:
+  en: bc4989f697df6e1b
+  zh: 08f2cdfb74fc9171

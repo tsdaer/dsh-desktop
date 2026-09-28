@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-23-desktop-installed-package-web-smoke.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-08-23-desktop-installed-package-web-smoke.md
-2026-08-23-desktop-installed-package-web-smoke.md: d4c0aeda522e8286ea9f2f9a1e3452ba2126729e
-2026-08-23-desktop-installed-package-web-smoke.zh.md: f28647dcdad29f89feaadf362f34fcb3be08845a
+/agent-note-desktop-installed-package-web-ui-smoke:
+  en: cdb1bbc4785d281e
+  zh: aed92b3d6a4fc887
+/agent-note-desktop-installed-package-web-ui-smoke/problem:
+  en: ae357e875dcce603
+  zh: 27699f8dd3eef5a1
+/agent-note-desktop-installed-package-web-ui-smoke/decision:
+  en: b8700d21525964d5
+  zh: e9aa64a289b87c71
+/agent-note-desktop-installed-package-web-ui-smoke/alternatives-considered:
+  en: 2b327223d553de2f
+  zh: 9e39f9332b5b0f6a
+/agent-note-desktop-installed-package-web-ui-smoke/consequences:
+  en: 9ec23a61cb94e80d
+  zh: afb36d92405290a0
+/agent-note-desktop-installed-package-web-ui-smoke/testing:
+  en: 2b5eccae54df7854
+  zh: 74b98cf501fb1805

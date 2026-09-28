@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-14-desktop-installed-update-materials.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-09-14-desktop-installed-update-materials.md
-2026-09-14-desktop-installed-update-materials.md: 938359fd7b81f5de2de65ab3e687f57788380aef
-2026-09-14-desktop-installed-update-materials.zh.md: 031a6e48fc6a407c39a0d7d4dd1e867b67fb1ff6
+/agent-note-isolate-installed-update-materials-from-releases-and-user-data:
+  en: 9cb68e389e43373b
+  zh: c355d3df1f94a1a2
+/agent-note-isolate-installed-update-materials-from-releases-and-user-data/problem:
+  en: 8d63b992ff6d3161
+  zh: 86d333255a5400d3
+/agent-note-isolate-installed-update-materials-from-releases-and-user-data/decision:
+  en: cac1e7794a8fb89a
+  zh: 213331515003041c
+/agent-note-isolate-installed-update-materials-from-releases-and-user-data/alternatives-considered:
+  en: c608f186cc94a9d3
+  zh: 39750c8347e8bece
+/agent-note-isolate-installed-update-materials-from-releases-and-user-data/consequences:
+  en: f76e4c3c01332c6a
+  zh: 9384b30dd1898019

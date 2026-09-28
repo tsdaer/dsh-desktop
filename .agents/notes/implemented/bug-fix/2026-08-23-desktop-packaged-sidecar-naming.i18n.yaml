@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-23-desktop-packaged-sidecar-naming.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-23-desktop-packaged-sidecar-naming.md
-2026-08-23-desktop-packaged-sidecar-naming.md: 3efb7d0ba1123191562a4177f5d09905bd7ddd9a
-2026-08-23-desktop-packaged-sidecar-naming.zh.md: 71ef1b1b55120d50b5cea6cb73c8c44ca4228e15
+/agent-note-desktop-packaged-sidecar-naming:
+  en: 23f960aa01eb9c94
+  zh: 379f468ed8d022c1
+/agent-note-desktop-packaged-sidecar-naming/problem:
+  en: 2bfc40d465d7e078
+  zh: aa10b46557a1bf7f
+/agent-note-desktop-packaged-sidecar-naming/decision:
+  en: f1e856665a7b77d0
+  zh: 05151ae181a960d5
+/agent-note-desktop-packaged-sidecar-naming/testing:
+  en: b1e11e0aa0a0dbe2
+  zh: 82408ba560b16eb6
+/agent-note-desktop-packaged-sidecar-naming/consequences:
+  en: bf9eee80687bba02
+  zh: be3498c35f68c135
+/agent-note-desktop-packaged-sidecar-naming/related:
+  en: 958fc8c5f7f8d73c
+  zh: fdfbdbec17bb7b90
+/agent-note-desktop-packaged-sidecar-naming/alternatives-considered:
+  en: 050e06d131f87acc
+  zh: 5cb5b6a9133f264e

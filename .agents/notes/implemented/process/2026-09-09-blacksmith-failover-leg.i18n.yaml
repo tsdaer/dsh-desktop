@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-09-blacksmith-failover-leg.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-09-09-blacksmith-failover-leg.md
-2026-09-09-blacksmith-failover-leg.md: ef1eec72ba716683dd1e914cf47a222956383b02
-2026-09-09-blacksmith-failover-leg.zh.md: 43e0c1a214e0a09f946fe3ca58f86125695b4583
+/agent-note-blacksmith-as-a-failover-leg-for-ci-pools:
+  en: 018c4f4b64ca6634
+  zh: 949f97c78d0f0236
+/agent-note-blacksmith-as-a-failover-leg-for-ci-pools/problem:
+  en: 43ecfec1601f933e
+  zh: 3db5365403ffeac5
+/agent-note-blacksmith-as-a-failover-leg-for-ci-pools/decision:
+  en: 60f2b47f3ab2f51c
+  zh: 53dd1ae1f9446f62
+/agent-note-blacksmith-as-a-failover-leg-for-ci-pools/alternatives-considered:
+  en: a605440fed0ccc2a
+  zh: 621b35ad2850ca1b
+/agent-note-blacksmith-as-a-failover-leg-for-ci-pools/consequences:
+  en: 09db977b1472b797
+  zh: c1b890aaca4e557e

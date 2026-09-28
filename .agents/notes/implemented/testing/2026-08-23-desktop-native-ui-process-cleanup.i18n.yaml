@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-23-desktop-native-ui-process-cleanup.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-08-23-desktop-native-ui-process-cleanup.md
-2026-08-23-desktop-native-ui-process-cleanup.md: cdf4efa1945790f87d7666c029d0b36993d6933f
-2026-08-23-desktop-native-ui-process-cleanup.zh.md: ee835e2da5254b194aef5c2b71e3dfb0254e49b1
+/agent-note-desktop-native-ui-smoke-process-cleanup:
+  en: 7f387c04a9837cc6
+  zh: 0ea654b6223ec3e2
+/agent-note-desktop-native-ui-smoke-process-cleanup/problem:
+  en: 5dfd1c5468b0a88e
+  zh: a56a8f70bafd7f07
+/agent-note-desktop-native-ui-smoke-process-cleanup/decision:
+  en: d993beafd37859f6
+  zh: d17cdd3080c36403
+/agent-note-desktop-native-ui-smoke-process-cleanup/alternatives-considered:
+  en: fdde00cd9de27e59
+  zh: d375d9fdc5aa13aa
+/agent-note-desktop-native-ui-smoke-process-cleanup/consequences:
+  en: b976b4c6c9a56464
+  zh: 97bd76963803888e
+/agent-note-desktop-native-ui-smoke-process-cleanup/testing:
+  en: 87374e59458131c3
+  zh: 9ed268e4d6c20938
+/agent-note-desktop-native-ui-smoke-process-cleanup/related:
+  en: 82a7e49ff5c05766
+  zh: 4b7b8d94ddefa013

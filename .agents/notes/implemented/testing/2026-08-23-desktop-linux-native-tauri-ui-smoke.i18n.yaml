@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-23-desktop-linux-native-tauri-ui-smoke.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-08-23-desktop-linux-native-tauri-ui-smoke.md
-2026-08-23-desktop-linux-native-tauri-ui-smoke.md: e26c85c624af50e8d2d81afe022679cb9ab35963
-2026-08-23-desktop-linux-native-tauri-ui-smoke.zh.md: 331538581471ae544c2aae73a6f03f80c7757afb
+/agent-note-desktop-linux-native-tauri-ui-smoke:
+  en: 88860efe4235adb7
+  zh: 1c09ee6d99582e59
+/agent-note-desktop-linux-native-tauri-ui-smoke/problem:
+  en: dceadb52d4d06eae
+  zh: ddc80ba5f879ccd7
+/agent-note-desktop-linux-native-tauri-ui-smoke/decision:
+  en: f421e265808f7c01
+  zh: 465f6a1e8d25fc2d
+/agent-note-desktop-linux-native-tauri-ui-smoke/alternatives-considered:
+  en: bdf2eb998c44b9c7
+  zh: 77ea704d449e6cfc
+/agent-note-desktop-linux-native-tauri-ui-smoke/consequences:
+  en: 629521c957d11419
+  zh: 1bf57154cda2f408
+/agent-note-desktop-linux-native-tauri-ui-smoke/testing:
+  en: 4233574265a93470
+  zh: ac8251037ff538dd
