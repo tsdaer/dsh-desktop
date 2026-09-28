@@ -163,6 +163,7 @@ export const SERVICE_PAGE: Record<string, string> = {
  * to a model as `cordis_runtime_inspect what:"client"`).
  */
 export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
+  desktopBridgeSettings: 'desktop-provided settings snapshot the WSL tool reads from the bridge, not a rendered service — apps/desktop/README.md owns the shell-bridge contract and the 2026-08-22-desktop-cross-platform-shell-runtime note owns the WSL integration',
   invocation: 'not a service: per-call accessor (RemoteInvocation | undefined) the Gateway derives for each Remote call — packages/api/gateway/README.md owns the contract',
   webTerminals: 'client-side terminal view models — packages/api/terminal-controller/README.md owns the API',
   appReady: 'not a service: launcher-provided successful-startup signal — packages/boot/cmdline/README.md owns the launcher contract',

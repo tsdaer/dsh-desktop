@@ -3549,15 +3549,17 @@ export interface Config {
 
 - `inject`: `tools` · `systemPrompt` · `shellEnv`
 - `refs`: [`WslExecutorConfig`](#deepseek-aidsh-bash-wsl)
-- `source`: [`packages/shell/tool-bash-wsl/src/index.ts:31`](../packages/shell/tool-bash-wsl/src/index.ts)
+- `source`: [`packages/shell/tool-bash-wsl/src/index.ts:38`](../packages/shell/tool-bash-wsl/src/index.ts)
 
 ```ts config-catalog
 /** Runtime configuration schema for the WSL bash tool. */
 export interface Config {
-  /** The WSL 2 distribution to execute Bash in. */
+  /** The WSL 2 distribution to execute Bash in; the desktop card's snapshot decides first. */
   distribution: string
-  /** Whether the tool is currently enabled (setting + healthy probe). */
+  /** Composition-level enablement used when the desktop bridge is absent. */
   enabled: boolean
+  /** Composition-level enablement override used when the desktop bridge is absent. */
+  wslEnabled?: boolean
   /** Whether to expose run_in_background (default true). */
   enableRunInBackground?: boolean
   /** The local executor's knobs, passed to WslBashExecutor. */

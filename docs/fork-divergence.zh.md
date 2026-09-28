@@ -39,7 +39,7 @@
 |---|---|
 | [`scripts/install-lefthook.mjs`](../scripts/install-lefthook.mjs) | 惰性导入 lefthook 的清单，使裁掉该 devDependency 的生产安装不会让 `postinstall` 失败（[note](../.agents/notes/implemented/bug-fix/2026-08-16-root-postinstall-production-install.zh.md)） |
 | [`scripts/gen-config-catalog.ts`](../scripts/gen-config-catalog.ts) | 将粘贴的声明规范为 LF，使 Windows CRLF checkout 生成与其他主机相同的双语目录（[note](../.agents/notes/implemented/process/2026-08-08-native-windows-pull-request-ci.zh.md)） |
-| [`scripts/gen-cordis-catalog.ts`](../scripts/gen-cordis-catalog.ts) | 将生成的 Cordis 区域规范为 LF，为双语配对提供相同的跨主机保证（[note](../.agents/notes/implemented/process/2026-08-08-native-windows-pull-request-ci.zh.md)） |
+| [`scripts/gen-cordis-catalog.ts`](../scripts/gen-cordis-catalog.ts) | 将生成的 Cordis 区域规范为 LF，为双语配对提供相同的跨主机保证（[note](../.agents/notes/implemented/process/2026-08-08-native-windows-pull-request-ci.zh.md)），并把 fork 独有的 `desktopBridgeSettings` 桥接快照从服务遍历中豁免 |
 | [`scripts/gen-tool-catalog.ts`](../scripts/gen-tool-catalog.ts) | 把本 fork 的 `bash-wsl` 工具加入待编目集合，使生成的 [`docs/tool-catalog.md`](tool-catalog.zh.md) 与英文版带有该行与章节 |
 | [`scripts/desktop-release-workflow.spec.ts`](../scripts/desktop-release-workflow.spec.ts) | 新增，用于固定本 fork 自有的发布工作流 |
 | [`scripts/verify-concrete-terms.ts`](../scripts/verify-concrete-terms.ts)、[`scripts/translation-pairing.ts`](../scripts/translation-pairing.ts) | 把本 fork 录制的 Web 快照 fixture 豁免出禁用词扫描（JSONL 携带会话格式自身的字段名），并把桌面构建产物目录排除出双语配对语料，两者均来自上游 0.1.7 的门禁重构 |
