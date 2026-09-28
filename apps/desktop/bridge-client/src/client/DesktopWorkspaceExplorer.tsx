@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconBrowseOutlineRegular, IconFolderCloseRegular, IconFolderOpenRegular, IconWarningOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+import { latestSessionId } from './DesktopLatestSession.ts'
 import css from './DesktopWorkspaceWorkbench.module.css'
 import {
   SourceControlActionButtons,
@@ -25,14 +26,14 @@ interface WorkspaceView {
 
 interface WorkspaceSource {
   list: {
-    getSnapshot(): { items: readonly WorkspaceView[]; recentWorkspaceId?: WorkspaceId }
+    getSnapshot(): { items: readonly WorkspaceView[] }
     subscribe(listener: () => void): () => void
   }
 }
 
 interface SessionSource {
   list: {
-    getSnapshot(): { current: string | undefined }
+    getSnapshot(): { ids: readonly string[]; byId: Record<string, { updatedAt?: number }> }
     subscribe(listener: () => void): () => void
   }
 }
@@ -90,10 +91,8 @@ function useSourceSnapshot<T extends { getSnapshot(): unknown; subscribe(listene
 function chooseWorkspace(
   workspaces: readonly WorkspaceView[],
   current: string | undefined,
-  recentWorkspaceId: WorkspaceId | undefined,
 ): WorkspaceView | undefined {
   return workspaces.find(workspace => current !== undefined && workspace.sessionIds.includes(current))
-    ?? workspaces.find(workspace => workspace.workspaceId === recentWorkspaceId)
     ?? workspaces[0]
 }
 
@@ -101,7 +100,7 @@ function chooseWorkspace(
 export function DesktopWorkspaceExplorer({ workspaces: workspaceSource, sessions: sessionSource, t }: ExplorerProps): React.ReactElement {
   const workspaceSnapshot = useSourceSnapshot(workspaceSource.list)
   const sessionSnapshot = useSourceSnapshot(sessionSource.list)
-  const workspace = chooseWorkspace(workspaceSnapshot.items, sessionSnapshot.current, workspaceSnapshot.recentWorkspaceId)
+  const workspace = chooseWorkspace(workspaceSnapshot.items, latestSessionId(sessionSnapshot))
   const workspaceId = workspace?.workspaceId
   const [nodes, setNodes] = useState<Record<string, NodeState>>({})
   const [expandedByWorkspace, setExpandedByWorkspace] = useState<Record<string, readonly string[]>>(() => readExpanded())

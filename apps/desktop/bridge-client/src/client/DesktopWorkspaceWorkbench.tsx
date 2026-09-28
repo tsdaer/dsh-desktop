@@ -5,7 +5,7 @@ import { DesktopWorkspaceSearch } from './DesktopWorkspaceSearch.tsx'
 
 interface WorkspaceSource {
   list: {
-    getSnapshot(): { items: readonly WorkspaceSummary[]; recentWorkspaceId?: string }
+    getSnapshot(): { items: readonly WorkspaceSummary[] }
     subscribe(listener: () => void): () => void
   }
   openPath?(path: string): Promise<void>
@@ -20,7 +20,7 @@ interface WorkspaceSummary {
 
 interface SessionSource {
   list: {
-    getSnapshot(): { current: string | undefined }
+    getSnapshot(): { ids: readonly string[]; byId: Record<string, { updatedAt?: number }> }
     subscribe(listener: () => void): () => void
   }
 }

@@ -35,7 +35,7 @@ beforeEach(() => {
 describe('desktop Explorer render lifecycle', () => {
   it('renders shared stateful icons for folders, files, and blocked entries', async () => {
     const workspaces = mutableSource({ items: [{ workspaceId: 'workspace-1', title: 'Workspace', sessionIds: [] }] })
-    const sessions = mutableSource({ current: undefined as string | undefined })
+    const sessions = mutableSource({ ids: [], byId: {} })
     vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
       const url = new URL(String(input), 'http://desktop.test')
       if (url.pathname.endsWith('/source-control')) return new Response(JSON.stringify({ workspaceId: 'workspace-1', state: 'not-repository', entries: [], truncated: false }))
@@ -65,7 +65,7 @@ describe('desktop Explorer render lifecycle', () => {
     const workspaces = mutableSource<{
       items: readonly { workspaceId: string; title: string; sessionIds: readonly string[] }[]
     }>({ items: [] })
-    const sessions = mutableSource({ current: undefined as string | undefined })
+    const sessions = mutableSource({ ids: [], byId: {} })
     vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
       const url = String(input)
       if (url.includes('/source-control')) return new Response(JSON.stringify({ workspaceId: 'workspace-1', state: 'not-repository', entries: [], truncated: false }))
@@ -77,9 +77,30 @@ describe('desktop Explorer render lifecycle', () => {
     await waitFor(() => { expect(screen.getByText('worktree.emptyDirectory')).toBeTruthy() })
   })
 
+  it('follows the workspace owning the most recently updated session', async () => {
+    const requestedWorkspaces: string[] = []
+    const workspaces = mutableSource({ items: [
+      { workspaceId: 'workspace-1', title: 'One', sessionIds: ['s-old'] },
+      { workspaceId: 'workspace-2', title: 'Two', sessionIds: ['s-new'] },
+    ] })
+    const sessions = mutableSource({
+      ids: ['s-old', 's-new'],
+      byId: { 's-old': { updatedAt: 100 }, 's-new': { updatedAt: 200 } },
+    })
+    vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
+      const url = new URL(String(input), 'http://desktop.test')
+      if (url.searchParams.get('workspaceId') !== undefined) requestedWorkspaces.push(String(url.searchParams.get('workspaceId')))
+      if (url.pathname.endsWith('/source-control')) return new Response(JSON.stringify({ workspaceId: 'workspace-2', state: 'not-repository', entries: [], truncated: false }))
+      return new Response(JSON.stringify({ workspaceId: 'workspace-2', path: '', entries: [], truncated: false }))
+    }))
+    render(createElement(DesktopWorkspaceExplorer, { workspaces, sessions, t: (key: string) => key }))
+    await waitFor(() => { expect(requestedWorkspaces).toContain('workspace-2') })
+    expect(requestedWorkspaces).not.toContain('workspace-1')
+  })
+
   it('loads sibling directories without cancelling either request', async () => {
     const workspaces = mutableSource({ items: [{ workspaceId: 'workspace-1', title: 'Workspace', sessionIds: [] }] })
-    const sessions = mutableSource({ current: undefined as string | undefined })
+    const sessions = mutableSource({ ids: [], byId: {} })
     const directorySignals = new Map<string, AbortSignal>()
     vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = new URL(String(input), 'http://desktop.test')

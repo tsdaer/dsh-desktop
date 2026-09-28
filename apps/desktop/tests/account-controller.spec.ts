@@ -16,7 +16,10 @@ function controllerDeps(options: {
   const listeners = new Set<() => void>()
   const sessions = {
     list: {
-      getSnapshot: () => ({ current }),
+      getSnapshot: () => ({
+        ids: current === undefined ? [] : [current],
+        byId: current === undefined ? {} : { [current]: { updatedAt: 1 } },
+      }),
       subscribe: (listener: () => void) => {
         listeners.add(listener)
         return () => { listeners.delete(listener) }

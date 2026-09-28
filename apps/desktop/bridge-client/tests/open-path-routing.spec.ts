@@ -39,7 +39,6 @@ function flushStore(harness: StoreHarness<unknown>): void {
 
 function baseContext(workspacesPhase: 'pending' | 'ready' = 'pending') {
   const sessions = store({
-    current: undefined as string | undefined,
     ids: ['s-recent', 's-older'] as readonly string[],
     byId: {
       's-recent': { updatedAt: 200 },

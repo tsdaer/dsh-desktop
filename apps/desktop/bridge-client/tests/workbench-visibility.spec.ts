@@ -27,7 +27,7 @@ function renderWorkbench(wide: boolean) {
     wide,
     t: (key: string) => key,
     workspaces: inertSource({ items: [] }),
-    sessions: inertSource({ current: undefined as string | undefined }),
+    sessions: inertSource({ ids: [], byId: {} }),
   }))
 }
 

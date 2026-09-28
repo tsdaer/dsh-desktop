@@ -1,3 +1,4 @@
+import { latestSessionId } from './DesktopLatestSession.ts'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { bridgeFetch } from './bridge-fetch.ts'
 import css from './DesktopWorkspaceWorkbench.module.css'
@@ -14,14 +15,17 @@ interface WorkspaceView {
 
 interface WorkspaceSource {
   list: {
-    getSnapshot(): { items: readonly WorkspaceView[]; recentWorkspaceId?: string }
+    getSnapshot(): { items: readonly WorkspaceView[] }
     subscribe(listener: () => void): () => void
   }
   openPath?(path: string): Promise<void>
 }
 
 interface SessionSource {
-  list: { getSnapshot(): { current: string | undefined }; subscribe(listener: () => void): () => void }
+  list: {
+    getSnapshot(): { ids: readonly string[]; byId: Record<string, { updatedAt?: number }> }
+    subscribe(listener: () => void): () => void
+  }
 }
 
 interface SearchProps {
@@ -47,10 +51,10 @@ interface SearchListing {
 export function DesktopWorkspaceSearch({ workspaces: workspaceSource, sessions: sessionSource, t }: SearchProps): React.ReactElement {
   const workspaceSnapshot = useSourceSnapshot(workspaceSource.list)
   const sessionSnapshot = useSourceSnapshot(sessionSource.list)
+  const current = latestSessionId(sessionSnapshot)
   const workspace = workspaceSnapshot.items.find(
-    item => sessionSnapshot.current !== undefined && item.sessionIds.includes(sessionSnapshot.current),
+    item => current !== undefined && item.sessionIds.includes(current),
   )
-    ?? workspaceSnapshot.items.find(item => item.workspaceId === workspaceSnapshot.recentWorkspaceId)
     ?? workspaceSnapshot.items[0]
   const [query, setQuery] = useState('')
   const [caseSensitive, setCaseSensitive] = useState(false)

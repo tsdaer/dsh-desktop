@@ -42,7 +42,7 @@ export const inject = ['sessions', 'workspaces', 'slots', 'locale', 'theme', 'ui
 /** Minimal view of the client-runtime sessions service this plugin consumes. */
 interface SessionsLike {
   list: {
-    getSnapshot(): { current: string | undefined; ids: readonly string[]; byId: Record<string, { updatedAt?: number } | undefined> }
+    getSnapshot(): { ids: readonly string[]; byId: Record<string, { updatedAt?: number }> }
     subscribe(listener: () => void): () => void
   }
   open(id: string): void

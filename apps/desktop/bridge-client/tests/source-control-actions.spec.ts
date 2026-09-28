@@ -44,7 +44,7 @@ function renderExplorer(
   const workspaces = mutableSource<{ items: readonly { workspaceId: string; title: string; sessionIds: readonly string[] }[] }>({
     items: [{ workspaceId: 'workspace-1', title: 'Workspace', sessionIds: [] }],
   })
-  const sessions = mutableSource({ current: undefined as string | undefined })
+  const sessions = mutableSource({ ids: [], byId: {} })
   const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const url = new URL(String(input), 'http://desktop.test')
     if (init?.method === 'POST') {

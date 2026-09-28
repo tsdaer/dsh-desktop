@@ -10,6 +10,8 @@
 // uses it for the next request. An older response (stale generation, older
 // session, other provider) never overwrites a newer selection.
 
+import { latestSessionId } from './DesktopLatestSession.ts'
+
 /** The window event the title-bar script renders from. */
 const ACCOUNT_EVENT = 'dsh://account-summary'
 /** The window event the title-bar click dispatches to request a refresh. */
@@ -35,7 +37,7 @@ export interface AccountSummaryPayload {
 /** Minimal view of the client-runtime sessions list this controller consumes. */
 interface AccountSessionsLike {
   list: {
-    getSnapshot(): { current: string | undefined }
+    getSnapshot(): { ids: readonly string[]; byId: Record<string, { updatedAt?: number }> }
     subscribe(listener: () => void): () => void
   }
 }
@@ -65,7 +67,7 @@ export interface AccountControllerDeps {
  */
 export function mountAccountController(deps: AccountControllerDeps): () => void {
   let generation = 0
-  let currentSession = deps.sessions.list.getSnapshot().current
+  let currentSession = latestSessionId(deps.sessions.list.getSnapshot())
   let inFlight: AbortController | null = null
   let timer: ReturnType<typeof setTimeout> | null = null
   let disposed = false
@@ -80,7 +82,7 @@ export function mountAccountController(deps: AccountControllerDeps): () => void 
 
   const refresh = (): void => {
     if (disposed) return
-    const sessionId = deps.sessions.list.getSnapshot().current
+    const sessionId = latestSessionId(deps.sessions.list.getSnapshot())
     if (sessionId === undefined) {
       // No active session: report unavailable so the title bar shows no stale amount.
       publish({ ok: false, sessionId: '', providerId: '', generation: String(generation), state: 'unavailable' })
@@ -116,7 +118,7 @@ export function mountAccountController(deps: AccountControllerDeps): () => void 
   }
 
   const offSessions = deps.sessions.list.subscribe(() => {
-    const next = deps.sessions.list.getSnapshot().current
+    const next = latestSessionId(deps.sessions.list.getSnapshot())
     if (next !== currentSession) refresh()
   })
   const offRefreshRequest = (): void => {
