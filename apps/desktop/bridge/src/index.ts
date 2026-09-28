@@ -40,6 +40,32 @@ export const inject = ['webServer', 'fs', 'workspaceRegistry', 'subprocess']
 /** Durable settings namespace for the desktop settings ($DSH_HOME/settings.yaml, same seam as every other setting). */
 export const BRIDGE_SETTINGS_NS = 'desktop-bridge' as SettingsNamespace
 
+/**
+ * The WSL Bash card values the tool composes with. `tool-bash-wsl` declares
+ * the same `desktopBridgeSettings` context property structurally; keep the two
+ * declarations identical.
+ */
+export interface DesktopBridgeSettings {
+  /** Whether the WSL Bash tool joins new Agent compositions. */
+  wslEnabled?: boolean
+  /** The WSL 2 distribution the card selected. */
+  wslDistribution?: string
+}
+
+declare module '@deepseek-ai/cordis' {
+  interface Context {
+    desktopBridgeSettings?: DesktopBridgeSettings
+  }
+}
+
+/** Read one config field the Settings projection may deliver as a live reference or a plain value. */
+function readConfigValue<T>(field: T | { get(): T }): T {
+  if (typeof field === 'object' && field !== null && 'get' in (field as object)) {
+    return (field as { get(): T }).get()
+  }
+  return field as T
+}
+
 /** Desktop settings: shell behavior the page can read and persist. */
 export interface Config {
   /** When true, closing the main window hides it to the system tray instead of exiting (the tray menu holds the real exit). */
@@ -80,18 +106,26 @@ export interface Config {
   sourceControlTimeoutMs: number
   /** Maximum one-side diff bytes read for the Source Control diff route. */
   sourceControlMaxDiffBytes: number
-  /** Whether Bash over WSL 2 is enabled for this desktop profile. */
+  /**
+   * Whether Bash over WSL 2 is enabled for this desktop profile. Settings-writable
+   * through the card, so after the Settings projection the runtime value can be a
+   * live reference; read it through readConfigValue.
+   */
   wslEnabled: boolean
-  /** The selected WSL 2 distribution for Bash, when enabled. */
+  /**
+   * The selected WSL 2 distribution for Bash, when enabled. Settings-writable
+   * through the card; after the Settings projection the runtime value can be a
+   * live reference, so read it through readConfigValue.
+   */
   wslDistribution: string
 }
 
-export const Config: z<Config> = z.object({
+export const Config = z.object({
   closeToTray: z.boolean().default(false),
   debugMode: z.boolean().default(false),
   logoMotion: z.boolean().default(false),
-  wslEnabled: z.boolean().default(false),
-  wslDistribution: z.string().default(''),
+  wslEnabled: z.boolean().default(false).volatile(),
+  wslDistribution: z.string().default('').volatile(),
   explorerMaxEntries: z.number().default(256),
   explorerMaxBytes: z.number().default(128 * 1024),
   explorerTimeoutMs: z.number().default(5_000),
@@ -149,6 +183,13 @@ const MAX_BODY_BYTES = 64 * 1024
 
 export function apply(ctx: Context, config: Config): void {
   validateExplorerConfig(config)
+  // The WSL Bash tool mounts from the preset composition, outside the
+  // configuration editor's addressable rows; it reads this snapshot from the
+  // context's ancestor chain instead of receiving a settings write directly.
+  ctx.provide('desktopBridgeSettings', {
+    wslEnabled: readConfigValue(config.wslEnabled) === true,
+    wslDistribution: readConfigValue(config.wslDistribution),
+  })
   ctx.webServer.register({
     kind: 'prefix',
     path: '/dsh-bridge',
@@ -202,12 +243,6 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
         return
       }
       await settings.mutate(BRIDGE_SETTINGS_NS, ops)
-      // The WSL bash tool reads its enablement from the bash-wsl namespace;
-      // mirror the desktop card's value there so the tool catalog follows.
-      const wslOps = ops.filter(op => op.path[0] === 'wslEnabled' || op.path[0] === 'wslDistribution')
-      if (wslOps.length > 0) {
-        await settings.mutate('bash-wsl' as SettingsNamespace, wslOps)
-      }
       json(res, 200, { ok: true })
     } catch (err) {
       json(res, 500, { error: err instanceof Error ? err.message : String(err) })
@@ -224,8 +259,8 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
       closeToTray: effective.closeToTray,
       debugMode: effective.debugMode,
       logoMotion: effective.logoMotion,
-      wslEnabled: effective.wslEnabled,
-      wslDistribution: effective.wslDistribution,
+      wslEnabled: readConfigValue(effective.wslEnabled),
+      wslDistribution: readConfigValue(effective.wslDistribution),
     })
     return
   }

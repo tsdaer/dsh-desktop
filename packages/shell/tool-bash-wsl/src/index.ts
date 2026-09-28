@@ -27,21 +27,31 @@ import type { CollectedOutput, ShellProcess, ShellProcessRead, ShellRunResult } 
 export const name = 'tool-bash-wsl'
 export const inject = ['tools', 'systemPrompt', 'shellEnv']
 
+declare module '@deepseek-ai/cordis' {
+  interface Context {
+    /** The desktop bridge's WSL card values; structurally mirrors bridge's `DesktopBridgeSettings`. */
+    desktopBridgeSettings?: { wslEnabled?: boolean; wslDistribution?: string }
+  }
+}
+
 /** Runtime configuration schema for the WSL bash tool. */
 export interface Config {
-  /** The WSL 2 distribution to execute Bash in. */
+  /** The WSL 2 distribution to execute Bash in; the desktop card's snapshot decides first. */
   distribution: string
-  /** Whether the tool is currently enabled (setting + healthy probe). */
+  /** Composition-level enablement used when the desktop bridge is absent. */
   enabled: boolean
+  /** Composition-level enablement override used when the desktop bridge is absent. */
+  wslEnabled?: boolean
   /** Whether to expose run_in_background (default true). */
   enableRunInBackground?: boolean
   /** The local executor's knobs, passed to WslBashExecutor. */
   executor?: WslExecutorConfig
 }
 
-export const Config: z<Config> = z.object({
-  distribution: z.string().min(1),
+export const Config = z.object({
+  distribution: z.string().default(''),
   enabled: z.boolean().default(false),
+  wslEnabled: z.boolean().default(false),
   enableRunInBackground: z.boolean().default(true),
   executor: z.any(),
 })
@@ -212,35 +222,20 @@ function canonicalBashResult(result: ShellRunResult) {
  * @param ctx - the client root context.
  * @param config - the resolved tool configuration.
  */
-/** The settings namespace this tool reads its enablement from. */
-export const WSL_SETTINGS_NAMESPACE = 'bash-wsl'
-
 export function apply(ctx: Context, config: Config = {} as Config): void {
-  // The tool mounts from the preset composition; its enablement is the desktop
-  // setting (wslEnabled + a healthy distribution probe). The setting section
-  // is read live so a settings change takes effect without a restart; absent
-  // a settings service, the composition entry's `enabled` decides.
-  const settings = ctx.get('settings')
-  // Register our own namespace so settings.get resolves it even in a
-  // composition without the desktop bridge (the settings-file document may
-  // already carry a stored bash-wsl section from the desktop card).
-  settings?.register(WSL_SETTINGS_NAMESPACE, z.object({
-    wslEnabled: z.boolean().default(false),
-    wslDistribution: z.string().default(''),
-  }))
-  const section = settings?.get(WSL_SETTINGS_NAMESPACE) as { wslEnabled?: unknown; wslDistribution?: unknown } | undefined
-  // A settings section that exists is authoritative (the desktop card owns the
-  // value); absent one, the composition entry decides.
-  const enabled = section === undefined
-    ? config.enabled === true
-    : section.wslEnabled === true
-  const distribution = section !== undefined
-    && typeof section.wslDistribution === 'string'
-    && section.wslDistribution.length > 0
-    ? section.wslDistribution
-    : typeof config.distribution === 'string' && config.distribution.length > 0
-      ? config.distribution
-      : ''
+  // The tool mounts from the preset composition, outside the configuration
+  // editor's addressable rows, so the desktop card reaches it through the
+  // bridge's context snapshot rather than a config write. A preset row's
+  // `wslEnabled`/`enabled` covers non-desktop compositions.
+  const desktop = ctx.get('desktopBridgeSettings') as
+    | { wslEnabled?: boolean; wslDistribution?: string }
+    | undefined
+  const enabled = desktop !== undefined
+    ? desktop.wslEnabled === true
+    : config.wslEnabled === true || config.enabled === true
+  const distribution = desktop !== undefined && desktop.wslDistribution
+    ? desktop.wslDistribution
+    : config.distribution
   if (!enabled) return
   const backgroundEnabled = config.enableRunInBackground ?? true
   // so a composition that omits them still runs.
