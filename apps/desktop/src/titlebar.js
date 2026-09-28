@@ -14,9 +14,8 @@
 // loading page (plain <script src>) has no global and renders the bare
 // title.
 //
-// Right side (before the window controls): an API state, workload tier, and
-// balance control. The bridge host resolves credentials and proxies balance;
-// the native host returns only a normalized workload tier.
+// Right side (before the window controls): a workload tier. The native host
+// returns only a normalized workload tier.
 (function () {
   'use strict';
   var navigationToken = new URLSearchParams(window.location.search).get('dsh_token');
@@ -44,25 +43,13 @@
       'border-radius:4px;color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary,#9aa3b5));' +
       'flex:none;' +
     '}' +
-    '#dsh-desktop-titlebar .bar-balance{' +
-      'display:flex;align-items:center;gap:6px;padding:0 12px;white-space:nowrap;' +
-      'border:0;background:transparent;font:inherit;color:var(--dsw-alias-label-primary,#e6e8ee);cursor:pointer;flex:none;' +
-    '}' +
-    '#dsh-desktop-titlebar .bar-balance:disabled{opacity:0.65;cursor:wait;}' +
-    '#dsh-desktop-titlebar .bar-balance[hidden]{display:none !important;}' +
-    '#dsh-desktop-titlebar .bar-balance svg{flex:none;opacity:0.8;}' +
-    '#dsh-desktop-titlebar .bar-api-status,#dsh-desktop-titlebar .bar-load{display:flex;align-items:center;gap:5px;padding:0 8px;white-space:nowrap;flex:none;}' +
+    '#dsh-desktop-titlebar .bar-load{display:flex;align-items:center;gap:5px;padding:0 8px;white-space:nowrap;flex:none;}' +
     '#dsh-desktop-titlebar .bar-updater{border:0;border-radius:6px;margin:0 4px;padding:4px 7px;background:transparent;color:var(--dsw-alias-label-secondary,#9aa3b5);font:inherit;font-size:11px;white-space:nowrap;cursor:pointer;flex:none;}' +
     '#dsh-desktop-titlebar .bar-updater:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,0.08));color:inherit;}' +
     '#dsh-desktop-titlebar .bar-updater[data-state="available"],#dsh-desktop-titlebar .bar-updater[data-state="ready"]{color:#8bc4ff;}' +
     '#dsh-desktop-titlebar .bar-updater[data-state="failed"]{color:#ffb4c8;}' +
     '#dsh-desktop-titlebar .bar-updater:disabled{cursor:default;opacity:0.82;}' +
-    '#dsh-desktop-titlebar .bar-api-dot{width:7px;height:7px;border-radius:50%;background:#9aa3b5;flex:none;}' +
-    '#dsh-desktop-titlebar .bar-api-status.connected .bar-api-dot{background:#3fb96f;}' +
-    '#dsh-desktop-titlebar .bar-api-status.unavailable .bar-api-dot{background:#e0a33f;}' +
-    '#dsh-desktop-titlebar .bar-api-status.unconfigured .bar-api-dot{background:#7d8598;}' +
-    '#dsh-desktop-titlebar .bar-api-status.checking .bar-api-dot{background:#4d9fff;box-shadow:0 0 0 3px rgba(77,159,255,0.18);}' +
-    '#dsh-desktop-titlebar .bar-api-label,#dsh-desktop-titlebar .bar-load-label{color:var(--dsw-alias-label-secondary,#9aa3b5);}' +
+    '#dsh-desktop-titlebar .bar-load-label{color:var(--dsw-alias-label-secondary,#9aa3b5);}' +
     '#dsh-desktop-titlebar .bar-btn{' +
       'width:46px;border:0;margin:0;padding:0;display:flex;align-items:center;justify-content:center;' +
       'background:transparent;color:inherit;cursor:pointer;' +
@@ -102,18 +89,6 @@
   }
   bar.appendChild(drag);
 
-  var apiStatus = document.createElement('div');
-  apiStatus.className = 'bar-api-status checking';
-  apiStatus.setAttribute('role', 'status');
-  apiStatus.setAttribute('aria-live', 'polite');
-  var apiDot = document.createElement('span');
-  apiDot.className = 'bar-api-dot';
-  apiDot.setAttribute('aria-hidden', 'true');
-  var apiLabel = document.createElement('span');
-  apiLabel.className = 'bar-api-label';
-  apiStatus.append(apiDot, apiLabel);
-  bar.appendChild(apiStatus);
-
   var load = document.createElement('div');
   load.className = 'bar-load';
   load.setAttribute('role', 'status');
@@ -125,29 +100,6 @@
   load.append(loadEmoji, loadLabel);
   bar.appendChild(load);
 
-  var balanceEverShown = false;
-
-  var balance = document.createElement('button');
-  balance.type = 'button';
-  balance.className = 'bar-balance';
-  balance.hidden = true;
-  balance.title = '刷新余额';
-  balance.setAttribute('aria-label', '刷新余额');
-  balance.innerHTML = '' +
-    '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">' +
-      '<circle cx="6" cy="6" r="4.75" stroke="currentColor" stroke-width="1"/>' +
-      '<circle cx="6" cy="6" r="1.75" fill="currentColor"/>' +
-    '</svg>' +
-    '<span class="bar-balance-value">--</span>';
-  bar.appendChild(balance);
-
-  var CURRENCY_SYMBOLS = { CNY: '¥', USD: '$', EUR: '€', GBP: '£' };
-  var apiLabels = {
-    checking: ['检查余额', 'Checking balance'],
-    connected: ['余额已连接', 'Balance connected'],
-    unavailable: ['余额不可用', 'Balance unavailable'],
-    unconfigured: ['未配置余额凭据', 'Balance credentials unconfigured']
-  };
   var loadLabels = {
     unknown: ['负载未知', 'Workload unknown'],
     calm: ['负载平稳', 'Workload calm'],
@@ -157,19 +109,9 @@
   };
   var loadEmojiByTier = { unknown: '▫️', calm: '🌿', active: '⚡', busy: '🔥', saturated: '🟥' };
   var isZh = (document.documentElement.lang || '').toLowerCase().indexOf('zh') === 0;
-  var activeApiState = 'checking';
   var activeWorkloadTier = 'unknown';
-  var balanceLabels = ['刷新余额', 'Refresh balance'];
 
   function localized(pair) { return isZh ? pair[0] : pair[1]; }
-
-  function applyApiState(state) {
-    if (!apiLabels[state]) state = 'unavailable';
-    activeApiState = state;
-    apiStatus.className = 'bar-api-status ' + state;
-    apiLabel.textContent = localized(apiLabels[state]);
-    apiStatus.setAttribute('aria-label', localized(apiLabels[state]));
-  }
 
   function applyWorkload(data) {
     var tier = data && typeof data.tier === 'string' && loadLabels[data.tier] ? data.tier : 'unknown';
@@ -184,10 +126,7 @@
   // title-bar copy in step with that authoritative document attribute.
   function syncLocale() {
     isZh = (document.documentElement.lang || '').toLowerCase().indexOf('zh') === 0;
-    applyApiState(activeApiState);
     applyWorkload({ tier: activeWorkloadTier });
-    balance.title = localized(balanceLabels);
-    balance.setAttribute('aria-label', localized(balanceLabels));
   }
 
   if (typeof MutationObserver === 'function') {
@@ -197,50 +136,6 @@
     });
   }
   syncLocale();
-
-  function formatBalance(currency, total) {
-    var symbol = CURRENCY_SYMBOLS[currency] || (currency + ' ');
-    return symbol + total;
-  }
-
-  // The account controller lives in bridge-client (DesktopAccountSummary.ts):
-  // it subscribes to the active session's model selection, requests the
-  // provider-bound /dsh-bridge/account-summary route, and pushes each result
-  // here through this stable window event. This script keeps only the mount
-  // point and the click-to-refresh signal.
-  var ACCOUNT_EVENT = 'dsh://account-summary';
-  var ACCOUNT_REFRESH_REQUEST = 'dsh://account-summary-refresh';
-
-  function applyBalance(data) {
-    var state = data && typeof data.state === 'string' ? data.state : 'unavailable';
-    applyApiState(state);
-    if (data && state === 'available' && typeof data.amount === 'string') {
-      balanceEverShown = true;
-      balance.querySelector('.bar-balance-value').textContent =
-        formatBalance(data.currency, data.amount);
-      balance.hidden = false;
-    } else if (!balanceEverShown) {
-      balance.hidden = true;
-    }
-  }
-
-  // The controller also marks in-flight fetches through this event so the
-  // control reflects checking state without duplicating the request logic.
-  window.addEventListener(ACCOUNT_EVENT, function (event) {
-    var detail = event && event.detail ? event.detail : null;
-    if (detail && detail.state === 'checking') {
-      balance.disabled = true;
-      balance.setAttribute('aria-busy', 'true');
-      applyApiState('checking');
-      return;
-    }
-    balance.disabled = false;
-    balance.removeAttribute('aria-busy');
-    applyBalance(detail);
-  });
-  balance.addEventListener('click', function () {
-    window.dispatchEvent(new CustomEvent(ACCOUNT_REFRESH_REQUEST));
-  });
 
   function refreshWorkload() {
     try {
@@ -253,7 +148,6 @@
       applyWorkload(null);
     }
   }
-  applyApiState('checking');
   applyWorkload(null);
   refreshWorkload();
   setInterval(refreshWorkload, 2000);

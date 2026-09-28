@@ -1,7 +1,6 @@
 import { BridgeCloseRow } from './BridgeCloseRow.tsx'
-import { bridgeFetch, readBridgeConfig } from './bridge-fetch.ts'
+import { readBridgeConfig } from './bridge-fetch.ts'
 import { installWorkspaceTracking } from './DesktopWorkspaceTracking.ts'
-import { mountAccountController } from './DesktopAccountSummary.ts'
 import { buildMenuItems, classifyTarget, copyFromComposer, copySelection, cutFromComposer, pasteIntoComposer } from './DesktopContextMenu.ts'
 import type { ContextMenuLabels } from './DesktopContextMenu.ts'
 import { openContextMenu } from './DesktopContextMenuPortal.ts'
@@ -643,34 +642,6 @@ export function apply(ctx: BridgeClientContext): () => void {
   document.addEventListener('pointercancel', onWorktreePointerUp, true)
   const disposeExternalLinks = installExternalLinkPolicy()
   const offSessionNavigation = ctx.sessions.list.subscribe(closeActiveContextMenu)
-  // Title-bar account: subscribe to the active session and request the
-  // provider-bound account summary through the Host. The Host resolves the
-  // authoritative provider; the browser supplies only the session id (the
-  // provider id is best-effort and never trusted).
-  let disposeAccount: (() => void) | undefined
-  try {
-    disposeAccount = mountAccountController({
-      sessions: {
-        list: {
-          getSnapshot: () => {
-            const catalog = ctx.sessions.list.getSnapshot()
-            const trackedSession = workspaceTracking.getSnapshot().sessionId
-            if (trackedSession === undefined) return catalog
-            return {
-              ids: [trackedSession, ...catalog.ids.filter(id => id !== trackedSession)],
-              byId: { ...catalog.byId, [trackedSession]: { ...catalog.byId[trackedSession], updatedAt: Number.MAX_SAFE_INTEGER } },
-            }
-          },
-          subscribe: ctx.sessions.list.subscribe,
-        },
-      },
-      model: { getCurrentProvider: () => undefined },
-      fetch: (url, init) => bridgeFetch(url, init),
-      signal: () => new AbortController().signal,
-    })
-  } catch (err) {
-    console.warn('[dsh-desktop] account controller failed to mount', err)
-  }
   return () => {
     bound = false
     disposed = true
@@ -691,7 +662,6 @@ export function apply(ctx: BridgeClientContext): () => void {
     document.removeEventListener('pointercancel', onWorktreePointerUp, true)
     disposeExternalLinks()
     offSessionNavigation()
-    disposeAccount?.()
     closeActiveContextMenu()
     contextMenuLabels = { cut: 'Cut', copy: 'Copy', paste: 'Paste', inspect: 'Inspect' }
     activeWorktreePointerDrag = null

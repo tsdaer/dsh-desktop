@@ -7,18 +7,12 @@
 // - POST /dsh-bridge/policy — persist desktop settings through the runtime's
 //   settings seam (the dsh configuration boundary refuses browser writes to
 //   non-listed namespaces, so saves go through this route).
-// - GET /dsh-bridge/account-summary — resolve the authoritative model
-//   selection for the active session and query the selected provider's
-//   account summary through its adapter. The provider and credential never
-//   come from the browser.
 // - GET /dsh-bridge/wsl/detect — detect WSL 2 readiness (typed snapshot).
 // - POST /dsh-bridge/wsl/probe — probe one WSL 2 distribution for command
 //   execution.
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
-import type { SessionId } from '@deepseek-ai/dsh-session'
 import z from '@deepseek-ai/schemastery'
-import { resolveAccountSummary } from './account-summary.ts'
 import { detectWsl, probeDistribution } from './wsl.ts'
 import type { SettingsNamespace } from '@deepseek-ai/dsh-settings'
 import type {} from '@deepseek-ai/dsh-host-webserver'
@@ -264,15 +258,6 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
     })
     return
   }
-  if (pathname === '/dsh-bridge/account-summary') {
-    if (req.method !== 'GET') {
-      res.statusCode = 405
-      res.end()
-      return
-    }
-    await handleAccountSummary(req, res, ctx)
-    return
-  }
   if (pathname === '/dsh-bridge/wsl/detect') {
     if (req.method !== 'GET') {
       res.statusCode = 405
@@ -361,28 +346,6 @@ async function handle(req: IncomingMessage, res: ServerResponse, ctx: Context, c
     return
   }
   json(res, 404, { error: 'not found' })
-}
-
-/**
- * Serve GET /dsh-bridge/account-summary: resolve the authoritative model
- * selection for the active session, then query the selected provider
- * adapter for its account summary.
- *
- * Query parameters: sessionId (current session), providerId (browser view
- * of the selected provider), generation (browser-side selection counter
- * echoed back so an older fetch cannot overwrite a newer selection).
- */
-async function handleAccountSummary(req: IncomingMessage, res: ServerResponse, ctx: Context): Promise<void> {
-  const url = new URL(req.url ?? '/', 'http://localhost')
-  const sessionId = url.searchParams.get('sessionId') ?? ''
-  const requestedProvider = url.searchParams.get('providerId') ?? ''
-  const generation = url.searchParams.get('generation') ?? ''
-  if (sessionId.length === 0 || generation.length === 0) {
-    json(res, 400, { error: 'sessionId and generation are required' })
-    return
-  }
-  const body = await resolveAccountSummary(ctx, sessionId as SessionId, requestedProvider, generation)
-  json(res, 200, body)
 }
 
 

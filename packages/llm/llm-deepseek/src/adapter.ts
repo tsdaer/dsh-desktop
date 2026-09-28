@@ -1,7 +1,7 @@
 /** Direct Messages transport with one cancellable lifecycle per model request. */
 
 import { attributionHeaders, LlmAdapter, LlmError } from '@deepseek-ai/dsh-llm'
-import type { AccountSummary, GenerateOptions, ImageAttachmentAccessResolver, PreparedAdapterCall, StreamChunk } from '@deepseek-ai/dsh-llm'
+import type { GenerateOptions, ImageAttachmentAccessResolver, PreparedAdapterCall, StreamChunk } from '@deepseek-ai/dsh-llm'
 import type { DeepSeekLlmApiJson } from '@deepseek-ai/dsh-deepseek-llm-api-extensions'
 import { idleWatchdog, timeoutOf } from '@deepseek-ai/dsh-timeout'
 import { modelInfo } from './model-info.ts'
@@ -15,21 +15,6 @@ import { serialize } from './serialize.ts'
 import { parseSse } from './sse.ts'
 import { translate } from './translate.ts'
 import { providerError, providerErrorDetail } from './transport.ts'
-
-/** Timeout for the upstream DeepSeek account-balance request. */
-const ACCOUNT_SUMMARY_TIMEOUT_MS = 10_000
-
-/** One balance entry from the DeepSeek /user/balance response. */
-interface BalanceInfo {
-  currency: string
-  total_balance: string
-}
-
-function isBalanceInfo(value: unknown): value is BalanceInfo {
-  if (typeof value !== 'object' || value === null) return false
-  const info = value as Record<string, unknown>
-  return typeof info.currency === 'string' && typeof info.total_balance === 'string'
-}
 
 /** DeepSeek provider using Messages content and native thinking replay. */
 export class DeepSeekAdapter<C extends Connection = Connection> extends LlmAdapter {
@@ -48,40 +33,6 @@ export class DeepSeekAdapter<C extends Connection = Connection> extends LlmAdapt
   override providerRetryPolicy(_provider: string) { return this.dependencies.options().retryPolicy }
   override async listModels(provider: string) {
     return this.dependencies.discoverModels?.(provider) ?? []
-  }
-  override async accountSummary(provider: string, signal?: AbortSignal): Promise<AccountSummary> {
-    const connection = this.dependencies.options()
-    const base = connection.baseURL.replace(/\/+$/, '')
-    try {
-      const auth = await this.dependencies.resolveAuth(connection)
-      const response = await fetch(base + '/user/balance', {
-        headers: auth.headers,
-        signal: signal ?? AbortSignal.timeout(ACCOUNT_SUMMARY_TIMEOUT_MS),
-      })
-      if (!response.ok) {
-        const status = response.status
-        if (status === 401 || status === 403) {
-          return { provider, state: 'unconfigured' }
-        }
-        return { provider, state: 'unavailable' }
-      }
-      const body = await response.json() as { is_available?: unknown; balance_infos?: unknown }
-      const infos = Array.isArray(body.balance_infos) ? body.balance_infos : []
-      const first = infos.find(isBalanceInfo)
-      if (first === undefined) {
-        return { provider, state: 'unavailable' }
-      }
-      return {
-        provider,
-        state: 'available',
-        amount: first.total_balance,
-        currency: first.currency,
-      }
-    } catch {
-      // Every failure of the account probe is a transient unavailable: the
-      // title bar keeps the provider named and shows no stale amount.
-      return { provider, state: 'unavailable' }
-    }
   }
   override resolveModel(provider: string, model: string, _signal?: AbortSignal) {
     return Promise.resolve(modelInfo(this.dependencies.options(), provider, model))

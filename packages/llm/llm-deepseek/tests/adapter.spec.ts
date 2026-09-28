@@ -5,8 +5,6 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { once } from 'node:events'
-import { createServer } from 'node:http'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context, LoggerLevel, Service } from '@deepseek-ai/cordis'
 import LocalAttachments from '@deepseek-ai/dsh-attachment-local'
@@ -606,66 +604,4 @@ it.each([
   vi.stubGlobal('fetch', request)
   await assemble(ctx.llm.stream(options({ provider: expected === 'account-token' ? 'deepseek-account' : 'deepseek-official' })))
   expect(request).toHaveBeenCalledOnce()
-})
-
-describe('accountSummary', () => {
-  /** One loopback server answering the balance probe with a scripted response. */
-  async function balanceServer(reply: (request: import('node:http').IncomingMessage, response: import('node:http').ServerResponse) => void) {
-    const http = createServer((request, response) => { reply(request, response) })
-    http.listen(0, '127.0.0.1')
-    await once(http, 'listening')
-    const address = http.address()
-    if (address === null || typeof address === 'string') throw new Error('missing loopback port')
-    cleanup.push(() => new Promise<void>((resolve, reject) => http.close((error) => { if (error) reject(error); else resolve() })))
-    return `http://127.0.0.1:${address.port}`
-  }
-
-  it('reports available with amount and currency from /user/balance', async () => {
-    let auth: string | readonly string[] | undefined
-    const url = await balanceServer((request, response) => {
-      auth = request.headers['x-api-key']
-      response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({
-        is_available: true,
-        balance_infos: [{ currency: 'CNY', total_balance: '42.50' }],
-      }))
-    })
-    await expect(adapter({ baseURL: url }).accountSummary('deepseek-official')).resolves.toEqual({
-      provider: 'deepseek-official',
-      state: 'available',
-      amount: '42.50',
-      currency: 'CNY',
-    })
-    expect(auth).toBe('test-key')
-  })
-
-  it('reports unconfigured on a 401 from the balance endpoint', async () => {
-    const url = await balanceServer((_request, response) => response.writeHead(401, { 'content-type': 'application/json' }).end('{}'))
-    await expect(adapter({ baseURL: url }).accountSummary('deepseek-official')).resolves.toEqual({
-      provider: 'deepseek-official',
-      state: 'unconfigured',
-    })
-  })
-
-  it('reports unavailable on a provider error', async () => {
-    const url = await balanceServer((_request, response) => response.writeHead(500, { 'content-type': 'application/json' }).end('{}'))
-    await expect(adapter({ baseURL: url }).accountSummary('deepseek-official')).resolves.toEqual({
-      provider: 'deepseek-official',
-      state: 'unavailable',
-    })
-  })
-
-  it('reports unavailable when the balance response lacks balance_infos', async () => {
-    const url = await balanceServer((_request, response) => response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ is_available: true })))
-    await expect(adapter({ baseURL: url }).accountSummary('deepseek-official')).resolves.toEqual({
-      provider: 'deepseek-official',
-      state: 'unavailable',
-    })
-  })
-
-  it('reports unavailable on a network failure', async () => {
-    await expect(adapter({ baseURL: 'http://127.0.0.1:1' }).accountSummary('deepseek-official')).resolves.toEqual({
-      provider: 'deepseek-official',
-      state: 'unavailable',
-    })
-  })
 })

@@ -1,6 +1,7 @@
 # Agent Note: Desktop title bar shows the app version and the DeepSeek balance
 
 Status: implemented
+Archived: 2026-09-28
 
 [English](2026-08-16-desktop-titlebar-version-and-balance.md) | 中文
 
