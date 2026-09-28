@@ -2,6 +2,12 @@
 
 All notable changes to dsh-desktop are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The draft-release workflow copies the matching version's section into its GitHub release notes.
 
+## [0.5.17] - 2026-09-29
+
+### Fixed
+
+- Release builds no longer fail on a clean checkout: the root workspace build chained the retired Electron desktop bundling step, which ran before the web frontend was built and aborted the step that bakes the packaged runtime. The workspace build now stops at the library passes, and the installers are packaged by the dedicated target-specific desktop bundle step as before.
+
 ## [0.5.16] - 2026-09-28
 
 ### Changed

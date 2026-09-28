@@ -2,6 +2,12 @@
 
 dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循[语义化版本](https://semver.org/spec/v2.0.0.html)。draft-release workflow 会把对应版本的章节复制到 GitHub release 的 notes 里。
 
+## [0.5.17] - 2026-09-29
+
+### 修复
+
+- 发布构建不再在干净检出上失败：根工作区构建串联了已退役的 Electron 桌面打包步骤，该步骤在前端尚未构建时运行，导致烘焙打包运行时的环节中断。工作区构建现在止于各 library 阶段，安装器照旧由专用的面向目标的桌面 bundle 步骤打包。
+
 ## [0.5.16] - 2026-09-28
 
 ### 变更
