@@ -2,6 +2,18 @@
 
 dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循[语义化版本](https://semver.org/spec/v2.0.0.html)。draft-release workflow 会把对应版本的章节复制到 GitHub release 的 notes 里。
 
+## [0.5.16] - 2026-09-28
+
+### 变更
+
+- 合并上游 harness master 至 dsh 0.1.7-rc.2（2118 个提交），托管 web profile 从 dsh 0.1.6-alpha.2 前进。本次合并带来由 profile YAML 声明的声明式 Agent 预设、带设置页的快捷键框架、支持 live volatile 配置字段的新版 Settings 服务、shell/agent-loop/subagent/web-search 设置页、文档预览侧栏、账户与任务控制器、按分节键组织的双语配对记录，以及最新的客户端、模型与 shell 修复。桌面保留自有的发布与更新验收工作流、带认证的回环桥接、带工作区跟随的 Worktree 控制、WSL Bash 集成与桌面设置。
+
+### 修复
+
+- 点击不同工作区时"项目文件"树立即切换到对应目录：通过上游工作区服务的导航会在点击时被捕获，面板从跟踪的选择推导工作区，不再依赖已被移除的会话列表 `current` 字段。
+- WSL Bash 工具在新版 Settings 服务下恢复加载：其启用状态通过桥接发布的快照到达挂载在预设中的工具，桌面卡片的写入落在配置编辑器可寻址的桥接条目上。
+- 移除标题栏余额显示及其桥接路由与控制器；标题栏保留版本徽章与负载指示。
+
 ## [0.5.15] - 2026-09-20
 
 ### 修复

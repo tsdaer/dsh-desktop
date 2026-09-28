@@ -2,6 +2,18 @@
 
 All notable changes to dsh-desktop are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The draft-release workflow copies the matching version's section into its GitHub release notes.
 
+## [0.5.16] - 2026-09-28
+
+### Changed
+
+- Integrated upstream harness master through dsh 0.1.7-rc.2 (2118 commits), advancing the hosted web profile from dsh 0.1.6-alpha.2. The merge carries declarative Agent presets composed from profile YAML, the shortcuts framework with its settings page, the reworked Settings service with live volatile config fields, the settings-shell/agent-loop/subagent/web-search pages, document-preview sidebar, account and job controllers, the section-keyed bilingual pairing records, and the latest client, model, and shell fixes. The desktop retains its fork-owned release and update-acceptance workflows, authenticated loopback bridge, Worktree controls with workspace tracking, WSL Bash integration, and desktop settings.
+
+### Fixed
+
+- Clicking a different workspace now switches the project-files tree to that workspace immediately: navigation through the upstream workspace service is captured at click time, and the panels derive their workspace from the tracked selection instead of the removed sessions-list `current` field.
+- The WSL Bash tool loads again under the reworked Settings service: its enablement now reaches the preset-mounted tool through the bridge's published snapshot instead of the retired settings registry, and the desktop card's writes land on the bridge entry the configuration editor addresses.
+- The title-bar balance display is removed along with its bridge route and controller; the title bar keeps the version badge and the workload tier.
+
 ## [0.5.15] - 2026-09-20
 
 ### Fixed
