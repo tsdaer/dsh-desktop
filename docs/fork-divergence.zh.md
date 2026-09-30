@@ -43,7 +43,7 @@
 | [`scripts/gen-tool-catalog.ts`](../scripts/gen-tool-catalog.ts) | 把本 fork 的 `bash-wsl` 工具加入待编目集合，使生成的 [`docs/tool-catalog.md`](tool-catalog.zh.md) 与英文版带有该行与章节 |
 | [`scripts/desktop-release-workflow.spec.ts`](../scripts/desktop-release-workflow.spec.ts) | 新增，用于固定本 fork 自有的发布工作流 |
 | [`scripts/verify-concrete-terms.ts`](../scripts/verify-concrete-terms.ts)、[`scripts/translation-pairing.ts`](../scripts/translation-pairing.ts) | 把本 fork 录制的 Web 快照 fixture 豁免出禁用词扫描（JSONL 携带会话格式自身的字段名），并把桌面构建产物目录排除出双语配对语料，两者均来自上游 0.1.7 的门禁重构 |
-| [`packages/shell/tool-pwsh-persistent/README.zh.md`](../packages/shell/tool-pwsh-persistent/README.zh.md) | 删除指向已清空冻结档案的链接（pwsh 持久 PTY note）；每次同步接受上游 README 改写后都会重新施加该删除 |
+| [`packages/shell/tool-pwsh-persistent/README.zh.md`](../packages/shell/tool-pwsh-persistent/README.zh.md)、保留的 [`.agents/notes/`](../.agents/notes/) 三件套 | 从 README 改写和保留的 notes 中删除指向已清空冻结档案的链接（例如 pwsh 持久 PTY note）；每次同步接受上游内容后都会重新施加该删除 |
 
 
 ## 构建与 CI 配置

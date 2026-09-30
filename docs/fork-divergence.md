@@ -43,7 +43,7 @@ The [root standing orders](../AGENTS.md) carry the obligation, and [the README](
 | [`scripts/gen-tool-catalog.ts`](../scripts/gen-tool-catalog.ts) | Adds the fork's `bash-wsl` tool to the catalogued set, so the generated [`docs/tool-catalog.md`](tool-catalog.md) and its Chinese counterpart carry that row and section |
 | [`scripts/desktop-release-workflow.spec.ts`](../scripts/desktop-release-workflow.spec.ts) | Added to pin the release workflow this fork owns |
 | [`scripts/verify-concrete-terms.ts`](../scripts/verify-concrete-terms.ts), [`scripts/translation-pairing.ts`](../scripts/translation-pairing.ts) | Exempt the fork's recorded Web snapshot fixtures from the banned-term scan (the JSONL carries the session format's own field names) and the desktop build-output trees from the bilingual pairing corpus, both introduced by upstream's 0.1.7 gate rework |
-| [`packages/shell/tool-pwsh-persistent/README.md`](../packages/shell/tool-pwsh-persistent/README.md) | Strips the links into the emptied frozen archive (the pwsh persistent PTY note); the strip is re-applied whenever a sync takes upstream's README rewrite back |
+| [`packages/shell/tool-pwsh-persistent/README.md`](../packages/shell/tool-pwsh-persistent/README.md), kept [`.agents/notes/`](../.agents/notes/) triplets | Strips links into the emptied frozen archive (for example the pwsh persistent PTY note) from README rewrites and kept notes; the strip is re-applied whenever a sync takes upstream's content back |
 
 
 ## Build and CI configuration

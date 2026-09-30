@@ -14,7 +14,7 @@ Status: implemented
 
 ## 曾考虑的替代方案
 
-**`describe` 级 `{ timeout: 90_000 }`。** 拒绝：用例级取值已经约束 7 个用例并且优先于 `describe` 级取值，因此套件级数字只会作用于其余 7 个用例，包括两个不 spawn 的纯配置用例，而且文件会同时带两种预算风格。用例级取值保持一种风格，每个用例的上限只在一处可读，不 spawn 的用例保持默认值。两种形式都覆盖通道的 `--testTimeout` 而不是让位于它（#2677）。已归档的 [translation-pairing-merge](../../archived/testing/2026-08-27-translation-pairing-merge-budget.md) 与 [Lefthook 预算](../../archived/testing/2026-08-29-windows-lane-hook-and-lefthook-budget.md)两篇 Note 为用例本身不带常量的文件选择了 `describe` 形式，理由是之后新增而未带余量的用例会继承默认值；本文件已经带有用例级常量，因此这里接受该风险并在「后果」中点名。
+**`describe` 级 `{ timeout: 90_000 }`。** 拒绝：用例级取值已经约束 7 个用例并且优先于 `describe` 级取值，因此套件级数字只会作用于其余 7 个用例，包括两个不 spawn 的纯配置用例，而且文件会同时带两种预算风格。用例级取值保持一种风格，每个用例的上限只在一处可读，不 spawn 的用例保持默认值。两种形式都覆盖通道的 `--testTimeout` 而不是让位于它（#2677）。已归档的 translation-pairing-merge 与 Lefthook 预算两篇 Note 为用例本身不带常量的文件选择了 `describe` 形式，理由是之后新增而未带余量的用例会继承默认值；本文件已经带有用例级常量，因此这里接受该风险并在「后果」中点名。
 
 **给 darwin parity job 传入 `--testTimeout 90000`，让用例继承通道预算**，这是[子代理清理预算](2026-09-07-subagent-teardown-test-budgets.zh.md)一篇对进程创建受限套件偏好的形式。拒绝：成本来自本文件自身的 tsx 引导加两次 oxlint 运行，不是 darwin 的属性，因此开发者直接运行的 `pnpm run test` 仍会停留在默认值；parity job 的存在意义就是运行与开发者相同的命令；而且 7 个用例已带常量，通道旗标会把本文件的预算拆到两个来源。
 
