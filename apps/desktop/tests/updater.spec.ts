@@ -35,11 +35,31 @@ async function settle(): Promise<void> {
 }
 
 beforeEach(() => {
-  document.body.innerHTML = '<div id="dsh-desktop-titlebar"><button class="bar-balance"></button></div>'
+  document.body.innerHTML =
+    '<div id="dsh-desktop-titlebar">' +
+    '<div class="bar-drag"></div>' +
+    '<div class="bar-load"></div>' +
+    '<button class="bar-btn min"></button>' +
+    '<button class="bar-btn max"></button>' +
+    '<button class="bar-btn close"></button>' +
+    '</div>'
   vi.useFakeTimers()
 })
 
 describe('desktop updater states', () => {
+  it('mounts the control left of the window-control buttons', () => {
+    const dispose = mountDesktopUpdater(labels, {
+      check: async () => null,
+      download: async () => {},
+      install: async () => {},
+    })
+    const bar = document.getElementById('dsh-desktop-titlebar') as HTMLElement
+    const button = document.getElementById('dsh-desktop-updater') as HTMLElement
+    expect(button.previousElementSibling).toBe(bar.querySelector('.bar-load'))
+    expect(button.nextElementSibling).toBe(bar.querySelector('.bar-btn.min'))
+    dispose()
+  })
+
   it('renders explicit no-update, available, progress, and install-ready states', () => {
     expect(desktopUpdateLabel({ kind: 'up-to-date' }, labels)).toBe('up to date')
     expect(desktopUpdateLabel({ kind: 'available', version: '0.3.1' }, labels)).toBe('available 0.3.1')

@@ -10,7 +10,6 @@
 
 - [x] 跟随应用主题的原生标题栏
 - [x] 随应用打包的 Node.js sidecar
-- [x] 标题栏余额显示
 - [x] 资源管理器右键菜单“以 dsh-desktop 打开”
 - [x] 可配置的关闭行为:直接退出或保留在系统托盘
 - [x] 原生文件与文件夹拖放
@@ -23,7 +22,6 @@
 - [x] 整文件 Source Control 写入:暂存、撤销暂存、丢弃(带点名文件的确认)、限定所选工作区的提交(带提交信息)以及复用共享差异呈现的 diff 查看
 - [x] Explorer 行与搜索结果的只读文件预览,通过专用 Tauri 窗口支持经过清理的 Markdown 和高亮代码,并在浏览器中提供 pane 内回退
 - [x] 在每条普通用户消息和助手消息旁提供视觉一致的复制操作
-- [x] 在余额旁显示 API 连接状态,并支持点击刷新余额
 - [x] 自动检查本仓库的 GitHub Releases,并安装可用更新
 - [x] 启动界面、窗口、托盘和安装器共用同一套黑色应用图标
 - [x] 在标题栏用带无障碍文本的 emoji 显示本地应用负载
@@ -31,7 +29,6 @@
 计划在 0.4.0 交付:
 
 - [x] 完整拥有桌面运行时进程树(Windows Job Object / POSIX 进程组),所有退出路径都汇入一个幂等的 terminate_and_join
-- [x] 跟随活跃会话模型选择的提供方绑定标题栏账户摘要
 - [x] 桌面拥有的右键菜单(处处 Copy;对话 composer 内 Cut/Copy/Paste)
 - [x] 桌面设置中的 WSL 2 发现,以及 Windows 上可选的 Bash 执行世界
 
@@ -106,13 +103,13 @@ main.rs 的环境变量接线:DSH_CLI/DSH_NODE/DSH_BARE_MODULE_BASE/DSH_BRIDGE_T
 
 ## 自定义标题栏
 
-窗口是无边框的;标题栏是一个注入的元素,其源码是 apps/desktop/src/titlebar.js —— 加载页通过 script 标签加载,主 webview 每次页面完成加载后都会重新注入(main.rs 用 include_str! 内嵌该文件,脚本本身幂等)。API、负载和余额文案跟随实时的 `<html lang>` 值,因此异步解析语言偏好不会让桌面 chrome 停留在旧语言。
+窗口是无边框的;标题栏是一个注入的元素,其源码是 apps/desktop/src/titlebar.js —— 加载页通过 script 标签加载,主 webview 每次页面完成加载后都会重新注入(main.rs 用 include_str! 内嵌该文件,脚本本身幂等)。负载文案跟随实时的 `<html lang>` 值,因此异步解析语言偏好不会让桌面 chrome 停留在旧语言。
 
 主题跟随:标题栏消费 ui-theme 写在 <body> 上的 dsh 主题 token —— 背景取 sidebar-fill token(--dsw-specific-sidebar-fill,ui-theme 文档化为标题行背景),其余取 --dsw-alias-* 集合;在 dsh 设置里切换主题(或系统深色模式)会自动重绘标题栏,壳子侧无状态。窗口控制走 remote 能力(capabilities/remote.json,URLPattern `http://127.0.0.1:*`);拖动用 startDragging();双击拖拽条像按钮一样切换最大化(若以其它方式进入全屏,拖动前会先恢复)。
 
 标题左侧、应用标题旁边显示版本徽标:main.rs 在 eval 脚本前先写入 `window.__DSH_DESKTOP_VERSION__` 全局变量(取值来自 tauri.conf.json 的版本号,由 package.json 同步而来),因此徽标始终显示打包应用版本;加载页没有该全局变量,只渲染标题本身。
 
-标题右侧(窗口控制按钮之前)显示 DeepSeek 余额查询状态、本地应用负载和 DeepSeek 账户余额。余额查询状态为 `checking`、`connected`、`unavailable` 或 `unconfigured`,不表示所选聊天模型是否可用;桥接 host 从凭据安全的 `/dsh-bridge/balance` 请求派生状态,API key 永不进入浏览器。余额控件支持点击刷新,会去重进行中的请求,向辅助技术暴露 `aria-busy`,每 5 分钟轮询一次并在窗口可见时刷新;首次成功读取前保持隐藏,刷新失败时保留上次金额。原生 `runtime_status` 命令以低频率采样桌面进程及其管理的运行时子进程,只返回 `unknown`、`calm`、`active`、`busy` 或 `saturated`;非对称阈值与四秒最短停留时间避免快速变化。emoji 带本地化文本标签,采样不可用时显示中性状态。更新器会在 `locale/change` 后重建,因此状态和确认文案也跟随同一语言偏好。
+标题右侧(窗口控制按钮之前)显示本地应用负载。原生 `runtime_status` 命令以低频率采样桌面进程及其管理的运行时子进程,只返回 `unknown`、`calm`、`active`、`busy` 或 `saturated`;非对称阈值与四秒最短停留时间避免快速变化。emoji 带本地化文本标签,采样不可用时显示中性状态。主页面启动后,更新控件挂载在负载与窗口控制按钮之间——最小化按钮左侧——并在 `locale/change` 后重建,因此状态和确认文案也跟随同一语言偏好。
 
 启动界面与打包图标系列共用 `apps/desktop/src/icon.svg` 中的黑色透明源资产。`scripts/gen-icons.mjs` 生成 16、32、48、256 和 512 像素的 PNG 资产,启动界面在浅色中性承托形状上显示该 SVG 以保持对比度。
 
@@ -156,7 +153,6 @@ OS 文件拖放由壳子经 Tauri 的拖放处理器接管(`onDragDropEvent`,默
 
 - `GET /config` —— 生效的桌面设置(关闭到托盘、调试模式、新会话 Logo 动效),按请求读取,设置页保存后立即生效。
 - `POST /policy` —— 通过运行时的设置接缝($DSH_HOME/settings.yaml)持久化桌面设置。dsh 配置边界拒绝浏览器写入未列出的命名空间,因此设置行经此路由保存,而不是走 client 的 settingsScope。
-- `GET /balance` —— 标题栏余额药丸:经凭据服务解析 DeepSeek key 并代理官方 /user/balance 接口(见“自定义标题栏”)。
 - `GET /worktree/explorer` —— 为已注册 Workspace 列出一层有界目录；请求只接受 Workspace id 和 Workspace-relative path，响应明确标记截断以及解析后越出 Workspace 的路径。
 - `GET /worktree/file` —— 为已注册 Workspace 读取一个有界文件；响应为严格 UTF-8 并带显式截断标志，二进制或非 UTF-8 内容以稳定错误拒绝。Tauri 预览窗口和浏览器回退都使用此 route；预览页面通过受限 shell command 获取 loopback bearer token。
 

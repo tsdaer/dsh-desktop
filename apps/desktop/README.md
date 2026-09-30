@@ -10,7 +10,6 @@ Delivered:
 
 - [x] A native title bar that follows the application theme
 - [x] A bundled Node.js sidecar
-- [x] Balance display in the title bar
 - [x] An Explorer **Open with dsh-desktop** context-menu action
 - [x] Configurable close behavior: exit immediately or remain in the system tray
 - [x] Native file and folder drag-and-drop
@@ -23,7 +22,6 @@ Planned for 0.3.0:
 - [x] Whole-file Source Control writes: stage, unstage, discard (with a file-naming confirmation), commit with a message confined to the selected Workspace, and diff viewing through the shared diff presentation
 - [x] A read-only file preview for Explorer rows and Search results, using a dedicated Tauri window with sanitized Markdown and highlighted code, plus an in-pane browser fallback
 - [x] A visually consistent copy action beside every ordinary user and assistant message
-- [x] API connection status beside the balance, with click-to-refresh balance updates
 - [x] Automatic update checks against this repository's GitHub Releases, with installation of available updates
 - [x] One black application icon shared by the splash screen, window, tray, and installer
 - [x] An accessible title-bar emoji that reports local application workload
@@ -31,7 +29,6 @@ Planned for 0.3.0:
 Planned for 0.4.0:
 
 - [x] Complete ownership of the desktop runtime process tree (Windows Job Object / POSIX process group), with every exit path through one idempotent terminate_and_join
-- [x] A provider-bound title-bar account summary that follows the active session's model selection
 - [x] A desktop-owned context menu (Copy everywhere; Cut/Copy/Paste in the conversation composer)
 - [x] WSL 2 discovery in Desktop settings with an optional Bash execution world on Windows
 
@@ -106,13 +103,13 @@ The spawned runtime is contained by the shell's runtime supervisor (apps/desktop
 
 ## Custom title bar
 
-The window is frameless; the title bar is a single injected element whose source is apps/desktop/src/titlebar.js — loaded by the loading page via a script tag and re-injected into the main webview on every completed page load (main.rs embeds the file with include_str!, and the script is idempotent). Its API, workload, and balance labels follow the live `<html lang>` value, so an asynchronous locale preference cannot leave the chrome in a stale language.
+The window is frameless; the title bar is a single injected element whose source is apps/desktop/src/titlebar.js — loaded by the loading page via a script tag and re-injected into the main webview on every completed page load (main.rs embeds the file with include_str!, and the script is idempotent). Its workload labels follow the live `<html lang>` value, so an asynchronous locale preference cannot leave the chrome in a stale language.
 
 Theme following: the bar consumes the dsh theme tokens that ui-theme writes on <body> — background rides the sidebar-fill token (--dsw-specific-sidebar-fill, documented by ui-theme as the title-row background) and the rest ride the --dsw-alias-* set; switching the theme in the dsh settings (or the system dark mode) repaints the bar automatically with no shell-side state. Window controls run through the remote capability (capabilities/remote.json, URLPattern `http://127.0.0.1:*`); drag uses startDragging(); double-clicking the drag strip toggles maximize like the button (a fullscreen guard restores before dragging if fullscreen was entered another way).
 
 Left of the title, the bar shows a version badge next to the app title: main.rs prepends a `window.__DSH_DESKTOP_VERSION__` global before eval'ing the script (the value comes from tauri.conf.json's version, synced from package.json), so the badge always shows the packaged app version; the loading page has no global and renders the bare title.
 
-Right of the title (before the window controls), the bar shows DeepSeek balance-query state, local application workload, and the DeepSeek account balance. Balance-query state is `checking`, `connected`, `unavailable`, or `unconfigured`; it does not report whether the selected chat model is usable. The bridge host derives it from the credential-safe `/dsh-bridge/balance` request and never sends the API key to the browser. The balance control refreshes on click, deduplicates in-flight requests, exposes `aria-busy`, polls every 5 minutes, refreshes when the window becomes visible, stays hidden until the first successful read, and keeps the last good amount while a refresh fails. The native `runtime_status` command samples the desktop process and managed runtime descendants at a low frequency and returns only `unknown`, `calm`, `active`, `busy`, or `saturated`; asymmetric thresholds and a four-second minimum dwell prevent rapid changes. The emoji has a localized text label and renders a neutral state when sampling is unavailable. The updater control is rebuilt on `locale/change`, so its status and confirmation copy follow the same preference.
+Right of the title (before the window controls), the bar shows the local application workload. The native `runtime_status` command samples the desktop process and managed runtime descendants at a low frequency and returns only `unknown`, `calm`, `active`, `busy`, or `saturated`; asymmetric thresholds and a four-second minimum dwell prevent rapid changes. The emoji has a localized text label and renders a neutral state when sampling is unavailable. After the main page boots, the updater control mounts between the workload tier and the window controls — left of minimize — and is rebuilt on `locale/change`, so its status and confirmation copy follow the same preference.
 
 The splash screen and packaged icon family use the same black transparent source at `apps/desktop/src/icon.svg`. `scripts/gen-icons.mjs` emits 16, 32, 48, 256, and 512 pixel PNG-backed assets; the splash uses the SVG on a light neutral backing shape for contrast.
 
@@ -156,7 +153,6 @@ Bridge host routes (under /dsh-bridge):
 
 - `GET /config` — the effective desktop settings (close-to-tray, debug mode, and Logo hover motion), read per request so settings-page saves take effect immediately.
 - `POST /policy` — persist desktop settings through the runtime's settings seam ($DSH_HOME/settings.yaml). The dsh configuration boundary refuses browser writes to non-listed namespaces, so the settings rows save through this route instead of the client settingsScope.
-- `GET /balance` — the title bar's balance pill: resolves the DeepSeek key through the credentials service and proxies the official /user/balance endpoint (see "Custom title bar").
 - `GET /worktree/explorer` — lists one bounded directory level for a registered Workspace; the request accepts only a Workspace id and a Workspace-relative path, and the response marks truncation and paths resolved outside the Workspace.
 - `GET /worktree/file` — reads one bounded file for a registered Workspace; the response is strict UTF-8 with an explicit truncation flag, and binary or non-UTF-8 content is refused with a stable error. The Tauri preview window and browser fallback both use this route; the preview page supplies the loopback bearer token through its scoped shell command.
 

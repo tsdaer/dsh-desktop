@@ -93,9 +93,9 @@ function assertNever(value: never): never {
 }
 
 /**
- * Mount the post-boot updater check beside the title-bar balance control.
- * The control never downloads without confirmation and keeps failures local
- * to the desktop chrome.
+ * Mount the post-boot updater check left of the title-bar window-control
+ * buttons. The control never downloads without confirmation and keeps
+ * failures local to the desktop chrome.
  *
  * @param labels - localized control labels and confirmation messages
  * @param adapter - updater implementation, replaceable by focused tests
@@ -133,9 +133,9 @@ export function mountDesktopUpdater(labels: DesktopUpdaterLabels, adapter: Deskt
     button.type = 'button'
     button.className = 'bar-updater'
     button.addEventListener('click', () => { void onClick() })
-    const balance = bar.querySelector('.bar-balance')
-    if (balance === null) bar.appendChild(button)
-    else bar.insertBefore(button, balance)
+    const firstControl = bar.querySelector('.bar-btn')
+    if (firstControl === null) bar.appendChild(button)
+    else bar.insertBefore(button, firstControl)
     render()
     return true
   }
