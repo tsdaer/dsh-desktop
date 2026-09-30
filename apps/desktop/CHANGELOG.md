@@ -2,6 +2,16 @@
 
 All notable changes to dsh-desktop are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The draft-release workflow copies the matching version's section into its GitHub release notes.
 
+## [0.5.18] - 2026-09-30
+
+### Changed
+
+- Integrated upstream harness master through dsh 0.2.0-rc.2 (293 commits), advancing the hosted web profile from dsh 0.1.7-rc.2. The merge carries the long-session rendering and whale-animation performance work, opening the workspace from the sidebar file tree, the reworked schedule reminder framing, the Windows ACL single-run repair skill, and the latest client, shell, and persistence fixes.
+
+### Fixed
+
+- The title-bar update control mounts left of the window-control buttons: the balance display it was previously positioned beside is gone, so the insertion anchor is now the first window-control button, with a focused test pinning the placement.
+
 ## [0.5.17] - 2026-09-29
 
 ### Fixed

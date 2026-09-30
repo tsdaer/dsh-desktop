@@ -2,6 +2,16 @@
 
 dsh-desktop 的所有重要变更都记录在本文件中。格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循[语义化版本](https://semver.org/spec/v2.0.0.html)。draft-release workflow 会把对应版本的章节复制到 GitHub release 的 notes 里。
 
+## [0.5.18] - 2026-09-30
+
+### 变更
+
+- 合入上游 harness master 至 dsh 0.2.0-rc.2（293 个提交），托管 web profile 从 dsh 0.1.7-rc.2 前进。本次合并带来长会话渲染与鲸鱼动画的性能优化、侧边栏文件树直接打开工作区、重做的计划提醒文案框架、Windows ACL 单次运行修复技能，以及最新的 client、shell 与持久化修复。
+
+### 修复
+
+- 标题栏的更新控件现在挂在窗口控制按钮左侧：原先作为定位锚点的余额显示已移除，插入锚点改为第一个窗口控制按钮，并有聚焦测试固定该位置。
+
 ## [0.5.17] - 2026-09-29
 
 ### 修复
